@@ -17,6 +17,16 @@ import { getThemeConfig } from "@sugarat/theme/node";
 
 // 所有配置项，详见文档: https://theme.sugarat.top/
 const blogTheme = getThemeConfig({
+  comment: {
+    repo: "hacxy/blog",
+    repoId: "R_kgDONKDzuw",
+    category: "Announcements",
+    categoryId: "DIC_kwDONKDzu84Cj_Jz",
+    mapping: "pathname",
+    inputPosition: "top",
+    lang: "zh-CN",
+    loading: "lazy",
+  },
   // 开启RSS支持
   // RSS,
 
