@@ -1,7 +1,7 @@
 <template>
   <div class="tags">
     <span @click="toggleTag(String(key))" v-for="(_, key) in data" class="tag">
-      {{ key }} <strong>{{ data[key].length }}</strong>
+      {{ key }} <strong>{{ data[key]?.length }}</strong>
     </span>
   </div>
   <div class="tag-header">{{ selectTag }}</div>
