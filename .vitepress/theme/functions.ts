@@ -11,7 +11,7 @@ type Post = {
 
 export function initTags(post: any[]) {
   const data: any = {}
-  for (let index = 0; index < post.length; index++) {
+  for (let index = 0; index < post?.length; index++) {
     const element = post[index]
     const tags = element.tags
     if (tags) {
@@ -30,7 +30,7 @@ export function initTags(post: any[]) {
 
 export function initCategory(post: Post[]) {
   const data: any = {}
-  for (let index = 0; index < post.length; index++) {
+  for (let index = 0; index < post?.length; index++) {
     const element = post[index]
     const category = element.frontMatter.category
     if (category) {
@@ -49,7 +49,7 @@ export function useYearSort(post: any[]) {
   const data = []
   let year = '0'
   let num = -1
-  for (let index = 0; index < post.length; index++) {
+  for (let index = 0; index < post?.length; index++) {
     const element = post[index]
     if (element.date) {
       const y = element.date.split('-')[0]
