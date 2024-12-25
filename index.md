@@ -1,7 +1,3 @@
 ---
-page: true
-title: home
-aside: false
+layout: blog
 ---
-
-<Page />

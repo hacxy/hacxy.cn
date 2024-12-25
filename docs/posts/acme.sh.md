@@ -2,10 +2,10 @@
 title: 快速上手acme.sh泛解析域名
 date: 2024-12-18
 tags:
-  - 服务器
+  - 域名
 ---
 
-# 快速上手acme.sh泛解析域名
+# 快速上手 acme.sh 泛解析域名
 
 ## 安装 [acme.sh](http://acme.sh/)
 
