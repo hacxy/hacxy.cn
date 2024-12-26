@@ -19,7 +19,7 @@ export default defineConfig({
         },
       },
     },
-    logo: "cat-typing.gif",
+    logo: "/cat-typing.gif",
     outline: {
       level: [2, 4],
       label: "目录",
