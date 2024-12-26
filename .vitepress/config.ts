@@ -2,11 +2,24 @@ import { defineConfig } from "vitepress";
 import { defineThemeConfig } from "vitepress-theme-mild/config";
 
 export default defineConfig({
-  title: "Hacxy",
+  title: "Hacxy's blog",
   description: "Hacxy's blog",
   lastUpdated: true,
+  lang: "zh",
   extends: defineThemeConfig({}),
   themeConfig: {
+    search: {
+      provider: "local",
+      options: {
+        detailedView: true,
+        translations: {
+          button: {
+            buttonText: "搜索一下",
+          },
+        },
+      },
+    },
+    logo: "cat-typing.gif",
     outline: {
       level: [2, 4],
       label: "目录",
