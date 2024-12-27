@@ -7,6 +7,7 @@ export default defineConfig({
   lastUpdated: true,
   lang: "zh",
   extends: defineThemeConfig({}),
+  ignoreDeadLinks: true,
   themeConfig: {
     search: {
       provider: "local",
