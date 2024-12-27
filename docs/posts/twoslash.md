@@ -1,4 +1,5 @@
 ---
+date: 2024-12-18
 title: vitepress中typescript代码片段hover提示类型
 tags:
   - vitepress
