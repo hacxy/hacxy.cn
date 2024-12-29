@@ -12,8 +12,8 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2)
       vitepress-theme-mild:
-        specifier: 0.1.0-beta.1
-        version: 0.1.0-beta.1(@nuxt/kit@3.15.0(rollup@4.29.1))(rollup@4.29.1)(typescript@5.7.2)
+        specifier: 0.1.0
+        version: 0.1.0(@nuxt/kit@3.15.0(rollup@4.29.1))(rollup@4.29.1)(typescript@5.7.2)
 
 packages:
 
@@ -369,6 +369,12 @@ packages:
 
   '@juggle/resize-observer@3.4.0':
     resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
+
+  '@kwsites/file-exists@1.1.1':
+    resolution: {integrity: sha512-m9/5YGR18lIwxSFDwfE3oA7bWuq9kdau6ugN4H2rJeyhFQZcG9AgSHkQtSD15a8WvTgfz9aikZMrKPHvbpqFiw==}
+
+  '@kwsites/promise-deferred@1.1.1':
+    resolution: {integrity: sha512-GaHYm+c0O9MjZRu0ongGBRbinu8gVAMd2UZjji6jVmqKtZluZnptXGWhz1E8j8D2HJ3f/yMxKAUC0b+57wncIw==}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -1503,6 +1509,9 @@ packages:
     resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
     engines: {node: '>=14'}
 
+  simple-git@3.27.0:
+    resolution: {integrity: sha512-ivHoFS9Yi9GY49ogc6/YAi3Fl9ROnF4VyubNylgCkA+RVqLaKWnDSzXOVzya8csELIaWaYNutsEuAhZrtOjozA==}
+
   slash@5.1.0:
     resolution: {integrity: sha512-ZA6oR3T/pEyuqwMgAKT0/hAv8oAXckzbkmR0UkUosQ+Mc4RxGoJkRmwHgHufaenlyAgE1Mxgpdcrf75y6XcnDg==}
     engines: {node: '>=14.16'}
@@ -1685,8 +1694,8 @@ packages:
       terser:
         optional: true
 
-  vitepress-theme-mild@0.1.0-beta.1:
-    resolution: {integrity: sha512-bU2hWmtlBFk0e/viXePZytcF7/JkVBT4LBoVmkdkw4buwUESlMnWgE/MWR+/bTaVj0JVKMqZq34bNsI+xaI7Lw==}
+  vitepress-theme-mild@0.1.0:
+    resolution: {integrity: sha512-om0oKmfeLB5p/oL97aRcxP3+M/6BbOEp31f2o+yd/vPtw3jTVs9V6FMO0HiZmdmCzfwOD8TPFlcYM8GoFbM8pQ==}
 
   vitepress@1.5.0:
     resolution: {integrity: sha512-q4Q/G2zjvynvizdB3/bupdYkCJe2umSAMv9Ju4d92E6/NXJ59z70xB0q5p/4lpRyAwflDsbwy1mLV9Q5+nlB+g==}
@@ -2117,6 +2126,14 @@ snapshots:
     optional: true
 
   '@juggle/resize-observer@3.4.0': {}
+
+  '@kwsites/file-exists@1.1.1':
+    dependencies:
+      debug: 4.4.0
+    transitivePeerDependencies:
+      - supports-color
+
+  '@kwsites/promise-deferred@1.1.1': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
@@ -3553,6 +3570,14 @@ snapshots:
   signal-exit@4.1.0:
     optional: true
 
+  simple-git@3.27.0:
+    dependencies:
+      '@kwsites/file-exists': 1.1.1
+      '@kwsites/promise-deferred': 1.1.1
+      debug: 4.4.0
+    transitivePeerDependencies:
+      - supports-color
+
   slash@5.1.0:
     optional: true
 
@@ -3761,7 +3786,7 @@ snapshots:
       fsevents: 2.3.3
       sass: 1.83.0
 
-  vitepress-theme-mild@0.1.0-beta.1(@nuxt/kit@3.15.0(rollup@4.29.1))(rollup@4.29.1)(typescript@5.7.2):
+  vitepress-theme-mild@0.1.0(@nuxt/kit@3.15.0(rollup@4.29.1))(rollup@4.29.1)(typescript@5.7.2):
     dependencies:
       '@css-render/vue3-ssr': 0.15.14(vue@3.5.13(typescript@5.7.2))
       '@shikijs/vitepress-twoslash': 1.24.4(@nuxt/kit@3.15.0(rollup@4.29.1))(typescript@5.7.2)
@@ -3773,6 +3798,7 @@ snapshots:
       nprogress: 0.2.0
       reading-time-estimator: 1.11.0
       sass: 1.83.0
+      simple-git: 3.27.0
       tinyglobby: 0.2.10
       typed.js: 2.1.0
       vue: 3.5.13(typescript@5.7.2)
