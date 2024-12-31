@@ -4,7 +4,7 @@ tags:
   - macos
 ---
 
-# Macos 安装 App 提示已损坏解决方案
+# MacOS 安装 App 提示已损坏解决方案
 
 信任开发者, 要求输入密码:
 
