@@ -1,5 +1,7 @@
 ---
-title: "vitepress主题开发日记一: 初衷"
+sidebar:
+  title: vitepress主题开发日记
+title: 初衷
 description: "开发vitepress主题的初衷"
 category: vitepress主题开发日记
 tags:
