@@ -1,12 +1,13 @@
-import { defineConfig } from "vitepress";
-import { defineThemeConfig } from "vitepress-theme-mild/config";
+import { defineConfigWithTheme } from "vitepress";
+import baseConfig from "vitepress-theme-mild/config";
+import type { ThemeConfig } from "vitepress-theme-mild";
 
-export default defineConfig({
+export default defineConfigWithTheme<ThemeConfig>({
   title: "Hacxy's blog",
   description: "Hacxy's blog",
   lastUpdated: true,
   lang: "zh",
-  extends: defineThemeConfig({}),
+  extends: baseConfig,
   ignoreDeadLinks: true,
   themeConfig: {
     search: {
@@ -25,6 +26,9 @@ export default defineConfig({
       level: [2, 4],
       label: "目录",
     },
+    sidebar: {
+      "/docs/posts/dev-vitepress-theme/": "auto",
+    },
     nav: [
       { text: "Blog", link: "/" },
       { text: "Tags", link: "/docs/pages/tags" },
@@ -34,5 +38,24 @@ export default defineConfig({
       copyright:
         'MIT Licensed | Copyright © 2023-Present <a href="https://github.com/hacxy">Hacxy</a>',
     },
+  },
+  vite: {
+    plugins: [
+      // {
+      //   name: "vite-plugin-insert-import",
+      //   transform(code, id) {
+      //     if (id.endsWith("theme/index.ts")) {
+      //       console.log(id);
+      //       const importStatement = "import 'virtual:group-icons.css';\n";
+      //       // 插入导入语句到文件顶部
+      //       if (!code.includes(importStatement)) {
+      //         return importStatement + code;
+      //       }
+      //     }
+      //     return code;
+      //   },
+      // },
+    ],
+    // plugins: baseConfig.vite.plugins,
   },
 });
