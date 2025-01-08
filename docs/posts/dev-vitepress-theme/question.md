@@ -5,12 +5,16 @@ tags:
 sidebar:
   order: 9
 
-description: 记录了vitepress中如何获取文章列表
+description: 记录vitepress中如何获取文章列表
 ---
 
 # 文章列表
 
+## 概述
+
 本文记录了我是如何在开发主题时, 获取文章列表的.
+
+## 封装 lodaer 方法
 
 一开始我直接使用了 vitepress 官方文档推荐的方式, 也就是在 [构建时数据加载-createContentLoader](https://vitepress.dev/zh/guide/data-loading#createcontentloader) 这一章, 调用了`createContentLoader` 方法, 但不能完全满足我的需求, 我还需要获取每个文章上次 git 提交的时间, 如果没有使用 git, 则使用上次编辑的时间来兜底.
 
@@ -193,6 +197,8 @@ export function createArticlesListLoader<T = ContentData[]>({
 
 之后在 data 中可以这样调用:
 
+## 数据加载
+
 ```ts
 import matter from "gray-matter";
 import { readingTime } from "reading-time-estimator";
@@ -262,3 +268,5 @@ export default createArticlesListLoader({
 declare const data: ArticlesData[];
 export { data };
 ```
+
+在拿到文章相关数据时顺便根据`date`来排序, 然后获取了文章字数和阅读时间.
