@@ -22,17 +22,17 @@ tags:
 
 经过几轮测试, 我还是带来了: [vitepress-theme-mild](https://github.com/hacxy/vitepress-theme-mild)
 
-[vitepress-theme-mild](https://github.com/hacxy/vitepress-theme-mild) 是一个简约风的博客主题, 它继承了 vitepress 的本质: 使开发者更专注内容, 同时它也是基于默认主题开发的.
+[vitepress-theme-mild](https://github.com/hacxy/vitepress-theme-mild) 是一个简约风的主题, 它继承了 vitepress 的本质: 使开发者更专注内容, 同时它也是基于默认主题开发的, 不局限于某个文档站类型, 同时支持博客和技术文档.
 
-### 我希望它:
+### 我希望这个主题:
 
 - 使用和配置都非常简单, 插拔都非常容易, 即使在现有的 vitepress 项目中也只需要简单的配置就可以使用主题的全部功能
-- 风格干净简约, 基于 vitepress 默认主题, 但比默认主题更丰富
+- 风格干净简约, 兼容 vitepress 默认主题的所有配置, 在默认主题配置基础上增加更多自定义功能
 - 内置常用功能, 搜索、标签、分类、评论等
 - 独立的开源项目卡片页, 用于展示我的个人项目
 - 尽可能少的依赖其他包
 - 顺便加入一些过渡动画效果
-- 样式和功能高度可自定义
+- 高度可自定义
 
 > 💡 以上内容已实现了部分, 目前还是 beta 测试版本, 完整内容请等待最终正式版
 
