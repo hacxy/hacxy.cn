@@ -39,23 +39,4 @@ export default defineConfigWithTheme<ThemeConfig>({
         'MIT Licensed | Copyright © 2023-Present <a href="https://github.com/hacxy">Hacxy</a>',
     },
   },
-  vite: {
-    plugins: [
-      // {
-      //   name: "vite-plugin-insert-import",
-      //   transform(code, id) {
-      //     if (id.endsWith("theme/index.ts")) {
-      //       console.log(id);
-      //       const importStatement = "import 'virtual:group-icons.css';\n";
-      //       // 插入导入语句到文件顶部
-      //       if (!code.includes(importStatement)) {
-      //         return importStatement + code;
-      //       }
-      //     }
-      //     return code;
-      //   },
-      // },
-    ],
-    // plugins: baseConfig.vite.plugins,
-  },
 });

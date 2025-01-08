@@ -2,5 +2,5 @@
 layout: blog
 article:
   title: Hacxy
-  pageSize: 4
+  pageSize: 5
 ---
