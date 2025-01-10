@@ -10,6 +10,23 @@ export default defineConfigWithTheme<ThemeConfig>({
   extends: baseConfig,
   ignoreDeadLinks: true,
   themeConfig: {
+    comment: {
+      repo: "hacxy/hacxy.cn",
+      repoId: "R_kgDONKDzuw",
+      category: "Announcements",
+      categoryId: "DIC_kwDONKDzu84Cj_Jz",
+      mapping: "title",
+      darkTheme: "catppuccin_macchiato",
+      lightTheme: "catppuccin_latte",
+      strict: "1",
+      reactionsEnabled: "1",
+      lang: "zh-CN",
+    },
+    rss: {
+      title: "Hacxy",
+      baseUrl: "https://hacxy.cn",
+      copyright: "Copyright (c) 2024-present, Hacxy",
+    },
     search: {
       provider: "local",
       options: {
