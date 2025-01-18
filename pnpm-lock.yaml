@@ -12,8 +12,8 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2)
       vitepress-theme-mild:
-        specifier: 0.5.1
-        version: 0.5.1(@nuxt/kit@3.15.1(rollup@4.29.1))(rollup@4.29.1)(typescript@5.7.2)(vitepress@1.5.0(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2))
+        specifier: 0.5.2-alpha.0
+        version: 0.5.2-alpha.0(@nuxt/kit@3.15.1(rollup@4.29.1))(@vue/devtools-api@7.6.8)(rollup@4.29.1)(typescript@5.7.2)(vitepress@1.5.0(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2))
 
 packages:
 
@@ -401,6 +401,20 @@ packages:
 
   '@lit/reactive-element@2.0.4':
     resolution: {integrity: sha512-GFn91inaUa2oHLak8awSIigYz0cU0Payr1rcFsrkf5OJ5eSPxElyZfKh0f2p9FsTiZWXQdWGJeXZICEfXXYSXQ==}
+
+  '@nanostores/vue@0.11.0':
+    resolution: {integrity: sha512-4ndyLhwVFl1xhOnvWuMvYiG4K2rYvkaQWP3nJC1/RwK/dvpDgLPywwv6MnBdFydqbOGuXNaXOEwa3HsG9CujmA==}
+    engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
+    peerDependencies:
+      '@nanostores/logger': '>=0.4.0'
+      '@vue/devtools-api': '>=7.6.2'
+      nanostores: '>=0.11.3'
+      vue: '>=3.3.1'
+    peerDependenciesMeta:
+      '@nanostores/logger':
+        optional: true
+      '@vue/devtools-api':
+        optional: true
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -1490,6 +1504,10 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
+  nanostores@0.11.3:
+    resolution: {integrity: sha512-TUes3xKIX33re4QzdxwZ6tdbodjmn3tWXCEc1uokiEmo14sI1EaGYNs2k3bU2pyyGNmBqFGAVl6jAGWd06AVIg==}
+    engines: {node: ^18.0.0 || >=20.0.0}
+
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
 
@@ -1885,8 +1903,8 @@ packages:
     peerDependencies:
       vitepress: ^1
 
-  vitepress-theme-mild@0.5.1:
-    resolution: {integrity: sha512-c/Kj/5CK5XPVpxjpHbiUW1F1hS5sj6GLzsn0a75oldPXM+9XwgsllTpjq3Tbvr6Frpbl/7pylJFxDPZdf2qYFg==}
+  vitepress-theme-mild@0.5.2-alpha.0:
+    resolution: {integrity: sha512-4AECW2mZzfK+xlAKxRIfjDemv4YhPWt4qP5R2q5XH975uJVkTo1aO1kSyBNwwpzs2xc2ql5AdUl0qoWezqvZow==}
 
   vitepress@1.5.0:
     resolution: {integrity: sha512-q4Q/G2zjvynvizdB3/bupdYkCJe2umSAMv9Ju4d92E6/NXJ59z70xB0q5p/4lpRyAwflDsbwy1mLV9Q5+nlB+g==}
@@ -2372,6 +2390,13 @@ snapshots:
   '@lit/reactive-element@2.0.4':
     dependencies:
       '@lit-labs/ssr-dom-shim': 1.2.1
+
+  '@nanostores/vue@0.11.0(@vue/devtools-api@7.6.8)(nanostores@0.11.3)(vue@3.5.13(typescript@5.7.2))':
+    dependencies:
+      nanostores: 0.11.3
+      vue: 3.5.13(typescript@5.7.2)
+    optionalDependencies:
+      '@vue/devtools-api': 7.6.8
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
@@ -3741,6 +3766,8 @@ snapshots:
 
   nanoid@3.3.8: {}
 
+  nanostores@0.11.3: {}
+
   node-addon-api@7.1.1:
     optional: true
 
@@ -4211,10 +4238,11 @@ snapshots:
       feed: 4.2.2
       vitepress: 1.5.0(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2)
 
-  vitepress-theme-mild@0.5.1(@nuxt/kit@3.15.1(rollup@4.29.1))(rollup@4.29.1)(typescript@5.7.2)(vitepress@1.5.0(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2)):
+  vitepress-theme-mild@0.5.2-alpha.0(@nuxt/kit@3.15.1(rollup@4.29.1))(@vue/devtools-api@7.6.8)(rollup@4.29.1)(typescript@5.7.2)(vitepress@1.5.0(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2)):
     dependencies:
       '@css-render/vue3-ssr': 0.15.14(vue@3.5.13(typescript@5.7.2))
       '@giscus/vue': 3.1.1(vue@3.5.13(typescript@5.7.2))
+      '@nanostores/vue': 0.11.0(@vue/devtools-api@7.6.8)(nanostores@0.11.3)(vue@3.5.13(typescript@5.7.2))
       '@shikijs/vitepress-twoslash': 1.26.1(@nuxt/kit@3.15.1(rollup@4.29.1))(typescript@5.7.2)
       '@vueuse/core': 12.3.0(typescript@5.7.2)
       '@vueuse/motion': 2.2.6(rollup@4.29.1)(vue@3.5.13(typescript@5.7.2))
@@ -4223,6 +4251,7 @@ snapshots:
       gray-matter: 4.0.3
       lodash: 4.17.21
       naive-ui: 2.41.0(vue@3.5.13(typescript@5.7.2))
+      nanostores: 0.11.3
       nprogress: 0.2.0
       reading-time-estimator: 1.11.0
       sass: 1.83.0
@@ -4233,8 +4262,10 @@ snapshots:
       vitepress-plugin-rss: 0.3.0(vitepress@1.5.0(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2))
       vue: 3.5.13(typescript@5.7.2)
     transitivePeerDependencies:
+      - '@nanostores/logger'
       - '@nuxt/kit'
       - '@vue/composition-api'
+      - '@vue/devtools-api'
       - magicast
       - rollup
       - supports-color
