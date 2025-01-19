@@ -72,5 +72,3 @@ tags:
 后面我会详细的讲到我在开发主题时遇到的各种问题, 以及我是如何解决它们的.
 
 最后也欢迎大家来尝试下这个主题, 如果喜欢的话不妨点个 star
-
-原文: <https://hacxy.cn/docs/posts/dev-vitepress-theme/1.start.html>
