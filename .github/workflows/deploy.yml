@@ -1,13 +1,15 @@
 name: DeployBlog
 on:
   push: # 监听调用时机为push事件
-    branches: ['main']
+    branches: ["main"]
 jobs:
   build:
     runs-on: ubuntu-latest # runs-on 指定job任务运行所需要的虚拟机环境(必填字段)
     steps:
       - name: 拉取代码 # 步骤名字
         uses: actions/checkout@master # 使用 actions/checkout 库拉取最新源码
+        with:
+          fetch-depth: 0 # 如果未启用 lastUpdated，则不需要
 
       - name: Install pnpm
         uses: pnpm/action-setup@v2
@@ -36,8 +38,8 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
-          source: '.vitepress/dist/'
-          target: '/${{secrets.SSH_USERNAME}}/Projects/.blog_temp/'
+          source: ".vitepress/dist/"
+          target: "/${{secrets.SSH_USERNAME}}/Projects/.blog_temp/"
           rm: true
           strip_components: 2
 

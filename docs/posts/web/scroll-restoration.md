@@ -16,17 +16,17 @@ date: 2025-01-24
 
 ![](https://hacxy-1259720482.cos.ap-hongkong.myqcloud.com/images/Kapture%25202025-01-22%2520at%252010.08.28.gif)
 
-为此我还向 VitePress 提了一个[issue](https://github.com/vuejs/vitepress/issues/4506)
+为此我还向 VitePress 提了一个: [issue](https://github.com/vuejs/vitepress/issues/4506) 😅.
 
 ## 解决方案
 
-在这个 Issue 得到回复前, 我意外的把这个问题给解决了 😅
+在这个 Issue 得到回复前, 我意外的把这个问题给解决了
 
 一开始我以为是 `VitePress` 故意为之, 直到我找到了这个属性: [History.scrollRestoration](https://developer.mozilla.org/zh-CN/docs/Web/API/History/scrollRestoration#auto)
 
 这个属性默认情况下为`auto` 也就是刷新会自动回到上次滚动条的位置, 如果想关闭它, 则只需要:
 
-```ts twoslash
+```ts
 if ("scrollRestoration" in history) {
   history.scrollRestoration = "manual";
 }
