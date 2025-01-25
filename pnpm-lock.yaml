@@ -12,8 +12,8 @@ importers:
         specifier: ^1.6.1
         version: 1.6.3(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2)
       vitepress-theme-mild:
-        specifier: 0.5.4-alpha.2
-        version: 0.5.4-alpha.2(@nuxt/kit@3.15.1(rollup@4.29.1))(@vue/devtools-api@7.7.1)(rollup@4.29.1)(typescript@5.7.2)(vitepress@1.6.3(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2))
+        specifier: 0.6.1
+        version: 0.6.1(@nuxt/kit@3.15.1(rollup@4.29.1))(@vue/devtools-api@7.7.1)(rollup@4.29.1)(typescript@5.7.2)(vitepress@1.6.3(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2))
 
 packages:
 
@@ -1881,8 +1881,8 @@ packages:
     peerDependencies:
       vitepress: ^1
 
-  vitepress-theme-mild@0.5.4-alpha.2:
-    resolution: {integrity: sha512-DE9mBQwSKqZLLb/PcZ2pjqS9LUddeeIYvwYKs6e1VpOejgl9lzgiXfjbS9obba5HudymAjFc0Xl2KQ2TwZcn7Q==}
+  vitepress-theme-mild@0.6.1:
+    resolution: {integrity: sha512-3z4VYX+t1QsN2pWiarEaOQ4nhR83xhMm1Vv2FGj26i9nzVx0Q3g1ElJIpG65zfEOfp8r4OwXmJCwfVnhqkbtdQ==}
 
   vitepress@1.6.3:
     resolution: {integrity: sha512-fCkfdOk8yRZT8GD9BFqusW3+GggWYZ/rYncOfmgcDtP3ualNHCAg+Robxp2/6xfH1WwPHtGpPwv7mbA3qomtBw==}
@@ -4177,7 +4177,7 @@ snapshots:
       feed: 4.2.2
       vitepress: 1.6.3(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2)
 
-  vitepress-theme-mild@0.5.4-alpha.2(@nuxt/kit@3.15.1(rollup@4.29.1))(@vue/devtools-api@7.7.1)(rollup@4.29.1)(typescript@5.7.2)(vitepress@1.6.3(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2)):
+  vitepress-theme-mild@0.6.1(@nuxt/kit@3.15.1(rollup@4.29.1))(@vue/devtools-api@7.7.1)(rollup@4.29.1)(typescript@5.7.2)(vitepress@1.6.3(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2)):
     dependencies:
       '@css-render/vue3-ssr': 0.15.14(vue@3.5.13(typescript@5.7.2))
       '@giscus/vue': 3.1.1(vue@3.5.13(typescript@5.7.2))
