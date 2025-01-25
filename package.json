@@ -18,6 +18,6 @@
   "license": "MIT",
   "devDependencies": {
     "vitepress": "^1.6.1",
-    "vitepress-theme-mild": "0.5.4-alpha.2"
+    "vitepress-theme-mild": "0.6.1"
   }
 }
