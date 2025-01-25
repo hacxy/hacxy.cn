@@ -12,8 +12,8 @@ importers:
         specifier: ^1.6.1
         version: 1.6.3(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2)
       vitepress-theme-mild:
-        specifier: 0.6.1
-        version: 0.6.1(@nuxt/kit@3.15.1(rollup@4.29.1))(@vue/devtools-api@7.7.1)(rollup@4.29.1)(typescript@5.7.2)(vitepress@1.6.3(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2))
+        specifier: 0.7.0
+        version: 0.7.0(@nuxt/kit@3.15.1(rollup@4.29.1))(@vue/devtools-api@7.7.1)(rollup@4.29.1)(typescript@5.7.2)(vitepress@1.6.3(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2))
 
 packages:
 
@@ -1328,6 +1328,9 @@ packages:
   mark.js@8.11.1:
     resolution: {integrity: sha512-1I+1qpDt4idfgLQG+BNWmrqku+7/2bi5nLf4YwF8y8zXvmfiTBY3PV3ZibfrjBueCByROpuBjLLFCajqkgYoLQ==}
 
+  markdown-it-task-checkbox@1.0.6:
+    resolution: {integrity: sha512-7pxkHuvqTOu3iwVGmDPeYjQg+AIS9VQxzyLP9JCg9lBjgPAJXGEkChK6A2iFuj3tS0GV3HG2u5AMNhcQqwxpJw==}
+
   markdown-table@3.0.4:
     resolution: {integrity: sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw==}
 
@@ -1881,8 +1884,8 @@ packages:
     peerDependencies:
       vitepress: ^1
 
-  vitepress-theme-mild@0.6.1:
-    resolution: {integrity: sha512-3z4VYX+t1QsN2pWiarEaOQ4nhR83xhMm1Vv2FGj26i9nzVx0Q3g1ElJIpG65zfEOfp8r4OwXmJCwfVnhqkbtdQ==}
+  vitepress-theme-mild@0.7.0:
+    resolution: {integrity: sha512-38fZms/JvmfUmt49kn0mJpyABW3CUqRCmLuh3mtHb6DeuwxmWt67JPA844LfKDPlZiQP6McY88iezhiKH4uj0A==}
 
   vitepress@1.6.3:
     resolution: {integrity: sha512-fCkfdOk8yRZT8GD9BFqusW3+GggWYZ/rYncOfmgcDtP3ualNHCAg+Robxp2/6xfH1WwPHtGpPwv7mbA3qomtBw==}
@@ -3392,6 +3395,8 @@ snapshots:
 
   mark.js@8.11.1: {}
 
+  markdown-it-task-checkbox@1.0.6: {}
+
   markdown-table@3.0.4: {}
 
   mdast-util-find-and-replace@3.0.2:
@@ -4177,7 +4182,7 @@ snapshots:
       feed: 4.2.2
       vitepress: 1.6.3(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2)
 
-  vitepress-theme-mild@0.6.1(@nuxt/kit@3.15.1(rollup@4.29.1))(@vue/devtools-api@7.7.1)(rollup@4.29.1)(typescript@5.7.2)(vitepress@1.6.3(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2)):
+  vitepress-theme-mild@0.7.0(@nuxt/kit@3.15.1(rollup@4.29.1))(@vue/devtools-api@7.7.1)(rollup@4.29.1)(typescript@5.7.2)(vitepress@1.6.3(@algolia/client-search@5.18.0)(async-validator@4.2.5)(nprogress@0.2.0)(postcss@8.4.49)(sass@1.83.0)(search-insights@2.17.3)(typescript@5.7.2)):
     dependencies:
       '@css-render/vue3-ssr': 0.15.14(vue@3.5.13(typescript@5.7.2))
       '@giscus/vue': 3.1.1(vue@3.5.13(typescript@5.7.2))
@@ -4189,6 +4194,7 @@ snapshots:
       directory-tree: 3.5.2
       fs-extra: 11.2.0
       gray-matter: 4.0.3
+      markdown-it-task-checkbox: 1.0.6
       naive-ui: 2.41.0(vue@3.5.13(typescript@5.7.2))
       nanostores: 0.11.3
       nprogress: 0.2.0
