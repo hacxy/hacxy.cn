@@ -14,3 +14,8 @@
 
 - ClashX
   - 下载地址: https://download.client.clashnews.org/proxy-clients-all/mac/ClashXPro-1.97.0.4.dmg
+
+## 终端模拟器
+
+- Kitty
+  - 下载地址: https://sw.kovidgoyal.net/kitty/binary/#binary-install
