@@ -46,6 +46,7 @@ export default defineConfigWithTheme<ThemeConfig>({
     sidebar: {
       "/docs/posts/dev-vitepress-theme/": "auto",
       "/docs/posts/macos-dev": "auto",
+      "/docs/posts/vscode-vim": "auto",
     },
     nav: [
       { text: "Blog", link: "/" },
