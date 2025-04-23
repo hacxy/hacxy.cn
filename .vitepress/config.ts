@@ -47,6 +47,7 @@ export default defineConfigWithTheme<ThemeConfig>({
       "/docs/posts/dev-vitepress-theme/": "auto",
       "/docs/posts/macos-dev": "auto",
       "/docs/posts/vscode-vim": "auto",
+      "/docs/posts/neovim-astronvim": "auto"
     },
     nav: [
       { text: "Blog", link: "/" },
