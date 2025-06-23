@@ -1,5 +1,6 @@
 ---
 category: MacOS搭建开发环境
+publish: false
 sidebar:
   sort: 1
 ---
