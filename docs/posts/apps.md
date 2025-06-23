@@ -21,3 +21,8 @@
 
 - _Kitty_
   - 下载地址: https://sw.kovidgoyal.net/kitty/binary/#binary-install
+
+## 翻译软件
+
+- _Bob_
+  - https://apps.apple.com/cn/app/bob-%E7%BF%BB%E8%AF%91%E5%92%8C-ocr-%E5%B7%A5%E5%85%B7/id1630034110?mt=12
