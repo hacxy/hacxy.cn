@@ -1,7 +1,7 @@
 import { defineConfigWithTheme } from "vitepress";
 import baseConfig from "vitepress-theme-mild/config";
 import type { ThemeConfig } from "vitepress-theme-mild";
-
+import projectsListData from "./project-list.json";
 export default defineConfigWithTheme<ThemeConfig>({
   title: "Hacxy's blog",
   description: "Hacxy's blog",
@@ -47,10 +47,14 @@ export default defineConfigWithTheme<ThemeConfig>({
       "/docs/posts/dev-vitepress-theme/": "auto",
       "/docs/posts/macos-dev": "auto",
       "/docs/posts/vscode-vim": "auto",
-      "/docs/posts/neovim-astronvim": "auto"
+      "/docs/posts/neovim-astronvim": "auto",
+    },
+    project: {
+      list: projectsListData,
     },
     nav: [
       { text: "Blog", link: "/" },
+      { text: "Projects", link: "/docs/pages/projects" },
       { text: "Tags", link: "/docs/pages/tags" },
     ],
     socialLinks: [{ icon: "github", link: "https://github.com/hacxy" }],

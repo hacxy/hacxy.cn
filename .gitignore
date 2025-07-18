@@ -130,3 +130,5 @@ dist
 .pnp.*
 
 .vitepress/cache
+
+.vitepress/project-list.json
