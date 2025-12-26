@@ -48,6 +48,7 @@ export default defineConfigWithTheme<ThemeConfig>({
       "/docs/posts/macos-dev": "auto",
       "/docs/posts/vscode-vim": "auto",
       "/docs/posts/neovim-astronvim": "auto",
+      "/docs/posts/neovim": "auto",
     },
     project: {
       list: projectsListData,
