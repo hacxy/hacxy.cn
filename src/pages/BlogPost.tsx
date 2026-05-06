@@ -28,7 +28,7 @@ export default function BlogPost() {
   }
 
   const { content: rawBody, data } = parseFrontmatter(post.rawContent)
-  const content = rawBody.replace(/^#[^\n]*\n?/, '')
+  const content = rawBody.replace(/^\s*#[^\n]*\n?/, '')
   const tags: string[] = Array.isArray(data.tags) ? data.tags.map(String) : []
 
   return (
