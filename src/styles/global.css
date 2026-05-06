@@ -1,0 +1,378 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=DM+Mono:wght@400&display=swap');
+
+/* ============ Variables ============ */
+:root {
+  --bg:        #ffffff;
+  --fg:        #000000;
+  --muted:     rgba(125, 125, 125, 0.6);
+  --border:    rgba(136, 136, 136, 0.5333);
+  --code-bg:   #fafafa;
+  --max-width: 680px;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'DM Mono', 'Input Mono', 'Fira Code', monospace;
+}
+
+[data-theme='dark'] {
+  --bg:       #050505;
+  --fg:       #ffffff;
+  --code-bg:  #0e0e0e;
+}
+
+/* ============ Reset ============ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: #bbb transparent;
+}
+
+[data-theme='dark'] html,
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  scrollbar-color: #333 transparent;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }
+[data-theme='dark'] ::-webkit-scrollbar-thumb { background: #333; }
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg);
+  color: var(--fg);
+  line-height: 1.75;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(136, 136, 136, 0.3);
+}
+
+/* ============ Layout ============ */
+.app-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-content {
+  flex: 1;
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+
+/* ============ Header ============ */
+.site-header {
+  position: relative;
+  width: 100%;
+  padding: 1.5rem 2rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.site-logo {
+  position: absolute;
+  left: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.2s ease;
+}
+
+.site-logo:hover {
+  opacity: 0.8;
+}
+
+.site-nav {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-link {
+  font-size: 0.9rem;
+  color: var(--fg);
+  text-decoration: none;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  opacity: 1;
+}
+
+.nav-icon-link {
+  display: flex;
+  align-items: center;
+  color: var(--fg);
+  text-decoration: none;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.nav-icon-link:hover {
+  opacity: 1;
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--fg);
+  opacity: 0.6;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.2s ease;
+  line-height: 1;
+}
+
+.theme-toggle:hover {
+  opacity: 1;
+}
+
+/* ============ Footer ============ */
+.site-footer {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+  font-size: 0.8rem;
+  color: var(--fg);
+  opacity: 0.4;
+  border-top: 1px solid var(--border);
+}
+
+/* ============ Post List ============ */
+.post-list {
+  list-style: none;
+}
+
+.post-list-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.post-date {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  opacity: 0.5;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 5.5rem;
+}
+
+.post-link {
+  font-size: 0.95rem;
+  color: var(--fg);
+  text-decoration: none;
+  opacity: 0.6;
+  line-height: 1.3;
+  transition: opacity 0.2s ease;
+}
+
+.post-link:hover {
+  opacity: 1;
+}
+
+.year-group {
+  margin-bottom: 1.5rem;
+}
+
+.year-heading {
+  font-size: 1.1rem;
+  font-weight: 600;
+  opacity: 0.3;
+  margin-bottom: 0.5rem;
+  font-family: var(--font-mono);
+}
+
+/* ============ Post Tags ============ */
+.tag-chip {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  background: var(--border);
+  color: var(--fg);
+  padding: 0.1em 0.5em;
+  border-radius: 3px;
+  text-decoration: none;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.tag-chip:hover {
+  opacity: 1;
+}
+
+/* ============ Tags Page ============ */
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  list-style: none;
+}
+
+.tag-item-link {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--fg);
+  text-decoration: none;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.tag-item-link:hover {
+  opacity: 1;
+}
+
+.tag-count {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  opacity: 0.5;
+}
+
+/* ============ Home intro ============ */
+.home-intro {
+  margin-bottom: 3rem;
+}
+
+.home-intro h1 {
+  font-size: 1.25rem;
+  font-weight: 400;
+  font-family: var(--font-mono);
+  font-style: italic;
+  margin-bottom: 0.5rem;
+}
+
+.home-intro p {
+  font-size: 0.95rem;
+  font-family: var(--font-mono);
+  font-style: italic;
+  opacity: 0.7;
+  line-height: 1.7;
+}
+
+.home-intro a {
+  color: var(--fg);
+  opacity: 1;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  transition: border-color 0.2s ease;
+}
+
+.home-intro a:hover {
+  border-bottom-color: var(--fg);
+}
+
+.section-heading {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  opacity: 0.4;
+  margin-bottom: 1rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ============ Tech Stack ============ */
+.tech-stack {
+  margin-bottom: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.tech-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tech-group .section-heading {
+  margin-bottom: 0;
+  min-width: 5rem;
+  flex-shrink: 0;
+}
+
+.tech-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+}
+
+.tech-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+/* ============ Typewriter cursor ============ */
+.typewriter-cursor {
+  display: inline-block;
+  width: 1px;
+  height: 1.1em;
+  background: var(--fg);
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: blink 0.8s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ============ slide-enter animation ============ */
+@keyframes slide-enter {
+  0%   { transform: translateY(10px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.slide-enter {
+  animation: slide-enter 0.7s both;
+  animation-delay: calc(90ms * var(--enter-stage, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-enter {
+    animation: none;
+  }
+}
+
+/* ============ Responsive ============ */
+@media (max-width: 640px) {
+  .post-list-item {
+    flex-direction: column;
+    gap: 0.1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .post-date {
+    min-width: unset;
+  }
+
+  .nav-link span {
+    display: none;
+  }
+}
