@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "composite": true,
+    "outDir": "node_modules/.tmp/tsc-node-out",
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -8,5 +9,5 @@
     "strict": true,
     "types": ["node"]
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", "site.config.ts", "src/types/site.ts"]
 }
