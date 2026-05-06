@@ -1,7 +1,9 @@
 name: DeployBlog
 on:
-  push: # 监听调用时机为push事件
+  push:
     branches: ["main"]
+  schedule:
+    - cron: "0 2 * * *"
 jobs:
   build:
     runs-on: ubuntu-latest # runs-on 指定job任务运行所需要的虚拟机环境(必填字段)
@@ -28,6 +30,7 @@ jobs:
       - name: 项目打包构建
         env:
           NODE_OPTIONS: --max_old_space_size=4096
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "${{ secrets.ENV }}" > .env
           pnpm build
