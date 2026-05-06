@@ -10,6 +10,7 @@
   "dependencies": {
     "@iconify/react": "^6.0.2",
     "@types/js-yaml": "^4.0.9",
+    "highlight.js": "^11.11.1",
     "js-yaml": "^4.1.1",
     "motion": "latest",
     "react": "^19.0.0",
