@@ -1,6 +1,6 @@
 import { Icon } from "@iconify/react";
 import PageTransition from "../components/PageTransition";
-import techStackData from "../data/tech-stack.json";
+import siteConfig from "../../site.config";
 
 export default function About() {
   return (
@@ -10,8 +10,8 @@ export default function About() {
           className="home-intro slide-enter"
           style={{ "--enter-stage": 1 } as React.CSSProperties}
         >
-          <h1>Hacxy</h1>
-          <p>前端开发者，热衷于开源、工具链和 Web 应用构建，记录学习与思考。</p>
+          <h1>{siteConfig.author}</h1>
+          <p>{siteConfig.bio}</p>
         </div>
 
         <div
@@ -20,7 +20,7 @@ export default function About() {
         >
           <p className="section-heading">技术栈</p>
           <div className="tech-stack">
-            {techStackData.map((group) => (
+            {siteConfig.techStack.map((group) => (
               <div key={group.category} className="tech-group">
                 <p className="section-heading">{group.category}</p>
                 <ul className="tech-list">

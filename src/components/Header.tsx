@@ -1,5 +1,6 @@
 import { NavLink } from "react-router";
 import { Icon } from "@iconify/react";
+import siteConfig from "../../site.config";
 
 interface HeaderProps {
   theme: "light" | "dark";
@@ -88,7 +89,7 @@ export default function Header({ theme, onToggleTheme }: HeaderProps) {
             About
           </NavLink>
           <a
-            href="https://github.com/hacxy"
+            href={`https://github.com/${siteConfig.github}`}
             target="_blank"
             rel="noopener noreferrer"
             className="nav-icon-link"
