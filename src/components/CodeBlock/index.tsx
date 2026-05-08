@@ -1,5 +1,5 @@
 import { useState, Children, isValidElement } from "react";
-import type { ReactNode, ReactElement } from "react";
+import type { ReactNode, ReactElement, ComponentPropsWithoutRef } from "react";
 import { Icon } from "@iconify/react";
 import styles from "./index.module.scss";
 
@@ -11,10 +11,7 @@ function extractText(node: ReactNode): string {
   return "";
 }
 
-interface CodeBlockProps {
-  children?: ReactNode;
-  [key: string]: unknown;
-}
+type CodeBlockProps = ComponentPropsWithoutRef<"pre"> & { node?: unknown };
 
 export default function CodeBlock({ children, ...props }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
@@ -27,7 +24,7 @@ export default function CodeBlock({ children, ...props }: CodeBlockProps) {
   const langMatch = className.match(/language-(\w+)/);
   const lang = langMatch ? langMatch[1] : "";
 
-  const rawCode = extractText(codeEl?.props?.children);
+  const rawCode = extractText((codeEl?.props as { children?: ReactNode })?.children);
 
   const copy = async () => {
     try {
