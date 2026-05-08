@@ -28,11 +28,21 @@ export default function CodeBlock({ children, ...props }: CodeBlockProps) {
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(rawCode);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(rawCode);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = rawCode;
+        ta.style.cssText = "position:fixed;left:-9999px;opacity:0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // clipboard not available
+      // copy failed
     }
   };
 
