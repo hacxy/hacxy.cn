@@ -1,0 +1,45 @@
+.wrapper {
+  margin-bottom: 2rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--code-bg);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--code-header-bg);
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  color: var(--fg);
+  opacity: 0.9;
+  letter-spacing: 0.03em;
+}
+
+.body {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: var(--prose-color);
+  min-height: 1.5rem;
+}
+
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 0.95em;
+  background: var(--fg);
+  opacity: 0.7;
+  vertical-align: text-bottom;
+  margin-left: 1px;
+  animation: blink 0.8s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}

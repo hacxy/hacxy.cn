@@ -6,6 +6,7 @@ import "highlight.js/styles/github.css";
 import "../../styles/markdown.scss";
 import PageTransition from "../../components/PageTransition";
 import CodeBlock from "../../components/CodeBlock";
+import AISummary from "../../components/AISummary";
 import { getPostBySlug, parseFrontmatter } from "../../utils/posts";
 import styles from "./index.module.scss";
 import common from "../../styles/common.module.scss";
@@ -37,6 +38,7 @@ export default function BlogPost() {
   const { content: rawBody, data } = parseFrontmatter(post.rawContent);
   const content = rawBody.replace(/^\s*#[^\n]*\n?/, "");
   const tags: string[] = Array.isArray(data.tags) ? data.tags.map(String) : [];
+  const summary = typeof data.summary === "string" ? data.summary : "";
 
   return (
     <PageTransition>
@@ -76,9 +78,18 @@ export default function BlogPost() {
 
           <hr className={styles.divider} />
 
+          {summary && (
+            <div
+              className="slide-enter"
+              style={{ "--enter-stage": 3 } as React.CSSProperties}
+            >
+              <AISummary text={summary} />
+            </div>
+          )}
+
           <div
             className="markdown-body slide-enter"
-            style={{ "--enter-stage": 3 } as React.CSSProperties}
+            style={{ "--enter-stage": summary ? 4 : 3 } as React.CSSProperties}
           >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
