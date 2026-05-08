@@ -1,0 +1,87 @@
+/* ============ Reset ============ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: #bbb transparent;
+}
+
+[data-theme="dark"] html,
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  scrollbar-color: #333 transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #bbb;
+  border-radius: 3px;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #333;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg);
+  color: var(--fg);
+  line-height: 1.75;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(136, 136, 136, 0.3);
+}
+
+/* ============ Layout ============ */
+.app-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============ Animations ============ */
+@keyframes slide-enter {
+  0% {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-enter {
+  animation: slide-enter 0.7s both;
+  animation-delay: calc(90ms * var(--enter-stage, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-enter {
+    animation: none;
+  }
+}
+
+/* ============ Responsive ============ */
+@media (max-width: 640px) {
+  .nav-link span {
+    display: none;
+  }
+}

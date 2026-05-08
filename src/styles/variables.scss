@@ -1,0 +1,19 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=DM+Mono:wght@400&display=swap");
+
+/* ============ Variables ============ */
+:root {
+  --bg: #ffffff;
+  --fg: #000000;
+  --muted: rgba(125, 125, 125, 0.6);
+  --border: rgba(136, 136, 136, 0.5333);
+  --code-bg: #fafafa;
+  --max-width: 680px;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "DM Mono", "Input Mono", "Fira Code", monospace;
+}
+
+[data-theme="dark"] {
+  --bg: #050505;
+  --fg: #ffffff;
+  --code-bg: #0e0e0e;
+}
