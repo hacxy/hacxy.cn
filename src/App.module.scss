@@ -1,3 +1,5 @@
 .appWrapper {
-  // App wrapper 样式在 reset.scss 中定义
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
 }

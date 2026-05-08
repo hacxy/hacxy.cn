@@ -5,6 +5,7 @@ import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github.css";
 import "../../styles/markdown.scss";
 import PageTransition from "../../components/PageTransition";
+import CodeBlock from "../../components/CodeBlock";
 import { getPostBySlug, parseFrontmatter } from "../../utils/posts";
 import styles from "./index.module.scss";
 import common from "../../styles/common.module.scss";
@@ -73,6 +74,8 @@ export default function BlogPost() {
             )}
           </header>
 
+          <hr className={styles.divider} />
+
           <div
             className="markdown-body slide-enter"
             style={{ "--enter-stage": 3 } as React.CSSProperties}
@@ -80,6 +83,7 @@ export default function BlogPost() {
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeHighlight]}
+              components={{ pre: CodeBlock }}
             >
               {content}
             </ReactMarkdown>
