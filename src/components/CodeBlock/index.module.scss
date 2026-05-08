@@ -1,0 +1,52 @@
+.wrapper {
+  position: relative;
+  margin: 0.75em 0;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--code-bg);
+
+  pre {
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--code-header-bg);
+}
+
+.lang {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--fg);
+  opacity: 0.45;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+
+.copyBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--fg);
+  opacity: 0.4;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0;
+  line-height: 1;
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}

@@ -4,6 +4,7 @@ import { AnimatePresence } from "motion/react";
 import classNames from "classnames";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import CodeStreamBg from "./components/CodeStreamBg";
 import Home from "./pages/Home";
 import BlogList from "./pages/BlogList";
 import BlogPost from "./pages/BlogPost";
@@ -31,6 +32,7 @@ export default function App() {
 
   return (
     <div className={classNames("app-wrapper", styles.appWrapper)}>
+      <CodeStreamBg />
       <Header theme={theme} onToggleTheme={toggleTheme} />
       <main>
         <AnimatePresence mode="wait" initial={false}>

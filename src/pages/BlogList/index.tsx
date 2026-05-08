@@ -11,6 +11,14 @@ export default function BlogList() {
     return (
       <PageTransition>
         <div className={styles.pageContent}>
+          <div
+            className="slide-enter"
+            style={{ "--enter-stage": 0, marginBottom: "2rem" } as React.CSSProperties}
+          >
+            <Link to="/" className={styles.navLink} style={{ fontSize: "0.85rem" }}>
+              ← Home
+            </Link>
+          </div>
           <p
             className={`${styles.sectionHeading} slide-enter`}
             style={{ "--enter-stage": 1 } as React.CSSProperties}
@@ -45,6 +53,14 @@ export default function BlogList() {
   return (
     <PageTransition>
       <div className={styles.pageContent}>
+        <div
+          className="slide-enter"
+          style={{ "--enter-stage": 0, marginBottom: "2rem" } as React.CSSProperties}
+        >
+          <Link to="/" className={styles.navLink} style={{ fontSize: "0.85rem" }}>
+            ← Home
+          </Link>
+        </div>
         {groups.map(({ year, posts }) => (
           <div key={year} className={styles.yearGroup}>
             <div

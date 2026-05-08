@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 import { Icon } from "@iconify/react";
 import classNames from "classnames";
@@ -10,8 +11,17 @@ interface HeaderProps {
 }
 
 export default function Header({ theme, onToggleTheme }: HeaderProps) {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 0);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header>
+    <header className={classNames(styles.headerEl, { [styles.scrolled]: scrolled })}>
       <div className={styles.header}>
         <NavLink to="/" className={styles.logo} aria-label="Home">
           <div className={styles.logoIcon}>

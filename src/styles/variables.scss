@@ -7,6 +7,9 @@
   --muted: rgba(125, 125, 125, 0.6);
   --border: rgba(136, 136, 136, 0.5333);
   --code-bg: #fafafa;
+  --code-header-bg: #f0f0f0;
+  --bg-blur: rgba(255, 255, 255, 0.82);
+  --prose-color: rgba(0, 0, 0, 0.82);
   --max-width: 680px;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "DM Mono", "Input Mono", "Fira Code", monospace;
@@ -16,4 +19,7 @@
   --bg: #050505;
   --fg: #ffffff;
   --code-bg: #0e0e0e;
+  --code-header-bg: #161616;
+  --bg-blur: rgba(5, 5, 5, 0.82);
+  --prose-color: rgba(255, 255, 255, 0.75);
 }
