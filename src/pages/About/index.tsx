@@ -1,13 +1,14 @@
 import { Icon } from "@iconify/react";
-import PageTransition from "../components/PageTransition";
-import siteConfig from "../../site.config";
+import PageTransition from "../../components/PageTransition";
+import siteConfig from "../../../site.config";
+import styles from "../../styles/common.module.scss";
 
 export default function About() {
   return (
     <PageTransition>
-      <div className="page-content">
+      <div className={styles.pageContent}>
         <div
-          className="home-intro slide-enter"
+          className={`${styles.homeIntro} slide-enter`}
           style={{ "--enter-stage": 1 } as React.CSSProperties}
         >
           <h1>{siteConfig.author}</h1>
@@ -18,14 +19,14 @@ export default function About() {
           className="slide-enter"
           style={{ "--enter-stage": 2 } as React.CSSProperties}
         >
-          <p className="section-heading">技术栈</p>
-          <div className="tech-stack">
+          <p className={styles.sectionHeading}>技术栈</p>
+          <div className={styles.techStack}>
             {siteConfig.techStack.map((group) => (
-              <div key={group.category} className="tech-group">
-                <p className="section-heading">{group.category}</p>
-                <ul className="tech-list">
+              <div key={group.category} className={styles.techGroup}>
+                <p className={styles.sectionHeading}>{group.category}</p>
+                <ul className={styles.techList}>
                   {group.items.map((item) => (
-                    <li key={item.name} className="tech-item">
+                    <li key={item.name} className={styles.techItem}>
                       <Icon
                         icon={item.icon}
                         width={18}

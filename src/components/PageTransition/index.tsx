@@ -1,18 +1,18 @@
-import { motion, useReducedMotion } from 'motion/react'
-import type { ReactNode } from 'react'
+import { motion, useReducedMotion } from "motion/react";
+import type { ReactNode } from "react";
 
 interface PageTransitionProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export default function PageTransition({ children }: PageTransitionProps) {
-  const shouldReduce = useReducedMotion()
+  const shouldReduce = useReducedMotion();
 
   const variants = {
     initial: { opacity: 0, y: shouldReduce ? 0 : 8 },
     animate: { opacity: 1, y: 0 },
-    exit:    { opacity: 0, y: shouldReduce ? 0 : -8 },
-  }
+    exit: { opacity: 0, y: shouldReduce ? 0 : -8 },
+  };
 
   return (
     <motion.div
@@ -20,9 +20,9 @@ export default function PageTransition({ children }: PageTransitionProps) {
       initial="initial"
       animate="animate"
       exit="exit"
-      transition={{ duration: 0.18, ease: 'easeInOut' }}
+      transition={{ duration: 0.18, ease: "easeInOut" }}
     >
       {children}
     </motion.div>
-  )
+  );
 }

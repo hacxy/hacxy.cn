@@ -1,0 +1,79 @@
+.header {
+  position: relative;
+  width: 100%;
+  padding: 1.5rem 2rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.logo {
+  position: absolute;
+  left: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.logoIcon {
+  display: inline-flex;
+  color: var(--fg);
+  transform: rotate(20deg);
+}
+
+.nav {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.navLink {
+  font-size: 0.9rem;
+  color: var(--fg);
+  text-decoration: none;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+
+  &:hover,
+  &.active {
+    opacity: 1;
+  }
+}
+
+.navIconLink {
+  display: flex;
+  align-items: center;
+  color: var(--fg);
+  text-decoration: none;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.themeToggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--fg);
+  opacity: 0.6;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.2s ease;
+  line-height: 1;
+
+  &:hover {
+    opacity: 1;
+  }
+}
