@@ -7,10 +7,12 @@ interface AISummaryProps {
 }
 
 export default function AISummary({ text }: AISummaryProps) {
+  const [started, setStarted] = useState(false);
   const [displayed, setDisplayed] = useState("");
   const [done, setDone] = useState(false);
 
   useEffect(() => {
+    if (!started) return;
     setDisplayed("");
     setDone(false);
     let i = 0;
@@ -23,7 +25,7 @@ export default function AISummary({ text }: AISummaryProps) {
       }
     }, 18);
     return () => clearInterval(timer);
-  }, [text]);
+  }, [started, text]);
 
   return (
     <div className={styles.wrapper}>
@@ -31,10 +33,19 @@ export default function AISummary({ text }: AISummaryProps) {
         <Icon icon="simple-icons:anthropic" width={13} height={13} />
         <span>AI 摘要</span>
       </div>
-      <p className={styles.body}>
-        {displayed}
-        {!done && <span className={styles.cursor} />}
-      </p>
+      {!started ? (
+        <div className={styles.idle}>
+          <button className={styles.generateBtn} onClick={() => setStarted(true)}>
+            <Icon icon="lucide:sparkles" width={14} height={14} />
+            生成摘要
+          </button>
+        </div>
+      ) : (
+        <p className={styles.body}>
+          {displayed}
+          {!done && <span className={styles.cursor} />}
+        </p>
+      )}
     </div>
   );
 }
