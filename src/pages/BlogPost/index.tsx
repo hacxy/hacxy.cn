@@ -1,13 +1,11 @@
 import { useParams, Link } from "react-router";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
-import "highlight.js/styles/github.css";
 import "../../styles/markdown.scss";
 import PageTransition from "../../components/PageTransition";
 import CodeBlock from "../../components/CodeBlock";
 import AISummary from "../../components/AISummary";
-import { getPostBySlug, parseFrontmatter } from "../../utils/posts";
+import { getPostBySlug, parseFrontmatter, getAdjacentPosts } from "../../utils/posts";
 import styles from "./index.module.scss";
 import common from "../../styles/common.module.scss";
 
@@ -39,6 +37,7 @@ export default function BlogPost() {
   const content = rawBody.replace(/^\s*#[^\n]*\n?/, "");
   const tags: string[] = Array.isArray(data.tags) ? data.tags.map(String) : [];
   const summary = typeof data.summary === "string" ? data.summary : "";
+  const { prev, next } = getAdjacentPosts(slug);
 
   return (
     <PageTransition>
@@ -93,13 +92,34 @@ export default function BlogPost() {
           >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeHighlight]}
+
               components={{ pre: CodeBlock }}
             >
               {content}
             </ReactMarkdown>
           </div>
         </article>
+
+        {(prev || next) && (
+          <nav className={styles.postNav}>
+            <div className={styles.postNavItem}>
+              {prev && (
+                <Link to={`/posts/${prev.slug}`} className={styles.postNavLink}>
+                  <span className={styles.postNavLabel}>← 上一篇</span>
+                  <span className={styles.postNavTitle}>{prev.title}</span>
+                </Link>
+              )}
+            </div>
+            <div className={`${styles.postNavItem} ${styles.postNavItemRight}`}>
+              {next && (
+                <Link to={`/posts/${next.slug}`} className={`${styles.postNavLink} ${styles.postNavLinkRight}`}>
+                  <span className={styles.postNavLabel}>下一篇 →</span>
+                  <span className={styles.postNavTitle}>{next.title}</span>
+                </Link>
+              )}
+            </div>
+          </nav>
+        )}
       </div>
     </PageTransition>
   );
