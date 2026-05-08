@@ -6,6 +6,7 @@ tags:
   - 工具链
   - 工程化
   - 经验总结
+summary: Skills 是 Claude Code 的可复用工作流单元，本质是存放在 .claude/skills/ 目录的 Markdown 文件，通过斜杠命令触发或由 Claude 根据触发描述自动调用。相比一次性提示词，Skills 能持久化上下文、随代码库版本管理、在团队间共享，让重复性任务从"每次重新解释"变成"一条命令搞定"。
 ---
 
 # AI Skills：让 Claude Code 拥有专属技能
