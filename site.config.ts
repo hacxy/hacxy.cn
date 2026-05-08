@@ -3,7 +3,7 @@ import type { TechGroup } from "./src/types/site";
 const siteConfig = {
   author: "Hacxy",
   github: "hacxy",
-  bio: "前端开发者，热衷于开源、工具链和 Web 应用构建，记录学习与思考。",
+  bio: "了解真相，才能获得真正的自由",
   email: "hacxy.js@outlook.com",
   bilibili: "https://space.bilibili.com/589367703",
   copyright: "CC BY-NC-SA 4.0 2024-PRESENT © Hacxy",
