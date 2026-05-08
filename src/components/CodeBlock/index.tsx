@@ -1,6 +1,7 @@
-import { useState, Children, isValidElement } from "react";
+import { useState, useEffect, Children, isValidElement } from "react";
 import type { ReactNode, ReactElement, ComponentPropsWithoutRef } from "react";
 import { Icon } from "@iconify/react";
+import { getHighlighter } from "../../utils/highlighter";
 import styles from "./index.module.scss";
 
 function extractText(node: ReactNode): string {
@@ -15,6 +16,7 @@ type CodeBlockProps = ComponentPropsWithoutRef<"pre"> & { node?: unknown };
 
 export default function CodeBlock({ children, ...props }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
+  const [shikiHtml, setShikiHtml] = useState<string>("");
 
   const codeEl = Children.toArray(children).find(
     (child) => isValidElement(child) && (child as ReactElement).type === "code"
@@ -22,9 +24,22 @@ export default function CodeBlock({ children, ...props }: CodeBlockProps) {
 
   const className = (codeEl?.props as { className?: string })?.className ?? "";
   const langMatch = className.match(/language-(\w+)/);
-  const lang = langMatch ? langMatch[1] : "";
+  const lang = langMatch ? langMatch[1] : "text";
 
   const rawCode = extractText((codeEl?.props as { children?: ReactNode })?.children);
+
+  useEffect(() => {
+    getHighlighter().then((hl) => {
+      const supported = hl.getLoadedLanguages().includes(lang);
+      const html = hl.codeToHtml(rawCode, {
+        lang: supported ? lang : "text",
+        themes: { light: "github-light", dark: "github-dark" },
+        defaultColor: false,
+      });
+      const inner = html.match(/<code[^>]*>([\s\S]*)<\/code>/)?.[1] ?? "";
+      setShikiHtml(inner);
+    });
+  }, [rawCode, lang]);
 
   const copy = async () => {
     try {
@@ -49,17 +64,19 @@ export default function CodeBlock({ children, ...props }: CodeBlockProps) {
   return (
     <div className={styles.wrapper}>
       <div className={styles.header}>
-        <span className={styles.lang}>{lang || "text"}</span>
+        <span className={styles.lang}>{lang}</span>
         <button className={styles.copyBtn} onClick={copy} aria-label="Copy code">
-          <Icon
-            icon={copied ? "lucide:check" : "lucide:copy"}
-            width={13}
-            height={13}
-          />
+          <Icon icon={copied ? "lucide:check" : "lucide:copy"} width={13} height={13} />
           <span>{copied ? "Copied" : "Copy"}</span>
         </button>
       </div>
-      <pre {...(props as object)}>{children}</pre>
+      {shikiHtml ? (
+        <pre className={styles.shikiPre}>
+          <code dangerouslySetInnerHTML={{ __html: shikiHtml }} />
+        </pre>
+      ) : (
+        <pre {...(props as object)}>{children}</pre>
+      )}
     </div>
   );
 }
