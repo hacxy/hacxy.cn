@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { Routes, Route, useLocation } from "react-router";
 import { AnimatePresence } from "motion/react";
 import classNames from "classnames";
@@ -15,6 +15,7 @@ const About = lazy(() => import("./pages/About"));
 
 export default function App() {
   const location = useLocation();
+  const isFirstRender = useRef(true);
 
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     const stored = localStorage.getItem("theme");
@@ -36,18 +37,18 @@ export default function App() {
       <CodeStreamBg />
       <Header theme={theme} onToggleTheme={toggleTheme} />
       <main>
-        <AnimatePresence mode="wait" initial={false}>
-          <Suspense>
+        <Suspense>
+          <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/posts" element={<BlogList />} />
-            <Route path="/posts/*" element={<BlogPost />} />
-            <Route path="/tags" element={<Tags />} />
-            <Route path="/tags/:tag" element={<BlogList />} />
-          </Routes>
-          </Suspense>
-        </AnimatePresence>
+              <Route path="/" element={<Home />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/posts" element={<BlogList />} />
+              <Route path="/posts/*" element={<BlogPost />} />
+              <Route path="/tags" element={<Tags />} />
+              <Route path="/tags/:tag" element={<BlogList />} />
+            </Routes>
+          </AnimatePresence>
+        </Suspense>
       </main>
       <Footer />
     </div>

@@ -92,7 +92,6 @@ export default function BlogPost() {
           >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
-
               components={{ pre: CodeBlock }}
             >
               {content}

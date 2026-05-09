@@ -7,14 +7,17 @@
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
-    "types": ["vite/client"]
+    "paths": {
+      "virtual:blog-config": ["./virtual.d.ts"],
+      "virtual:blog-posts": ["./virtual.d.ts"],
+      "virtual:github-projects": ["./virtual.d.ts"],
+      "virtual:blog-entry": ["./virtual.d.ts"]
+    }
   },
-  "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["src", "virtual.d.ts"]
 }

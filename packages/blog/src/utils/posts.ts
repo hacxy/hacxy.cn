@@ -1,5 +1,5 @@
 import yaml from 'js-yaml'
-import gitDates from 'virtual:git-dates'
+import rawPosts from 'virtual:blog-posts'
 
 export interface Post {
   slug: string
@@ -16,12 +16,6 @@ export interface FrontmatterData {
   [key: string]: unknown
 }
 
-const modules = import.meta.glob('/posts/**/*.md', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>
-
 const FM_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/
 
 export function parseFrontmatter(raw: string): { data: FrontmatterData; content: string } {
@@ -32,44 +26,8 @@ export function parseFrontmatter(raw: string): { data: FrontmatterData; content:
   return { data, content }
 }
 
-function extractH1(content: string): string {
-  const match = content.match(/^#\s+(.+)$/m)
-  return match ? match[1].trim() : 'Untitled'
-}
-
-function filePathToSlug(filePath: string): string {
-  return filePath
-    .replace(/^\/posts\//, '')
-    .replace(/\.md$/, '')
-    .replace(/\/index$/, '')
-}
-
-function parseDate(raw: string | Date | undefined): string | null {
-  if (!raw) return null
-  if (raw instanceof Date) return raw.toISOString().slice(0, 10)
-  if (typeof raw === 'string') return raw.slice(0, 10)
-  return null
-}
-
-function buildPost(filePath: string, rawContent: string): Post {
-  const { data, content } = parseFrontmatter(rawContent)
-  const title = (data.title as string | undefined) || extractH1(content)
-  const date = parseDate(data.date as string | Date | undefined) ?? gitDates[filePath] ?? null
-  const tags: string[] = Array.isArray(data.tags) ? data.tags.map(String) : []
-  const slug = filePathToSlug(filePath)
-  return { slug, title, date, tags, rawContent }
-}
-
-let _cache: Post[] | null = null
-
-function getAll(): Post[] {
-  if (_cache) return _cache
-  _cache = Object.entries(modules).map(([path, raw]) => buildPost(path, raw))
-  return _cache
-}
-
 export function getAllPosts(): Post[] {
-  return getAll().sort((a, b) => {
+  return [...rawPosts].sort((a, b) => {
     if (!a.date && !b.date) return a.title.localeCompare(b.title)
     if (!a.date) return 1
     if (!b.date) return -1
@@ -78,7 +36,7 @@ export function getAllPosts(): Post[] {
 }
 
 export function getPostBySlug(slug: string): Post | undefined {
-  return getAll().find(p => p.slug === slug)
+  return rawPosts.find(p => p.slug === slug)
 }
 
 export function getAdjacentPosts(slug: string): { prev: Post | null; next: Post | null } {
@@ -97,7 +55,7 @@ export function getPostsByTag(tag: string): Post[] {
 
 export function getAllTags(): { tag: string; count: number }[] {
   const counts = new Map<string, number>()
-  for (const post of getAll()) {
+  for (const post of rawPosts) {
     for (const tag of post.tags) {
       counts.set(tag, (counts.get(tag) ?? 0) + 1)
     }
