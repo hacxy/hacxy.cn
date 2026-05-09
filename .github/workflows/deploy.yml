@@ -41,10 +41,10 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
-          source: "dist/"
+          source: "apps/hacxy.cn/dist/"
           target: "/${{secrets.SSH_USERNAME}}/Projects/.blog_temp/"
           rm: true
-          strip_components: 1
+          strip_components: 3
 
       - name: 执行远程脚本命令
         uses: appleboy/ssh-action@master
