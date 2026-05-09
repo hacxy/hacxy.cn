@@ -234,11 +234,16 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
 
     generateBundle(_, bundle) {
       // find the entry chunk to get hashed filename
+      type ViteChunk = Rollup.OutputChunk & { viteMetadata?: { importedCss: Set<string> } }
       const entryChunk = Object.values(bundle).find(
-        (chunk): chunk is Rollup.OutputChunk =>
+        (chunk): chunk is ViteChunk =>
           chunk.type === 'chunk' && chunk.isEntry
-      )
+      ) as ViteChunk | undefined
       const entryFile = entryChunk?.fileName ?? 'assets/app.js'
+      const cssFiles = [...(entryChunk?.viteMetadata?.importedCss ?? [])]
+      const cssLinks = cssFiles
+        .map(f => `    <link rel="stylesheet" crossorigin href="/${f}">`)
+        .join('\n')
 
       const html = `<!DOCTYPE html>
 <html lang="zh">
@@ -246,11 +251,11 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>${userConfig.author ?? 'Blog'}</title>
+${cssLinks ? cssLinks + '\n' : ''}    <title>${userConfig.author ?? 'Blog'}</title>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/${entryFile}"></script>
+    <script type="module" crossorigin src="/${entryFile}"></script>
   </body>
 </html>`
       this.emitFile({
