@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "blog dev",
     "build": "blog build",
-    "preview": "blog preview --outDir dist"
+    "preview": "blog preview"
   },
   "dependencies": {
     "@hacxy/blog": "workspace:*"
