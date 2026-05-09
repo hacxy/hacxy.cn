@@ -106,30 +106,37 @@ export default function Home() {
           </div>
         )}
 
-        <Row index={socialRow} style={{ marginTop: "3rem" }}>
-          <div className={styles.socialLinks}>
-            {blogConfig.email && (
-              <a
-                href={`mailto:${blogConfig.email}`}
-                className={styles.navLink}
-                aria-label="Email"
-              >
-                <Icon icon="lucide:mail" width={16} height={16} />
-              </a>
-            )}
-            {blogConfig.bilibili && (
-              <a
-                href={blogConfig.bilibili}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.navLink}
-                aria-label="BiliBili"
-              >
-                <Icon icon="simple-icons:bilibili" width={16} height={16} />
-              </a>
-            )}
+        {(blogConfig.email || blogConfig.bilibili) && (
+          <div style={{ marginTop: "3rem" }}>
+            <Row index={socialRow}>
+              <p className={styles.sectionHeading}>Contact</p>
+            </Row>
+            <Row index={socialRow + 1}>
+              <div className={styles.socialLinks}>
+                {blogConfig.email && (
+                  <a
+                    href={`mailto:${blogConfig.email}`}
+                    className={styles.navLink}
+                    aria-label="Email"
+                  >
+                    <Icon icon="lucide:mail" width={16} height={16} />
+                  </a>
+                )}
+                {blogConfig.bilibili && (
+                  <a
+                    href={blogConfig.bilibili}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.navLink}
+                    aria-label="BiliBili"
+                  >
+                    <Icon icon="simple-icons:bilibili" width={16} height={16} />
+                  </a>
+                )}
+              </div>
+            </Row>
           </div>
-        </Row>
+        )}
       </div>
     </PageTransition>
   );

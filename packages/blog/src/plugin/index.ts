@@ -2,10 +2,12 @@ import type { Plugin, ViteDevServer, Rollup } from 'vite'
 import type { BlogConfig } from '../define'
 import fs from 'fs'
 import path from 'path'
-import { fileURLToPath } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
+import { createRequire } from 'module'
 import { execSync } from 'child_process'
 import yaml from 'js-yaml'
 import fg from 'fast-glob'
+import { build as esbuild } from 'esbuild'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -29,19 +31,21 @@ const DEFAULT_EXCLUDE = [
   '**/.claude/**',
 ]
 
-const INLINE_HTML = `<!DOCTYPE html>
+function buildInlineHtml(title: string) {
+  return `<!DOCTYPE html>
 <html lang="zh">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Blog</title>
+    <title>${title}</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/@id/__x00__virtual:blog-entry"></script>
   </body>
 </html>`
+}
 
 interface FrontmatterData {
   title?: string
@@ -134,6 +138,28 @@ async function fetchGithubProject(github: string, name: string) {
 export function blogPlugin(userConfig: BlogConfig): Plugin {
   let root = process.cwd()
   let devServer: ViteDevServer | undefined
+  let resolvedConfig: BlogConfig = userConfig
+
+  async function reloadBlogConfig(configFile: string) {
+    try {
+      const result = await esbuild({
+        entryPoints: [configFile],
+        bundle: true,
+        format: 'cjs',
+        write: false,
+        platform: 'node',
+        logLevel: 'silent',
+      })
+      const code = result.outputFiles[0].text
+      const mod: { exports: { default?: BlogConfig } } = { exports: {} }
+      const fn = new Function('module', 'exports', 'require', '__dirname', '__filename', code)
+      fn(mod, mod.exports, createRequire(pathToFileURL(configFile).href), path.dirname(configFile), configFile)
+      const loaded = mod.exports.default ?? (mod.exports as unknown as BlogConfig)
+      if (loaded) resolvedConfig = loaded
+    } catch (e) {
+      console.warn('[blog] failed to reload blog.config:', e)
+    }
+  }
 
   return {
     name: '@hacxy/blog',
@@ -169,7 +195,7 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
           !url.match(/\.\w{1,8}(\?.*)?$/)
 
         if (isNavigation) {
-          const html = await server.transformIndexHtml(url, INLINE_HTML)
+          const html = await server.transformIndexHtml(url, buildInlineHtml(resolvedConfig.title ?? 'Blog'))
           res.setHeader('Content-Type', 'text/html; charset=utf-8')
           res.end(html)
           return
@@ -180,10 +206,22 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       // watch for md file changes → invalidate virtual:blog-posts
       const watcher = server.watcher
       watcher.add(path.join(root, '**/*.md'))
+      // explicitly watch blog.config so changes are detected
+      const configTs = path.join(root, 'blog.config.ts')
+      const configJs = path.join(root, 'blog.config.js')
+      watcher.add(configTs)
+      watcher.add(configJs)
       watcher.on('add', invalidatePosts)
       watcher.on('unlink', invalidatePosts)
       watcher.on('change', (file) => {
         if (file.endsWith('.md')) invalidatePosts()
+        if (file === configTs || file === configJs) {
+          reloadBlogConfig(file).then(() => {
+            const mod = server.moduleGraph.getModuleById(RESOLVED_CONFIG)
+            if (mod) server.moduleGraph.invalidateModule(mod)
+            server.hot.send({ type: 'full-reload' })
+          })
+        }
       })
     },
 
@@ -197,17 +235,19 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
     async load(id) {
       if (id === RESOLVED_CONFIG) {
         const resolved = {
-          author: userConfig.author,
-          github: userConfig.github ?? '',
-          bio: userConfig.bio ?? '',
-          email: userConfig.email ?? '',
-          bilibili: userConfig.bilibili ?? '',
-          copyright: userConfig.copyright ?? '',
-          projects: userConfig.projects ?? [],
-          techStack: userConfig.techStack ?? [],
-          include: userConfig.include ?? ['**/*.md'],
-          exclude: userConfig.exclude ?? [],
-          base: userConfig.base ?? '/',
+          author: resolvedConfig.author,
+          title: resolvedConfig.title ?? 'Blog',
+          logo: resolvedConfig.logo ?? null,
+          github: resolvedConfig.github ?? '',
+          bio: resolvedConfig.bio ?? '',
+          email: resolvedConfig.email ?? '',
+          bilibili: resolvedConfig.bilibili ?? '',
+          copyright: resolvedConfig.copyright ?? '',
+          projects: resolvedConfig.projects ?? [],
+          techStack: resolvedConfig.techStack ?? [],
+          include: resolvedConfig.include ?? ['**/*.md'],
+          exclude: resolvedConfig.exclude ?? [],
+          base: resolvedConfig.base ?? '/',
         }
         return `export default ${JSON.stringify(resolved)}`
       }
@@ -251,7 +291,7 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-${cssLinks ? cssLinks + '\n' : ''}    <title>${userConfig.author ?? 'Blog'}</title>
+${cssLinks ? cssLinks + '\n' : ''}    <title>${userConfig.title ?? 'Blog'}</title>
   </head>
   <body>
     <div id="root"></div>

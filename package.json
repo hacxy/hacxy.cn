@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter hacxy.cn dev",
-    "build": "pnpm --filter @hacxy/blog build && pnpm --filter hacxy.cn build",
+    "dev:lib": "pnpm --filter @hacxy/blog dev",
+    "build": "pnpm --filter hacxy.cn build",
+    "build:lib": "pnpm --filter @hacxy/blog build",
     "preview": "pnpm --filter hacxy.cn preview"
   }
 }
