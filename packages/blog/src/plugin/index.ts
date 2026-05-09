@@ -18,17 +18,20 @@ const VIRTUAL_CONFIG = 'virtual:blog-config'
 const VIRTUAL_POSTS = 'virtual:blog-posts'
 const VIRTUAL_PROJECTS = 'virtual:github-projects'
 const VIRTUAL_ENTRY = 'virtual:blog-entry'
+const VIRTUAL_HOME = 'virtual:blog-home'
 
 const RESOLVED_CONFIG = '\0' + VIRTUAL_CONFIG
 const RESOLVED_POSTS = '\0' + VIRTUAL_POSTS
 const RESOLVED_PROJECTS = '\0' + VIRTUAL_PROJECTS
 const RESOLVED_ENTRY = '\0' + VIRTUAL_ENTRY
+const RESOLVED_HOME = '\0' + VIRTUAL_HOME
 
 const DEFAULT_EXCLUDE = [
   '**/node_modules/**',
   '**/dist/**',
   '**/.git/**',
   '**/.claude/**',
+  'index.md',
 ]
 
 function buildInlineHtml(title: string) {
@@ -91,6 +94,16 @@ function filePathToSlug(filePath: string, root: string): string {
     .replace(root + '/', '')
     .replace(/\.md$/, '')
     .replace(/\/index$/, '')
+}
+
+function buildHomeData(root: string): string {
+  const indexPath = path.join(root, 'index.md')
+  if (!fs.existsSync(indexPath)) {
+    return `export default null`
+  }
+  const raw = fs.readFileSync(indexPath, 'utf-8')
+  const { data } = parseFrontmatter(raw)
+  return `export default ${JSON.stringify(data)}`
 }
 
 function buildPostsData(root: string, config: BlogConfig): string {
@@ -215,6 +228,7 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       watcher.on('unlink', invalidatePosts)
       watcher.on('change', (file) => {
         if (file.endsWith('.md')) invalidatePosts()
+        if (file === path.join(root, 'index.md')) invalidateHome()
         if (file === configTs || file === configJs) {
           reloadBlogConfig(file).then(() => {
             const mod = server.moduleGraph.getModuleById(RESOLVED_CONFIG)
@@ -230,6 +244,7 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       if (id === VIRTUAL_POSTS) return RESOLVED_POSTS
       if (id === VIRTUAL_PROJECTS) return RESOLVED_PROJECTS
       if (id === VIRTUAL_ENTRY) return RESOLVED_ENTRY
+      if (id === VIRTUAL_HOME) return RESOLVED_HOME
     },
 
     async load(id) {
@@ -250,6 +265,10 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
           base: resolvedConfig.base ?? '/',
         }
         return `export default ${JSON.stringify(resolved)}`
+      }
+
+      if (id === RESOLVED_HOME) {
+        return buildHomeData(root)
       }
 
       if (id === RESOLVED_POSTS) {
@@ -309,6 +328,13 @@ ${cssLinks ? cssLinks + '\n' : ''}    <title>${userConfig.title ?? 'Blog'}</titl
   function invalidatePosts() {
     if (!devServer) return
     const mod = devServer.moduleGraph.getModuleById(RESOLVED_POSTS)
+    if (mod) devServer.moduleGraph.invalidateModule(mod)
+    devServer.ws.send({ type: 'full-reload' })
+  }
+
+  function invalidateHome() {
+    if (!devServer) return
+    const mod = devServer.moduleGraph.getModuleById(RESOLVED_HOME)
     if (mod) devServer.moduleGraph.invalidateModule(mod)
     devServer.ws.send({ type: 'full-reload' })
   }

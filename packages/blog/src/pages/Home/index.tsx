@@ -4,9 +4,11 @@ import { motion } from "motion/react";
 import { Icon } from "@iconify/react";
 import PageTransition from "../../components/PageTransition";
 import Typewriter from "../../components/Typewriter";
+import NotFound from "../NotFound";
 import { getAllPosts } from "../../utils/posts";
 import projectsData from "virtual:github-projects";
 import blogConfig from "virtual:blog-config";
+import homeData from "virtual:blog-home";
 import styles from "../../styles/common.module.scss";
 
 function Row({ index, children, style }: { index: number; children: React.ReactNode; style?: React.CSSProperties }) {
@@ -23,6 +25,13 @@ function Row({ index, children, style }: { index: number; children: React.ReactN
 }
 
 export default function Home() {
+  if (!homeData) {
+    return <NotFound />;
+  }
+
+  const name = (homeData.name as string | undefined) ?? blogConfig.author;
+  const bio = (homeData.bio as string | undefined) ?? blogConfig.bio ?? '';
+
   const recentPosts = getAllPosts().slice(0, 5);
 
   const postsStart = 2;
@@ -36,9 +45,9 @@ export default function Home() {
       <div className={styles.pageContent}>
         <Row index={0} style={{ marginBottom: "3rem" }}>
           <div className={styles.homeIntro}>
-            <h1>{blogConfig.author}</h1>
+            <h1>{name}</h1>
             <p>
-              <Typewriter text={blogConfig.bio ?? ''} speed={60} delay={300} />
+              <Typewriter text={bio} speed={60} delay={300} />
             </p>
           </div>
         </Row>
