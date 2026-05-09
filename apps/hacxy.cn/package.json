@@ -1,0 +1,14 @@
+{
+  "name": "hacxy.cn",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "blog dev",
+    "build": "blog build",
+    "preview": "vite preview --outDir dist"
+  },
+  "dependencies": {
+    "@hacxy/blog": "workspace:*"
+  }
+}

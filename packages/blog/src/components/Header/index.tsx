@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 import { Icon } from "@iconify/react";
 import classNames from "classnames";
-import siteConfig from "../../../site.config";
+import blogConfig from "virtual:blog-config";
 import styles from "./index.module.scss";
 
 interface HeaderProps {
@@ -53,15 +53,17 @@ export default function Header({ theme, onToggleTheme }: HeaderProps) {
           >
             About
           </NavLink>
-          <a
-            href={`https://github.com/${siteConfig.github}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.navIconLink}
-            aria-label="GitHub"
-          >
-            <Icon icon="lucide:github" width={18} height={18} />
-          </a>
+          {blogConfig.github && (
+            <a
+              href={`https://github.com/${blogConfig.github}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.navIconLink}
+              aria-label="GitHub"
+            >
+              <Icon icon="lucide:github" width={18} height={18} />
+            </a>
+          )}
           <button
             className={styles.themeToggle}
             onClick={onToggleTheme}
