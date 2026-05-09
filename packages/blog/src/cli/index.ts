@@ -82,21 +82,32 @@ function baseViteConfig(root: string): InlineConfig {
   }
 }
 
+const c = {
+  green: (s: string) => `\x1b[32m${s}\x1b[0m`,
+  cyan: (s: string) => `\x1b[36m${s}\x1b[0m`,
+  gray: (s: string) => `\x1b[90m${s}\x1b[0m`,
+  bold: (s: string) => `\x1b[1m${s}\x1b[0m`,
+}
+
 export async function run() {
   const [, , command] = process.argv
   const root = process.cwd()
 
   if (command === 'build') {
     const config = await loadBlogConfig(root)
+    console.log(c.cyan('  building...'))
+    const start = Date.now()
     await viteBuild({
       ...baseViteConfig(root),
+      logLevel: 'silent',
       plugins: [react(), blogPlugin(config)],
       build: {
         outDir: 'dist',
         emptyOutDir: true,
       },
     })
-    console.log('[blog] build complete → dist/')
+    const ms = Date.now() - start
+    console.log(c.green(`  ✓ built in ${ms}ms`) + c.gray(' → dist/'))
     return
   }
 
@@ -104,9 +115,16 @@ export async function run() {
   const config = await loadBlogConfig(root)
   const server = await createServer({
     ...baseViteConfig(root),
+    logLevel: 'silent',
     plugins: [react(), blogPlugin(config)],
     server: { port: 5173 },
   })
   await server.listen()
-  server.printUrls()
+  const port = server.config.server.port ?? 5173
+  const local = server.resolvedUrls?.local[0] ?? `http://localhost:${port}/`
+  console.log(`\n  ${c.green(c.bold('blog'))} dev server ready\n`)
+  console.log(`  ${c.gray('➜')}  ${c.bold('Local:')}   ${c.cyan(local)}`)
+  const network = server.resolvedUrls?.network[0]
+  if (network) console.log(`  ${c.gray('➜')}  ${c.bold('Network:')} ${c.cyan(network)}`)
+  console.log()
 }
