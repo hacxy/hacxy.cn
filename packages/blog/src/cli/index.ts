@@ -1,4 +1,4 @@
-import { createServer, build as viteBuild, type InlineConfig } from 'vite'
+import { createServer, build as viteBuild, preview as vitePreview, type InlineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { blogPlugin } from '../plugin'
 import type { BlogConfig } from '../define'
@@ -108,6 +108,24 @@ export async function run() {
     })
     const ms = Date.now() - start
     console.log(c.green(`  ✓ built in ${ms}ms`) + c.gray(' → dist/'))
+    return
+  }
+
+  if (command === 'preview') {
+    const server = await vitePreview({
+      root,
+      configFile: false,
+      logLevel: 'silent',
+      build: { outDir: 'dist' },
+      preview: { port: 4173 },
+    })
+    const port = server.config.preview.port ?? 4173
+    const local = server.resolvedUrls?.local[0] ?? `http://localhost:${port}/`
+    console.log(`\n  ${c.green(c.bold('blog'))} preview server ready\n`)
+    console.log(`  ${c.gray('➜')}  ${c.bold('Local:')}   ${c.cyan(local)}`)
+    const network = server.resolvedUrls?.network[0]
+    if (network) console.log(`  ${c.gray('➜')}  ${c.bold('Network:')} ${c.cyan(network)}`)
+    console.log()
     return
   }
 
