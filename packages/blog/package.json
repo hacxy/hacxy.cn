@@ -27,7 +27,7 @@
     "@iconify/react": "^6.0.2",
     "@vitejs/plugin-react": "latest",
     "classnames": "^2.5.1",
-    "esbuild": "^0.24.0",
+    "esbuild": "^0.27.0",
     "fast-glob": "^3.3.3",
     "js-yaml": "^4.1.1",
     "motion": "latest",
