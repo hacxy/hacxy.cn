@@ -8,6 +8,14 @@
     "dev:lib": "pnpm --filter @hacxy/blog dev",
     "build": "pnpm --filter hacxy.cn build",
     "build:lib": "pnpm --filter @hacxy/blog build",
-    "preview": "pnpm --filter hacxy.cn preview"
+    "preview": "pnpm --filter hacxy.cn preview",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript-eslint": "^8.59.2"
   }
 }

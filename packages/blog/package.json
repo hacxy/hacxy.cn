@@ -21,7 +21,8 @@
   ],
   "scripts": {
     "dev": "tsup --watch",
-    "build": "tsup"
+    "build": "tsup",
+    "lint": "eslint src"
   },
   "dependencies": {
     "@iconify/react": "^6.0.2",
