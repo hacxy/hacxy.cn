@@ -1,7 +1,13 @@
 import type { TechGroup } from './types/site'
 
+export type LogoConfig =
+  | string // iconify icon name
+  | { src: string; alt?: string } // local or remote image
+
 export interface BlogConfig {
   author: string
+  title?: string
+  logo?: LogoConfig
   github?: string
   bio?: string
   email?: string

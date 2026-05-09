@@ -27,20 +27,23 @@ export default function AISummary({ text }: AISummaryProps) {
     return () => clearInterval(timer);
   }, [started, text]);
 
+  if (!text) return null;
+
   return (
     <div className={styles.wrapper}>
-      <div className={styles.header}>
-        <Icon icon="simple-icons:anthropic" width={13} height={13} />
-        <span>AI 摘要</span>
-      </div>
-      {!started ? (
-        <div className={styles.idle}>
+      <div className={`${styles.header} ${started ? styles.headerBordered : ""}`}>
+        <div className={styles.headerLeft}>
+          <Icon icon="simple-icons:anthropic" width={13} height={13} />
+          <span>AI 摘要</span>
+        </div>
+        {!started && (
           <button className={styles.generateBtn} onClick={() => setStarted(true)}>
-            <Icon icon="lucide:sparkles" width={14} height={14} />
+            <Icon icon="lucide:sparkles" width={13} height={13} />
             生成摘要
           </button>
-        </div>
-      ) : (
+        )}
+      </div>
+      {started && (
         <p className={styles.body}>
           {displayed}
           {!done && <span className={styles.cursor} />}

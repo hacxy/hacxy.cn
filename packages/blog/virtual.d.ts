@@ -8,8 +8,14 @@ declare module 'virtual:blog-config' {
     category: string
     items: TechItem[]
   }
+  export interface LogoImage {
+    src: string
+    alt?: string
+  }
   interface ResolvedBlogConfig {
     author: string
+    title: string
+    logo: string | LogoImage | null
     github: string
     bio: string
     email: string

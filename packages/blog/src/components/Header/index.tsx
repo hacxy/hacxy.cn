@@ -25,7 +25,11 @@ export default function Header({ theme, onToggleTheme }: HeaderProps) {
       <div className={styles.header}>
         <NavLink to="/" className={styles.logo} aria-label="Home">
           <div className={styles.logoIcon}>
-            <Icon icon="simple-icons:hackster" width={32} height={32} style={{ color: "var(--fg)" }} />
+            {blogConfig.logo && typeof blogConfig.logo === "object" ? (
+              <img src={blogConfig.logo.src} alt={blogConfig.logo.alt ?? "logo"} width={32} height={32} />
+            ) : (
+              <Icon icon={(blogConfig.logo as string) ?? "simple-icons:hackster"} width={32} height={32} style={{ color: "var(--fg)" }} />
+            )}
           </div>
         </NavLink>
         <nav className={styles.nav}>
