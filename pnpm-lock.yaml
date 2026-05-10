@@ -7,6 +7,49 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@iconify/react':
+        specifier: ^6.0.2
+        version: 6.0.2(react@19.2.5)
+      classnames:
+        specifier: ^2.5.1
+        version: 2.5.1
+      esbuild:
+        specifier: ^0.27.0
+        version: 0.27.7
+      fast-glob:
+        specifier: ^3.3.3
+        version: 3.3.3
+      js-yaml:
+        specifier: ^4.1.1
+        version: 4.1.1
+      motion:
+        specifier: latest
+        version: 12.38.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.5
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.5(react@19.2.5)
+      react-markdown:
+        specifier: ^9.0.1
+        version: 9.1.0(@types/react@19.2.14)(react@19.2.5)
+      react-router:
+        specifier: ^7.0.0
+        version: 7.15.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      remark-gfm:
+        specifier: ^4.0.0
+        version: 4.0.1
+      sass:
+        specifier: ^1.99.0
+        version: 1.99.0
+      shiki:
+        specifier: ^4.0.2
+        version: 4.0.2
+      vite:
+        specifier: ^8.0.0
+        version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(sass@1.99.0)(yaml@2.8.4)
     devDependencies:
       '@eslint-react/eslint-plugin':
         specifier: ^5.7.5
@@ -14,6 +57,21 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.3.0)
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.14)
+      '@vitejs/plugin-react':
+        specifier: latest
+        version: 6.0.1(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(sass@1.99.0)(yaml@2.8.4))
       eslint:
         specifier: ^10.3.0
         version: 10.3.0
@@ -26,6 +84,9 @@ importers:
       lint-staged:
         specifier: ^17.0.4
         version: 17.0.4
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
       typescript-eslint:
         specifier: ^8.59.2
         version: 8.59.2(eslint@10.3.0)(typescript@5.9.3)

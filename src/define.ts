@@ -24,6 +24,7 @@ export interface BlogConfig {
   include?: string[]
   exclude?: string[]
   base?: string
+  contentDir?: string
 }
 
 export function defineBlogConfig(config: BlogConfig): BlogConfig {

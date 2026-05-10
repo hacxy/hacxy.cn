@@ -1,6 +1,7 @@
-import { defineBlogConfig } from "@hacxy/blog";
+import { defineBlogConfig } from "./src/define";
 
 export default defineBlogConfig({
+  contentDir: "content",
   title: "Hacxy's Blog",
   author: "Hacxy",
   github: "hacxy",
