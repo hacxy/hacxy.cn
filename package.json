@@ -9,13 +9,19 @@
     "build": "pnpm --filter hacxy.cn build",
     "build:lib": "pnpm --filter @hacxy/blog build",
     "preview": "pnpm --filter hacxy.cn preview",
-    "lint": "pnpm -r lint"
+    "lint": "pnpm -r lint",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": "eslint --max-warnings=0"
   },
   "devDependencies": {
     "@eslint-react/eslint-plugin": "^5.7.5",
     "@eslint/js": "^10.0.1",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.4",
     "typescript-eslint": "^8.59.2"
   }
 }
