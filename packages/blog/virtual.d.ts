@@ -59,17 +59,6 @@ declare module 'virtual:github-projects' {
   export default projects
 }
 
-declare module 'virtual:blog-home' {
-  interface HomeData {
-    title?: string
-    name?: string
-    bio?: string
-    [key: string]: unknown
-  }
-  const homeData: HomeData | null
-  export default homeData
-}
-
 declare module 'virtual:blog-pages' {
   interface PageData {
     layout?: string
