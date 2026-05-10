@@ -12,7 +12,6 @@ const BlogList = lazy(() => import("./pages/BlogList"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const Tags = lazy(() => import("./pages/Tags"));
 const About = lazy(() => import("./pages/About"));
-const NotFound = lazy(() => import("./pages/NotFound"));
 
 export default function App() {
   const location = useLocation();
@@ -43,10 +42,9 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
               <Route path="/posts" element={<BlogList />} />
-              <Route path="/posts/*" element={<BlogPost />} />
               <Route path="/tags" element={<Tags />} />
               <Route path="/tags/:tag" element={<BlogList />} />
-              <Route path="*" element={<NotFound />} />
+              <Route path="/*" element={<BlogPost />} />
             </Routes>
           </AnimatePresence>
         </Suspense>

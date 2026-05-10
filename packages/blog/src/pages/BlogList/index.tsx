@@ -39,7 +39,7 @@ export default function BlogList() {
                 style={{ "--enter-stage": i + 2 } as React.CSSProperties}
               >
                 {post.date && <time className={styles.postDate}>{post.date}</time>}
-                <Link to={`/posts/${post.slug}`} className={styles.postLink}>
+                <Link to={`/${post.slug}`} className={styles.postLink}>
                   {post.title}
                 </Link>
               </li>
@@ -85,7 +85,7 @@ export default function BlogList() {
                   {post.date && (
                     <time className={styles.postDate}>{post.date.slice(5)}</time>
                   )}
-                  <Link to={`/posts/${post.slug}`} className={styles.postLink}>
+                  <Link to={`/${post.slug}`} className={styles.postLink}>
                     {post.title}
                   </Link>
                 </li>

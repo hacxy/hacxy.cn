@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { NavLink } from "react-router";
 import { Icon } from "@iconify/react";
 import classNames from "classnames";
@@ -12,6 +12,16 @@ interface HeaderProps {
 
 export default function Header({ theme, onToggleTheme }: HeaderProps) {
   const [scrolled, setScrolled] = useState(() => window.scrollY > 0);
+  const headerRef = useRef<HTMLElement>(null);
+
+  const updateHeaderHeight = useCallback(() => {
+    if (headerRef.current) {
+      document.documentElement.style.setProperty(
+        "--header-height",
+        `${headerRef.current.offsetHeight}px`
+      );
+    }
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 0);
@@ -19,8 +29,14 @@ export default function Header({ theme, onToggleTheme }: HeaderProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    updateHeaderHeight();
+    window.addEventListener("resize", updateHeaderHeight);
+    return () => window.removeEventListener("resize", updateHeaderHeight);
+  }, [updateHeaderHeight]);
+
   return (
-    <header className={classNames(styles.headerEl, { [styles.scrolled]: scrolled })}>
+    <header ref={headerRef} className={classNames(styles.headerEl, { [styles.scrolled]: scrolled })}>
       <div className={styles.header}>
         <NavLink to="/" className={styles.logo} aria-label="Home">
           <div className={styles.logoIcon}>

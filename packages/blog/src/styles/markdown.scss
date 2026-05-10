@@ -12,6 +12,7 @@
   color: var(--fg);
   font-weight: 600;
   outline: none;
+  scroll-margin-top: calc(var(--header-height, 4rem) + 1rem);
 }
 
 .markdown-body h1 {

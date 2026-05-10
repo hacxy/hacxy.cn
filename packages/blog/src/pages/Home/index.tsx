@@ -67,7 +67,7 @@ export default function Home() {
                 transition={{ duration: 0.4, delay: (postsStart + i) * 0.07 }}
               >
                 {post.date && <time className={styles.postDate}>{post.date}</time>}
-                <Link to={`/posts/${post.slug}`} className={styles.postLink}>
+                <Link to={`/${post.slug}`} className={styles.postLink}>
                   {post.title}
                 </Link>
               </motion.li>
