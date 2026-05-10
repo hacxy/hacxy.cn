@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import styles from "./index.module.scss";
 
@@ -7,25 +7,25 @@ interface AISummaryProps {
 }
 
 export default function AISummary({ text }: AISummaryProps) {
-  const [started, setStarted] = useState(false);
   const [displayed, setDisplayed] = useState("");
   const [done, setDone] = useState(false);
+  const [started, setStarted] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval>>(null);
 
-  useEffect(() => {
-    if (!started) return;
+  const start = useCallback(() => {
+    setStarted(true);
     setDisplayed("");
     setDone(false);
     let i = 0;
-    const timer = setInterval(() => {
+    timerRef.current = setInterval(() => {
       i++;
       setDisplayed(text.slice(0, i));
       if (i >= text.length) {
         setDone(true);
-        clearInterval(timer);
+        clearInterval(timerRef.current!);
       }
     }, 18);
-    return () => clearInterval(timer);
-  }, [started, text]);
+  }, [text]);
 
   if (!text) return null;
 
@@ -37,7 +37,7 @@ export default function AISummary({ text }: AISummaryProps) {
           <span>AI 摘要</span>
         </div>
         {!started && (
-          <button className={styles.generateBtn} onClick={() => setStarted(true)}>
+          <button className={styles.generateBtn} onClick={start}>
             <Icon icon="lucide:sparkles" width={13} height={13} />
             生成摘要
           </button>

@@ -1,6 +1,8 @@
-import { useRef } from "react";
+import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
+
+let mountCount = 0;
 
 interface PageTransitionProps {
   children: ReactNode;
@@ -8,12 +10,10 @@ interface PageTransitionProps {
 
 export default function PageTransition({ children }: PageTransitionProps) {
   const shouldReduce = useReducedMotion();
-  const isFirst = useRef(true);
-  const skipInitial = isFirst.current;
-  isFirst.current = false;
+  const [isFirst] = useState(() => mountCount++ === 0);
 
   const variants = {
-    initial: { opacity: skipInitial ? 1 : 0, y: skipInitial || shouldReduce ? 0 : 8 },
+    initial: { opacity: isFirst ? 1 : 0, y: isFirst || shouldReduce ? 0 : 8 },
     animate: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: shouldReduce ? 0 : -8 },
   };

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Routes, Route, useLocation } from "react-router";
 import { AnimatePresence } from "motion/react";
 import classNames from "classnames";
@@ -16,7 +16,6 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 
 export default function App() {
   const location = useLocation();
-  const isFirstRender = useRef(true);
 
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     const stored = localStorage.getItem("theme");
