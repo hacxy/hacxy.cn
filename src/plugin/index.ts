@@ -1,29 +1,22 @@
-import type { Plugin, ViteDevServer, Rollup } from 'vite'
+import type { Plugin, ViteDevServer } from 'vite'
 import type { BlogConfig } from '../define'
 import fs from 'fs'
 import path from 'path'
-import { fileURLToPath, pathToFileURL } from 'url'
+import { pathToFileURL } from 'url'
 import { createRequire } from 'module'
 import { execSync } from 'child_process'
 import yaml from 'js-yaml'
 import fg from 'fast-glob'
 import { build as esbuild } from 'esbuild'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-// resolve framework src directory regardless of whether we're running from dist/ or src/
-const FRAMEWORK_SRC = path.resolve(__dirname, '../../src')
-
 const VIRTUAL_CONFIG = 'virtual:blog-config'
 const VIRTUAL_POSTS = 'virtual:blog-posts'
 const VIRTUAL_PROJECTS = 'virtual:github-projects'
-const VIRTUAL_ENTRY = 'virtual:blog-entry'
 const VIRTUAL_PAGES = 'virtual:blog-pages'
 
 const RESOLVED_CONFIG = '\0' + VIRTUAL_CONFIG
 const RESOLVED_POSTS = '\0' + VIRTUAL_POSTS
 const RESOLVED_PROJECTS = '\0' + VIRTUAL_PROJECTS
-const RESOLVED_ENTRY = '\0' + VIRTUAL_ENTRY
 const RESOLVED_PAGES = '\0' + VIRTUAL_PAGES
 
 const DEFAULT_EXCLUDE = [
@@ -45,7 +38,7 @@ function buildInlineHtml(title: string) {
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/@id/__x00__virtual:blog-entry"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>`
 }
@@ -89,15 +82,15 @@ function getGitDate(absPath: string): string | null {
   }
 }
 
-function filePathToSlug(filePath: string, root: string): string {
+function filePathToSlug(filePath: string, contentDir: string): string {
   return filePath
-    .replace(root + '/', '')
+    .replace(contentDir + '/', '')
     .replace(/\.md$/, '')
     .replace(/\/index$/, '')
 }
 
-function buildPagesData(root: string): string {
-  const files = fg.sync('*.md', { cwd: root, absolute: true })
+function buildPagesData(contentDir: string): string {
+  const files = fg.sync('*.md', { cwd: contentDir, absolute: true })
   const pages: Record<string, FrontmatterData[]> = {}
   for (const absPath of files) {
     const raw = fs.readFileSync(absPath, 'utf-8')
@@ -110,8 +103,8 @@ function buildPagesData(root: string): string {
   return `export default ${JSON.stringify(pages)}`
 }
 
-function getPageFiles(root: string): string[] {
-  const files = fg.sync('*.md', { cwd: root, absolute: true })
+function getPageFiles(contentDir: string): string[] {
+  const files = fg.sync('*.md', { cwd: contentDir, absolute: true })
   const pageFiles: string[] = []
   for (const absPath of files) {
     const raw = fs.readFileSync(absPath, 'utf-8')
@@ -144,7 +137,7 @@ function readDirMeta(dir: string): { title?: string; sort?: number; exclude?: st
 
 function scanDirForSidebar(
   dir: string,
-  root: string,
+  contentDir: string,
   exclude: string[],
 ): ResolvedSidebarItem[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true })
@@ -155,7 +148,7 @@ function scanDirForSidebar(
 
   for (const entry of entries) {
     const absPath = path.join(dir, entry.name)
-    const relPath = path.relative(root, absPath)
+    const relPath = path.relative(contentDir, absPath)
 
     if (localExclude.has(entry.name)) continue
 
@@ -165,7 +158,7 @@ function scanDirForSidebar(
     })) continue
 
     if (entry.isDirectory()) {
-      const children = scanDirForSidebar(absPath, root, exclude)
+      const children = scanDirForSidebar(absPath, contentDir, exclude)
       if (children.length > 0) {
         const meta = readDirMeta(absPath)
         const item: ResolvedSidebarItem = { text: meta.title ?? entry.name, items: children }
@@ -178,7 +171,7 @@ function scanDirForSidebar(
       if (data.layout) continue
       const fileName = path.basename(absPath, '.md')
       const title = (data.title as string | undefined) || extractH1(content) || fileName
-      const slug = filePathToSlug(absPath, root)
+      const slug = filePathToSlug(absPath, contentDir)
       const sort = typeof data.sort === 'number' ? data.sort : Infinity
       const date = parseDate(data.date as string | Date | undefined) ?? getGitDate(absPath)
       fileItems.push({ item: { text: title, link: `/${slug}` }, sort, date })
@@ -198,29 +191,29 @@ function scanDirForSidebar(
   return [...dirItems.map(d => d.item), ...fileItems.map(f => f.item)]
 }
 
-function buildSidebar(root: string, config: BlogConfig): ResolvedSidebarItem[] {
+function buildSidebar(contentDir: string, config: BlogConfig): ResolvedSidebarItem[] {
   const exclude = [...DEFAULT_EXCLUDE, ...(config.exclude ?? [])]
-  return scanDirForSidebar(root, root, exclude)
+  return scanDirForSidebar(contentDir, contentDir, exclude)
 }
 
-function buildPostsData(root: string, config: BlogConfig): string {
+function buildPostsData(contentDir: string, config: BlogConfig): string {
   const include = config.include ?? ['**/*.md']
   const exclude = [...DEFAULT_EXCLUDE, ...(config.exclude ?? [])]
 
   const files = fg.sync(include, {
-    cwd: root,
+    cwd: contentDir,
     ignore: exclude,
     absolute: true,
   })
 
-  const pageFileSet = new Set(getPageFiles(root))
+  const pageFileSet = new Set(getPageFiles(contentDir))
 
   const posts = files
     .filter(absPath => !pageFileSet.has(absPath))
     .map(absPath => {
       const rawContent = fs.readFileSync(absPath, 'utf-8')
       const { data, content } = parseFrontmatter(rawContent)
-      const slug = filePathToSlug(absPath, root)
+      const slug = filePathToSlug(absPath, contentDir)
       const fileName = path.basename(absPath, '.md')
       const title = (data.title as string | undefined) || extractH1(content) || fileName
       const date = parseDate(data.date as string | Date | undefined) ?? getGitDate(absPath) ?? null
@@ -254,6 +247,7 @@ async function fetchGithubProject(github: string, name: string) {
 
 export function blogPlugin(userConfig: BlogConfig): Plugin {
   let root = process.cwd()
+  let resolvedContentDir = path.resolve(root, userConfig.contentDir ?? '.')
   let devServer: ViteDevServer | undefined
   let resolvedConfig: BlogConfig = userConfig
 
@@ -272,7 +266,10 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       const fn = new Function('module', 'exports', 'require', '__dirname', '__filename', code)
       fn(mod, mod.exports, createRequire(pathToFileURL(configFile).href), path.dirname(configFile), configFile)
       const loaded = mod.exports.default ?? (mod.exports as unknown as BlogConfig)
-      if (loaded) resolvedConfig = loaded
+      if (loaded) {
+        resolvedConfig = loaded
+        resolvedContentDir = path.resolve(root, loaded.contentDir ?? '.')
+      }
     } catch (e) {
       console.warn('[blog] failed to reload blog.config:', e)
     }
@@ -281,26 +278,14 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
   return {
     name: '@hacxy/blog',
 
-    config(_, env) {
-      if (env.command === 'build') {
-        return {
-          build: {
-            rollupOptions: {
-              input: { app: VIRTUAL_ENTRY },
-            },
-          },
-        }
-      }
-    },
-
     configResolved(config) {
       root = config.root
+      resolvedContentDir = path.resolve(root, userConfig.contentDir ?? '.')
     },
 
     configureServer(server) {
       devServer = server
 
-      // serve inline HTML for browser navigation requests (SPA fallback)
       server.middlewares.use(async (req, res, next) => {
         const url = req.url ?? '/'
         const accept = req.headers.accept ?? ''
@@ -320,10 +305,8 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
         next()
       })
 
-      // watch for md file changes → invalidate virtual:blog-posts
       const watcher = server.watcher
-      watcher.add(path.join(root, '**/*.md'))
-      // explicitly watch blog.config so changes are detected
+      watcher.add(path.join(resolvedContentDir, '**/*.md'))
       const configTs = path.join(root, 'blog.config.ts')
       const configJs = path.join(root, 'blog.config.js')
       watcher.add(configTs)
@@ -333,7 +316,7 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       watcher.on('change', (file) => {
         if (file.endsWith('.md')) {
           invalidateAll()
-          if (path.dirname(file) === root) invalidatePages()
+          if (path.dirname(file) === resolvedContentDir) invalidatePages()
         }
         if (file === configTs || file === configJs) {
           reloadBlogConfig(file).then(() => {
@@ -349,7 +332,6 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       if (id === VIRTUAL_CONFIG) return RESOLVED_CONFIG
       if (id === VIRTUAL_POSTS) return RESOLVED_POSTS
       if (id === VIRTUAL_PROJECTS) return RESOLVED_PROJECTS
-      if (id === VIRTUAL_ENTRY) return RESOLVED_ENTRY
       if (id === VIRTUAL_PAGES) return RESOLVED_PAGES
     },
 
@@ -367,7 +349,7 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
           projects: resolvedConfig.projects ?? [],
           techStack: resolvedConfig.techStack ?? [],
           nav: resolvedConfig.nav ?? [],
-          sidebar: buildSidebar(root, resolvedConfig),
+          sidebar: buildSidebar(resolvedContentDir, resolvedConfig),
           include: resolvedConfig.include ?? ['**/*.md'],
           exclude: resolvedConfig.exclude ?? [],
           base: resolvedConfig.base ?? '/',
@@ -376,11 +358,11 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       }
 
       if (id === RESOLVED_PAGES) {
-        return buildPagesData(root)
+        return buildPagesData(resolvedContentDir)
       }
 
       if (id === RESOLVED_POSTS) {
-        return buildPostsData(root, userConfig)
+        return buildPostsData(resolvedContentDir, resolvedConfig)
       }
 
       if (id === RESOLVED_PROJECTS) {
@@ -392,44 +374,6 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
         )
         return `export default ${JSON.stringify(projects)}`
       }
-
-      if (id === RESOLVED_ENTRY) {
-        const createPath = path.join(FRAMEWORK_SRC, 'create.tsx')
-        return `import { createBlog } from ${JSON.stringify(createPath)}; createBlog()`
-      }
-    },
-
-    generateBundle(_, bundle) {
-      // find the entry chunk to get hashed filename
-      type ViteChunk = Rollup.OutputChunk & { viteMetadata?: { importedCss: Set<string> } }
-      const entryChunk = Object.values(bundle).find(
-        (chunk): chunk is ViteChunk =>
-          chunk.type === 'chunk' && chunk.isEntry
-      ) as ViteChunk | undefined
-      const entryFile = entryChunk?.fileName ?? 'assets/app.js'
-      const cssFiles = [...(entryChunk?.viteMetadata?.importedCss ?? [])]
-      const cssLinks = cssFiles
-        .map(f => `    <link rel="stylesheet" crossorigin href="/${f}">`)
-        .join('\n')
-
-      const html = `<!DOCTYPE html>
-<html lang="zh">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-${cssLinks ? cssLinks + '\n' : ''}    <title>${userConfig.title ?? 'Blog'}</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" crossorigin src="/${entryFile}"></script>
-  </body>
-</html>`
-      this.emitFile({
-        type: 'asset',
-        fileName: 'index.html',
-        source: html,
-      })
     },
   }
 

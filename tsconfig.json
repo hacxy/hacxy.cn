@@ -16,8 +16,8 @@
       "virtual:blog-config": ["./virtual.d.ts"],
       "virtual:blog-posts": ["./virtual.d.ts"],
       "virtual:github-projects": ["./virtual.d.ts"],
-      "virtual:blog-entry": ["./virtual.d.ts"]
+      "virtual:blog-pages": ["./virtual.d.ts"]
     }
   },
-  "include": ["src", "virtual.d.ts"]
+  "include": ["src", "virtual.d.ts", "vite.config.ts", "blog.config.ts"]
 }
