@@ -6,6 +6,7 @@ export interface Post {
   title: string
   date: string | null
   tags: string[]
+  series: string | null
   rawContent: string
 }
 

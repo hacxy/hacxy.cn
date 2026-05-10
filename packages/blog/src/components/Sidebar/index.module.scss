@@ -25,11 +25,14 @@
 }
 
 .groupTitle {
-  font-size: 0.8rem;
-  font-weight: 600;
-  opacity: 0.6;
-  margin-bottom: 0.35rem;
-  padding: 0.2rem 0;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--muted);
+  opacity: 1;
+  margin-bottom: 0.3rem;
+  padding: 0.2rem 0.4rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .list {
@@ -52,28 +55,50 @@
 }
 
 .link {
-  display: block;
-  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
   color: var(--fg);
   text-decoration: none;
   opacity: 0.5;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  padding: 0.22rem 0.4rem;
+  border-radius: 3px;
   line-height: 1.4;
-  transition: opacity 0.15s ease, background 0.15s ease;
+  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 
+  &::before {
+    content: "›";
+    color: var(--fg);
+    opacity: 0.3;
+    flex-shrink: 0;
+    font-size: 0.9em;
+    transition: color 0.12s ease, opacity 0.12s ease, transform 0.12s ease;
+  }
+
   &:hover {
-    opacity: 0.8;
-    background: var(--border);
+    opacity: 0.85;
+    background: var(--code-bg);
+
+    &::before {
+      color: var(--accent);
+      opacity: 1;
+      transform: translateX(1px);
+    }
   }
 
   &.active {
     opacity: 1;
-    color: var(--fg);
-    background: var(--border);
+    color: var(--accent);
+    background: var(--accent-dim);
     font-weight: 500;
+
+    &::before {
+      color: var(--accent);
+      opacity: 1;
+    }
   }
 }

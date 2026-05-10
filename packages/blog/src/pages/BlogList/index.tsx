@@ -42,6 +42,7 @@ export default function BlogList() {
                 <Link to={`/${post.slug}`} className={styles.postLink}>
                   {post.title}
                 </Link>
+                {post.series && <span className={styles.seriesTag}>{post.series}</span>}
               </li>
             ))}
           </ul>
@@ -88,6 +89,7 @@ export default function BlogList() {
                   <Link to={`/${post.slug}`} className={styles.postLink}>
                     {post.title}
                   </Link>
+                  {post.series && <span className={styles.seriesTag}>{post.series}</span>}
                 </li>
               ))}
             </ul>

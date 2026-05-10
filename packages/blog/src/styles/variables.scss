@@ -1,27 +1,33 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=DM+Mono:wght@400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap");
 
 /* ============ Variables ============ */
 :root {
-  --bg: #ffffff;
-  --fg: #000000;
-  --muted: rgba(125, 125, 125, 0.6);
-  --border: rgba(136, 136, 136, 0.5333);
-  --code-bg: #fafafa;
-  --code-header-bg: #f0f0f0;
-  --bg-blur: rgba(255, 255, 255, 0.82);
-  --prose-color: rgba(0, 0, 0, 0.82);
-  --link: #3451b2;
+  --bg: #f5f5f2;
+  --fg: #1a1a1a;
+  --muted: rgba(26, 26, 26, 0.4);
+  --border: rgba(0, 0, 0, 0.12);
+  --code-bg: #eeede9;
+  --code-header-bg: #e5e4e0;
+  --bg-blur: rgba(245, 245, 242, 0.88);
+  --prose-color: rgba(26, 26, 26, 0.82);
+  --link: #008f62;
+  --accent: #008f62;
+  --accent-dim: rgba(0, 143, 98, 0.1);
   --max-width: 680px;
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-  --font-mono: "DM Mono", "Input Mono", "Fira Code", monospace;
+  --font-sans: "JetBrains Mono", "Fira Code", monospace;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
 }
 
 [data-theme="dark"] {
-  --bg: #050505;
-  --fg: #ffffff;
-  --code-bg: #0e0e0e;
-  --code-header-bg: #161616;
-  --bg-blur: rgba(5, 5, 5, 0.82);
-  --prose-color: rgba(255, 255, 255, 0.75);
-  --link: #a8b1ff;
+  --bg: #080808;
+  --fg: #d8d8d8;
+  --muted: rgba(216, 216, 216, 0.35);
+  --border: rgba(90, 90, 90, 0.35);
+  --code-bg: #0d0d0d;
+  --code-header-bg: #111111;
+  --bg-blur: rgba(8, 8, 8, 0.88);
+  --prose-color: rgba(216, 216, 216, 0.82);
+  --link: #00e5a0;
+  --accent: #00e5a0;
+  --accent-dim: rgba(0, 229, 160, 0.1);
 }

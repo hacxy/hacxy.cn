@@ -16,19 +16,32 @@
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.35rem 1rem;
+  padding: 0.35rem 0.9rem;
   border-bottom: 1px solid var(--border);
   background: var(--code-header-bg);
+  gap: 0.5rem;
+
+  /* macOS-style traffic-light dots */
+  &::before {
+    content: "";
+    display: inline-block;
+    width: 42px;
+    height: 10px;
+    flex-shrink: 0;
+    background:
+      radial-gradient(circle 5px at 5px   5px, #ff5f57 100%, transparent 0),
+      radial-gradient(circle 5px at 21px  5px, #ffbd2e 100%, transparent 0),
+      radial-gradient(circle 5px at 37px  5px, #28c840 100%, transparent 0);
+  }
 }
 
 .lang {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--fg);
-  opacity: 0.45;
-  text-transform: lowercase;
+  opacity: 0.3;
   letter-spacing: 0.04em;
+  margin-left: auto;
 }
 
 .copyBtn {
@@ -39,15 +52,16 @@
   border: none;
   cursor: pointer;
   color: var(--fg);
-  opacity: 0.4;
+  opacity: 0.35;
   font-family: var(--font-mono);
   font-size: 0.7rem;
   padding: 0;
   line-height: 1;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, color 0.15s ease;
 
   &:hover {
-    opacity: 0.9;
+    opacity: 1;
+    color: var(--accent);
   }
 }
 

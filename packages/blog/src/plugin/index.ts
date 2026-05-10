@@ -31,6 +31,7 @@ const DEFAULT_EXCLUDE = [
   '**/dist/**',
   '**/.git/**',
   '**/.claude/**',
+  '**/index.md',
 ]
 
 function buildInlineHtml(title: string) {
@@ -124,6 +125,21 @@ interface ResolvedSidebarItem {
   text: string
   link?: string
   items?: ResolvedSidebarItem[]
+  isolated?: boolean
+}
+
+function readDirMeta(dir: string): { title?: string; sort?: number; exclude?: string[]; isolated?: boolean; series?: string } {
+  const indexPath = path.join(dir, 'index.md')
+  if (!fs.existsSync(indexPath)) return {}
+  const raw = fs.readFileSync(indexPath, 'utf-8')
+  const { data } = parseFrontmatter(raw)
+  return {
+    title: data.title as string | undefined,
+    sort: typeof data.sort === 'number' ? data.sort : undefined,
+    exclude: Array.isArray(data.exclude) ? data.exclude.map(String) : undefined,
+    isolated: data.isolated === true ? true : undefined,
+    series: typeof data.series === 'string' ? data.series : undefined,
+  }
 }
 
 function scanDirForSidebar(
@@ -132,12 +148,16 @@ function scanDirForSidebar(
   exclude: string[],
 ): ResolvedSidebarItem[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true })
-  const items: ResolvedSidebarItem[] = []
+  const dirMeta = readDirMeta(dir)
+  const localExclude = new Set(dirMeta.exclude ?? [])
+  const dirItems: { item: ResolvedSidebarItem; sort: number }[] = []
   const fileItems: { item: ResolvedSidebarItem; sort: number; date: string | null }[] = []
 
   for (const entry of entries) {
     const absPath = path.join(dir, entry.name)
     const relPath = path.relative(root, absPath)
+
+    if (localExclude.has(entry.name)) continue
 
     if (exclude.some(pattern => {
       const p = pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*')
@@ -147,9 +167,12 @@ function scanDirForSidebar(
     if (entry.isDirectory()) {
       const children = scanDirForSidebar(absPath, root, exclude)
       if (children.length > 0) {
-        items.push({ text: entry.name, items: children })
+        const meta = readDirMeta(absPath)
+        const item: ResolvedSidebarItem = { text: meta.title ?? entry.name, items: children }
+        if (meta.isolated) item.isolated = true
+        dirItems.push({ item, sort: meta.sort ?? Infinity })
       }
-    } else if (entry.name.endsWith('.md')) {
+    } else if (entry.name.endsWith('.md') && entry.name !== 'index.md') {
       const raw = fs.readFileSync(absPath, 'utf-8')
       const { data, content } = parseFrontmatter(raw)
       if (data.layout) continue
@@ -162,6 +185,8 @@ function scanDirForSidebar(
     }
   }
 
+  dirItems.sort((a, b) => a.sort - b.sort)
+
   fileItems.sort((a, b) => {
     if (a.sort !== b.sort) return a.sort - b.sort
     if (!a.date && !b.date) return 0
@@ -170,7 +195,7 @@ function scanDirForSidebar(
     return b.date.localeCompare(a.date)
   })
 
-  return [...items, ...fileItems.map(f => f.item)]
+  return [...dirItems.map(d => d.item), ...fileItems.map(f => f.item)]
 }
 
 function buildSidebar(root: string, config: BlogConfig): ResolvedSidebarItem[] {
@@ -200,7 +225,9 @@ function buildPostsData(root: string, config: BlogConfig): string {
       const title = (data.title as string | undefined) || extractH1(content) || fileName
       const date = parseDate(data.date as string | Date | undefined) ?? getGitDate(absPath) ?? null
       const tags: string[] = Array.isArray(data.tags) ? data.tags.map(String) : []
-      return { slug, title, date, tags, rawContent }
+      const dirMeta = readDirMeta(path.dirname(absPath))
+      const series = dirMeta.series ?? null
+      return { slug, title, date, tags, series, rawContent }
     })
 
   return `export default ${JSON.stringify(posts)}`

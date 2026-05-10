@@ -1,6 +1,5 @@
 import { NavLink } from "react-router";
 import classNames from "classnames";
-import blogConfig from "virtual:blog-config";
 import styles from "./index.module.scss";
 
 interface SidebarItemData {
@@ -41,14 +40,13 @@ function SidebarGroup({ item, currentPath }: { item: SidebarItemData; currentPat
   return <span className={styles.groupTitle}>{item.text}</span>;
 }
 
-export default function Sidebar({ currentPath }: { currentPath: string }) {
-  const sidebar = blogConfig.sidebar;
-  if (!sidebar || sidebar.length === 0) return null;
+export default function Sidebar({ items, currentPath }: { items: SidebarItemData[]; currentPath: string }) {
+  if (!items || items.length === 0) return null;
 
   return (
     <aside className={styles.sidebar}>
       <nav className={styles.nav}>
-        {sidebar.map((item, i) => (
+        {items.map((item, i) => (
           <SidebarGroup key={item.link ?? i} item={item} currentPath={currentPath} />
         ))}
       </nav>

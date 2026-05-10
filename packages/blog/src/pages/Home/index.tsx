@@ -70,6 +70,7 @@ export default function Home() {
                 <Link to={`/${post.slug}`} className={styles.postLink}>
                   {post.title}
                 </Link>
+                {post.series && <span className={styles.seriesTag}>{post.series}</span>}
               </motion.li>
             ))}
           </ul>
@@ -108,7 +109,7 @@ export default function Home() {
                     {project.description && (
                       <span className={styles.projectDesc}>{project.description}</span>
                     )}
-                    <span className={styles.projectStars}>★ {project.stars}</span>
+                    <span className={styles.projectStars}>{project.stars}</span>
                   </div>
                 </motion.li>
               ))}

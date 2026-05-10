@@ -1,10 +1,18 @@
 .postDate {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
-  opacity: 0.45;
+  font-size: 0.72rem;
+  color: var(--muted);
   margin-bottom: 0.75rem;
   letter-spacing: 0.02em;
+
+  &::before {
+    content: "//";
+    color: var(--accent);
+    opacity: 0.7;
+  }
 }
 
 .postTitle {
@@ -54,15 +62,15 @@
   gap: 0.4rem;
   padding: 0.9rem 1rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 5px;
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color 0.18s ease, background 0.18s ease;
   height: 100%;
 
   &:hover {
-    border-color: var(--fg);
-    background: var(--code-bg);
+    border-color: var(--accent);
+    background: var(--accent-dim);
   }
 }
 
@@ -71,11 +79,10 @@
 }
 
 .postNavLabel {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-family: var(--font-mono);
   color: var(--muted);
-  letter-spacing: 0.02em;
-  opacity: 0.85;
+  letter-spacing: 0.03em;
 }
 
 .postNavTitle {

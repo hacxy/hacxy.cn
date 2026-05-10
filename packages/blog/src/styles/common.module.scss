@@ -30,41 +30,54 @@
   margin-bottom: 3rem;
 
   h1 {
-    font-size: 1.25rem;
+    font-size: 1rem;
     font-weight: 400;
     font-family: var(--font-mono);
     font-style: italic;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.6rem;
+    color: var(--fg);
+    opacity: 0.65;
+
+    &::before {
+      content: "// ";
+      color: var(--accent);
+      opacity: 0.8;
+      font-style: normal;
+    }
   }
 
   p {
-    font-size: 0.95rem;
+    font-size: 0.875rem;
     font-family: var(--font-mono);
-    font-style: italic;
-    opacity: 0.7;
-    line-height: 1.7;
+    opacity: 0.6;
+    line-height: 1.75;
   }
 
   a {
     color: var(--fg);
-    opacity: 1;
     border-bottom: 1px solid var(--border);
     text-decoration: none;
-    transition: border-color 0.2s ease;
+    transition: border-color 0.15s ease, color 0.15s ease;
 
     &:hover {
-      border-bottom-color: var(--fg);
+      border-bottom-color: var(--accent);
+      color: var(--accent);
     }
   }
 }
 
 .sectionHeading {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-family: var(--font-mono);
-  opacity: 0.4;
+  color: var(--muted);
   margin-bottom: 1rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &::before {
+    content: "// ";
+    color: var(--accent);
+    opacity: 0.8;
+  }
 }
 
 .postList {
@@ -75,19 +88,25 @@
   display: flex;
   align-items: baseline;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-bottom-color: var(--border);
+  }
 
   @media (max-width: 640px) {
     flex-direction: column;
     gap: 0.1rem;
-    margin-bottom: 1.25rem;
+    padding-bottom: 0.9rem;
   }
 }
 
 .postDate {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
-  opacity: 0.5;
+  font-size: 0.75rem;
+  color: var(--muted);
   white-space: nowrap;
   flex-shrink: 0;
   min-width: 5.5rem;
@@ -99,36 +118,46 @@
 
 .postLink {
   position: relative;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--fg);
   text-decoration: none;
-  opacity: 0.6;
+  opacity: 0.55;
   line-height: 1.3;
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  transition: opacity 0.15s ease, color 0.15s ease;
+
+  &::before {
+    content: ">";
+    font-size: 0.75em;
+    color: var(--fg);
+    opacity: 0.3;
+    flex-shrink: 0;
+    transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+  }
 
   &:hover {
     opacity: 1;
-    transform: translateX(4px);
   }
 
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    width: 100%;
-    height: 1px;
-    background: var(--fg);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.25s ease;
+  &:hover::before {
+    color: var(--accent);
+    opacity: 1;
+    transform: translateX(3px);
   }
+}
 
-  &:hover::after {
-    transform: scaleX(1);
-  }
+.seriesTag {
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  color: var(--fg);
+  opacity: 0.4;
+  padding: 0.05em 0.4em;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .yearGroup {
@@ -136,27 +165,30 @@
 }
 
 .yearHeading {
-  font-size: 1.1rem;
-  font-weight: 600;
-  opacity: 0.3;
+  font-size: 2rem;
+  font-weight: 300;
+  opacity: 0.2;
   margin-bottom: 0.5rem;
   font-family: var(--font-mono);
+  letter-spacing: -0.03em;
 }
 
 .tagChip {
   display: inline-block;
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-family: var(--font-mono);
-  background: var(--border);
+  border: 1px solid var(--border);
   color: var(--fg);
-  padding: 0.1em 0.5em;
-  border-radius: 3px;
+  padding: 0.08em 0.45em;
+  border-radius: 2px;
   text-decoration: none;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 
   &:hover {
     opacity: 1;
+    color: var(--accent);
+    border-color: var(--accent);
   }
 }
 
@@ -168,17 +200,22 @@
 }
 
 .tagItemLink {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.9rem;
+  gap: 0.3rem;
+  font-size: 0.82rem;
   color: var(--fg);
   text-decoration: none;
-  opacity: 0.6;
-  transition: opacity 0.2s ease;
+  opacity: 0.55;
+  padding: 0.25em 0.65em;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 
   &:hover {
     opacity: 1;
+    color: var(--accent);
+    border-color: var(--accent);
   }
 }
 
@@ -244,35 +281,32 @@
 }
 
 .projectLink {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--fg);
   text-decoration: none;
-  opacity: 0.6;
-  position: relative;
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+  opacity: 0.55;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  transition: opacity 0.15s ease;
+
+  &::before {
+    content: ">";
+    font-size: 0.75em;
+    color: var(--fg);
+    opacity: 0.3;
+    flex-shrink: 0;
+    transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+  }
 
   &:hover {
     opacity: 1;
-    transform: translateX(4px);
   }
 
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    width: 100%;
-    height: 1px;
-    background: var(--fg);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.25s ease;
-  }
-
-  &:hover::after {
-    transform: scaleX(1);
+  &:hover::before {
+    color: var(--accent);
+    opacity: 1;
+    transform: translateX(3px);
   }
 }
 
@@ -289,23 +323,36 @@
 
 .projectStars {
   font-family: var(--font-mono);
-  font-size: 0.9rem;
-  opacity: 0.7;
+  font-size: 0.78rem;
   white-space: nowrap;
-  margin-left: 0.75rem;
-  color: var(--fg);
-  font-weight: 500;
+  margin-left: auto;
+  color: var(--muted);
+  padding-left: 0.5rem;
+
+  &::before {
+    content: "★ ";
+    color: var(--accent);
+    opacity: 0.65;
+  }
 }
 
 .navLink {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   color: var(--fg);
   text-decoration: none;
-  opacity: 0.6;
-  transition: opacity 0.2s ease;
+  opacity: 0.5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: opacity 0.15s ease, color 0.15s ease, transform 0.15s ease;
 
-  &:hover,
+  &:hover {
+    opacity: 1;
+    transform: translateX(3px);
+  }
+
   &.active {
+    color: var(--accent);
     opacity: 1;
   }
 }
