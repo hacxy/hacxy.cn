@@ -30,8 +30,5 @@ jobs:
       - name: Run ESLint
         run: pnpm lint
 
-      - name: Build library
-        run: pnpm build:lib
-
       - name: Build application
         run: pnpm build
