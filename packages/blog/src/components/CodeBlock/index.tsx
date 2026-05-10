@@ -1,4 +1,4 @@
-import { useState, useEffect, Children, isValidElement } from "react";
+import { useState, useEffect, isValidElement } from "react";
 import type { ReactNode, ReactElement, ComponentPropsWithoutRef } from "react";
 import { Icon } from "@iconify/react";
 import { getHighlighter } from "../../utils/highlighter";
@@ -12,15 +12,20 @@ function extractText(node: ReactNode): string {
   return "";
 }
 
+function findCodeElement(children: ReactNode): ReactElement | undefined {
+  const nodes = Array.isArray(children) ? children : [children];
+  return nodes.find(
+    (child) => isValidElement(child) && (child as ReactElement).type === "code"
+  ) as ReactElement | undefined;
+}
+
 type CodeBlockProps = ComponentPropsWithoutRef<"pre"> & { node?: unknown };
 
 export default function CodeBlock({ children, ...props }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
   const [shikiHtml, setShikiHtml] = useState<string>("");
 
-  const codeEl = Children.toArray(children).find(
-    (child) => isValidElement(child) && (child as ReactElement).type === "code"
-  ) as ReactElement | undefined;
+  const codeEl = findCodeElement(children);
 
   const className = (codeEl?.props as { className?: string })?.className ?? "";
   const langMatch = className.match(/language-(\w+)/);
