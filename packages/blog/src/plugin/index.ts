@@ -67,9 +67,9 @@ function parseFrontmatter(raw: string): { data: FrontmatterData; content: string
   return { data, content }
 }
 
-function extractH1(content: string): string {
+function extractH1(content: string): string | null {
   const match = content.match(/^#\s+(.+)$/m)
-  return match ? match[1].trim() : 'Untitled'
+  return match ? match[1].trim() : null
 }
 
 function parseDate(raw: string | Date | undefined): string | null {
@@ -120,6 +120,64 @@ function getPageFiles(root: string): string[] {
   return pageFiles
 }
 
+interface ResolvedSidebarItem {
+  text: string
+  link?: string
+  items?: ResolvedSidebarItem[]
+}
+
+function scanDirForSidebar(
+  dir: string,
+  root: string,
+  exclude: string[],
+): ResolvedSidebarItem[] {
+  const entries = fs.readdirSync(dir, { withFileTypes: true })
+  const items: ResolvedSidebarItem[] = []
+  const fileItems: { item: ResolvedSidebarItem; sort: number; date: string | null }[] = []
+
+  for (const entry of entries) {
+    const absPath = path.join(dir, entry.name)
+    const relPath = path.relative(root, absPath)
+
+    if (exclude.some(pattern => {
+      const p = pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*')
+      return new RegExp(`^${p}$`).test(relPath)
+    })) continue
+
+    if (entry.isDirectory()) {
+      const children = scanDirForSidebar(absPath, root, exclude)
+      if (children.length > 0) {
+        items.push({ text: entry.name, items: children })
+      }
+    } else if (entry.name.endsWith('.md')) {
+      const raw = fs.readFileSync(absPath, 'utf-8')
+      const { data, content } = parseFrontmatter(raw)
+      if (data.layout) continue
+      const fileName = path.basename(absPath, '.md')
+      const title = (data.title as string | undefined) || extractH1(content) || fileName
+      const slug = filePathToSlug(absPath, root)
+      const sort = typeof data.sort === 'number' ? data.sort : Infinity
+      const date = parseDate(data.date as string | Date | undefined) ?? getGitDate(absPath)
+      fileItems.push({ item: { text: title, link: `/${slug}` }, sort, date })
+    }
+  }
+
+  fileItems.sort((a, b) => {
+    if (a.sort !== b.sort) return a.sort - b.sort
+    if (!a.date && !b.date) return 0
+    if (!a.date) return 1
+    if (!b.date) return -1
+    return b.date.localeCompare(a.date)
+  })
+
+  return [...items, ...fileItems.map(f => f.item)]
+}
+
+function buildSidebar(root: string, config: BlogConfig): ResolvedSidebarItem[] {
+  const exclude = [...DEFAULT_EXCLUDE, ...(config.exclude ?? [])]
+  return scanDirForSidebar(root, root, exclude)
+}
+
 function buildPostsData(root: string, config: BlogConfig): string {
   const include = config.include ?? ['**/*.md']
   const exclude = [...DEFAULT_EXCLUDE, ...(config.exclude ?? [])]
@@ -137,10 +195,11 @@ function buildPostsData(root: string, config: BlogConfig): string {
     .map(absPath => {
       const rawContent = fs.readFileSync(absPath, 'utf-8')
       const { data, content } = parseFrontmatter(rawContent)
-      const title = (data.title as string | undefined) || extractH1(content)
+      const slug = filePathToSlug(absPath, root)
+      const fileName = path.basename(absPath, '.md')
+      const title = (data.title as string | undefined) || extractH1(content) || fileName
       const date = parseDate(data.date as string | Date | undefined) ?? getGitDate(absPath) ?? null
       const tags: string[] = Array.isArray(data.tags) ? data.tags.map(String) : []
-      const slug = filePathToSlug(absPath, root)
       return { slug, title, date, tags, rawContent }
     })
 
@@ -242,11 +301,11 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       const configJs = path.join(root, 'blog.config.js')
       watcher.add(configTs)
       watcher.add(configJs)
-      watcher.on('add', invalidatePosts)
-      watcher.on('unlink', invalidatePosts)
+      watcher.on('add', invalidateAll)
+      watcher.on('unlink', invalidateAll)
       watcher.on('change', (file) => {
         if (file.endsWith('.md')) {
-          invalidatePosts()
+          invalidateAll()
           if (path.dirname(file) === root) invalidatePages()
         }
         if (file === configTs || file === configJs) {
@@ -281,6 +340,7 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
           projects: resolvedConfig.projects ?? [],
           techStack: resolvedConfig.techStack ?? [],
           nav: resolvedConfig.nav ?? [],
+          sidebar: buildSidebar(root, resolvedConfig),
           include: resolvedConfig.include ?? ['**/*.md'],
           exclude: resolvedConfig.exclude ?? [],
           base: resolvedConfig.base ?? '/',
@@ -346,10 +406,12 @@ ${cssLinks ? cssLinks + '\n' : ''}    <title>${userConfig.title ?? 'Blog'}</titl
     },
   }
 
-  function invalidatePosts() {
+  function invalidateAll() {
     if (!devServer) return
-    const mod = devServer.moduleGraph.getModuleById(RESOLVED_POSTS)
-    if (mod) devServer.moduleGraph.invalidateModule(mod)
+    const posts = devServer.moduleGraph.getModuleById(RESOLVED_POSTS)
+    if (posts) devServer.moduleGraph.invalidateModule(posts)
+    const config = devServer.moduleGraph.getModuleById(RESOLVED_CONFIG)
+    if (config) devServer.moduleGraph.invalidateModule(config)
     devServer.ws.send({ type: 'full-reload' })
   }
 

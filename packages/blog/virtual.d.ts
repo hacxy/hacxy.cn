@@ -16,6 +16,11 @@ declare module 'virtual:blog-config' {
     text: string
     link: string
   }
+  export interface ResolvedSidebarItem {
+    text: string
+    link?: string
+    items?: ResolvedSidebarItem[]
+  }
   interface ResolvedBlogConfig {
     author: string
     title: string
@@ -28,6 +33,7 @@ declare module 'virtual:blog-config' {
     projects: string[]
     techStack: TechGroup[]
     nav: NavItem[]
+    sidebar: ResolvedSidebarItem[]
     include: string[]
     exclude: string[]
     base: string
