@@ -8,30 +8,45 @@
 }
 
 html {
-  font-size: 16px;
+  font-size: 14px;
   -webkit-text-size-adjust: 100%;
   scrollbar-width: thin;
-  scrollbar-color: #bbb transparent;
+  scrollbar-color: rgba(150, 150, 150, 0.4) transparent;
 }
 
-[data-theme="dark"] html,
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  scrollbar-color: #333 transparent;
+[data-theme="dark"] html {
+  scrollbar-color: rgba(80, 80, 80, 0.5) transparent;
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #bbb;
+  background: rgba(150, 150, 150, 0.4);
   border-radius: 3px;
 }
 [data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: rgba(80, 80, 80, 0.5);
+}
+
+/* scan-line overlay — dark mode only */
+[data-theme="dark"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.025) 3px,
+    rgba(0, 0, 0, 0.025) 4px
+  );
 }
 
 body {
@@ -46,7 +61,7 @@ body {
 }
 
 ::selection {
-  background: rgba(136, 136, 136, 0.3);
+  background: var(--accent-dim, rgba(0, 229, 160, 0.15));
 }
 
 /* ============ Layout ============ */

@@ -1,8 +1,8 @@
 .cursor {
   display: inline-block;
   width: 1px;
-  height: 1.1em;
-  background: var(--fg);
+  height: 1.05em;
+  background: var(--accent);
   margin-left: 1px;
   vertical-align: text-bottom;
   animation: blink 0.8s step-end infinite;

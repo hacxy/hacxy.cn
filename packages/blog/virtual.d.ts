@@ -20,6 +20,7 @@ declare module 'virtual:blog-config' {
     text: string
     link?: string
     items?: ResolvedSidebarItem[]
+    isolated?: boolean
   }
   interface ResolvedBlogConfig {
     author: string
@@ -48,6 +49,7 @@ declare module 'virtual:blog-posts' {
     title: string
     date: string | null
     tags: string[]
+    series: string | null
     rawContent: string
   }
   const posts: Post[]

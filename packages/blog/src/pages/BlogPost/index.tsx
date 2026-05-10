@@ -40,6 +40,7 @@ interface SidebarItemData {
   text: string;
   link?: string;
   items?: SidebarItemData[];
+  isolated?: boolean;
 }
 
 function flattenSidebarLinks(items: SidebarItemData[]): string[] {
@@ -51,8 +52,27 @@ function flattenSidebarLinks(items: SidebarItemData[]): string[] {
   return links;
 }
 
-function getSidebarAdjacentPosts(slug: string) {
+function findIsolatedScope(items: SidebarItemData[], currentPath: string): SidebarItemData[] | null {
+  for (const item of items) {
+    if (!item.items) continue;
+    if (item.isolated) {
+      const links = flattenSidebarLinks(item.items);
+      if (links.includes(currentPath)) return [item];
+    }
+    const nested = findIsolatedScope(item.items, currentPath);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function getEffectiveSidebar(currentPath: string): SidebarItemData[] {
   const sidebar = blogConfig.sidebar;
+  if (!sidebar || sidebar.length === 0) return [];
+  return findIsolatedScope(sidebar, currentPath) ?? sidebar;
+}
+
+function getSidebarAdjacentPosts(slug: string) {
+  const sidebar = getEffectiveSidebar(`/${slug}`);
   if (!sidebar || sidebar.length === 0) return { prev: null, next: null };
 
   const links = flattenSidebarLinks(sidebar);
@@ -101,7 +121,8 @@ export default function BlogPost() {
   const tags: string[] = Array.isArray(data.tags) ? data.tags.map(String) : [];
   const summary = typeof data.summary === "string" ? data.summary : "";
   const currentPath = `/${slug}`;
-  const sidebarLinks = blogConfig.sidebar ? flattenSidebarLinks(blogConfig.sidebar) : [];
+  const effectiveSidebar = getEffectiveSidebar(currentPath);
+  const sidebarLinks = flattenSidebarLinks(effectiveSidebar);
   const inSidebar = sidebarLinks.includes(currentPath);
   const hasSidebar = inSidebar && sidebarLinks.length > 0;
   const { prev, next } = getSidebarAdjacentPosts(slug);
@@ -121,7 +142,7 @@ export default function BlogPost() {
 
   return (
     <div className={common.pageWithSidebar}>
-      <Sidebar currentPath={currentPath} />
+      <Sidebar items={effectiveSidebar} currentPath={currentPath} />
       <PageTransition key={slug}>
         <div className={common.sidebarContent}>
           {renderContent()}

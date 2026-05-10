@@ -78,8 +78,8 @@ export default function CodeStreamBg() {
       const isDark =
         document.documentElement.getAttribute("data-theme") === "dark";
       const color = isDark
-        ? "rgba(255, 255, 255, 0.07)"
-        : "rgba(0, 0, 0, 0.05)";
+        ? "rgba(0, 229, 160, 0.065)"
+        : "rgba(0, 0, 0, 0.04)";
       const h = canvas!.height;
 
       ctx!.clearRect(0, 0, canvas!.width, h);
