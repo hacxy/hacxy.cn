@@ -31,8 +31,7 @@ jobs:
         env:
           NODE_OPTIONS: --max_old_space_size=4096
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          pnpm build:lib && pnpm build
+        run: pnpm build
 
       - name: 部署产物到服务器
         uses: appleboy/scp-action@master
@@ -40,10 +39,10 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
-          source: "apps/hacxy.cn/dist/"
+          source: "dist/"
           target: "/${{secrets.SSH_USERNAME}}/Projects/.blog_temp/"
           rm: true
-          strip_components: 3
+          strip_components: 1
 
       - name: 执行远程脚本命令
         uses: appleboy/ssh-action@master
