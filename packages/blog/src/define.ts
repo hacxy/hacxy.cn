@@ -4,6 +4,11 @@ export type LogoConfig =
   | string // iconify icon name
   | { src: string; alt?: string } // local or remote image
 
+export interface NavItem {
+  text: string
+  link: string
+}
+
 export interface BlogConfig {
   author: string
   title?: string
@@ -15,6 +20,7 @@ export interface BlogConfig {
   copyright?: string
   projects?: string[]
   techStack?: TechGroup[]
+  nav?: NavItem[]
   include?: string[]
   exclude?: string[]
   base?: string

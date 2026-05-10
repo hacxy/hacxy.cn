@@ -1,9 +1,14 @@
 import { Link } from "react-router";
 import PageTransition from "../../components/PageTransition";
+import NotFound from "../NotFound";
 import { getAllTags } from "../../utils/posts";
+import pages from "virtual:blog-pages";
 import styles from "../../styles/common.module.scss";
 
 export default function Tags() {
+  if (!pages.tags?.length) {
+    return <NotFound />;
+  }
   const tags = getAllTags();
 
   return (

@@ -8,6 +8,11 @@ export default defineBlogConfig({
   email: "hacxy.js@outlook.com",
   bilibili: "https://space.bilibili.com/589367703",
   copyright: "2024-PRESENT © Hacxy",
+  nav: [
+    { text: "Blog", link: "/posts" },
+    { text: "Tags", link: "/tags" },
+    { text: "About", link: "/about" },
+  ],
   projects: ["l2d", "skills"],
   techStack: [
     {

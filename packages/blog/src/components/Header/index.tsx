@@ -32,30 +32,17 @@ export default function Header({ theme, onToggleTheme }: HeaderProps) {
           </div>
         </NavLink>
         <nav className={styles.nav}>
-          <NavLink
-            to="/posts"
-            className={({ isActive }) =>
-              classNames(styles.navLink, { [styles.active]: isActive })
-            }
-          >
-            Blog
-          </NavLink>
-          <NavLink
-            to="/tags"
-            className={({ isActive }) =>
-              classNames(styles.navLink, { [styles.active]: isActive })
-            }
-          >
-            Tags
-          </NavLink>
-          <NavLink
-            to="/about"
-            className={({ isActive }) =>
-              classNames(styles.navLink, { [styles.active]: isActive })
-            }
-          >
-            About
-          </NavLink>
+          {(blogConfig.nav ?? []).map((item) => (
+            <NavLink
+              key={item.link}
+              to={item.link}
+              className={({ isActive }) =>
+                classNames(styles.navLink, { [styles.active]: isActive })
+              }
+            >
+              {item.text}
+            </NavLink>
+          ))}
           {blogConfig.github && (
             <a
               href={`https://github.com/${blogConfig.github}`}

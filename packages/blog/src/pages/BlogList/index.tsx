@@ -1,10 +1,16 @@
 import { Link, useParams } from "react-router";
 import PageTransition from "../../components/PageTransition";
+import NotFound from "../NotFound";
 import { getPostsGroupedByYear, getPostsByTag } from "../../utils/posts";
+import pages from "virtual:blog-pages";
 import styles from "../../styles/common.module.scss";
 
 export default function BlogList() {
   const { tag } = useParams<{ tag?: string }>();
+
+  if (!pages.posts?.length) {
+    return <NotFound />;
+  }
 
   if (tag) {
     const posts = getPostsByTag(tag);

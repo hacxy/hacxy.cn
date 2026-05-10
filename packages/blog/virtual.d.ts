@@ -12,6 +12,10 @@ declare module 'virtual:blog-config' {
     src: string
     alt?: string
   }
+  export interface NavItem {
+    text: string
+    link: string
+  }
   interface ResolvedBlogConfig {
     author: string
     title: string
@@ -23,6 +27,7 @@ declare module 'virtual:blog-config' {
     copyright: string
     projects: string[]
     techStack: TechGroup[]
+    nav: NavItem[]
     include: string[]
     exclude: string[]
     base: string
@@ -63,6 +68,15 @@ declare module 'virtual:blog-home' {
   }
   const homeData: HomeData | null
   export default homeData
+}
+
+declare module 'virtual:blog-pages' {
+  interface PageData {
+    layout?: string
+    [key: string]: unknown
+  }
+  const pages: Record<string, PageData[]>
+  export default pages
 }
 
 declare module 'virtual:blog-entry' {

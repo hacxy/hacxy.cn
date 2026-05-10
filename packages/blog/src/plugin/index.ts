@@ -19,19 +19,20 @@ const VIRTUAL_POSTS = 'virtual:blog-posts'
 const VIRTUAL_PROJECTS = 'virtual:github-projects'
 const VIRTUAL_ENTRY = 'virtual:blog-entry'
 const VIRTUAL_HOME = 'virtual:blog-home'
+const VIRTUAL_PAGES = 'virtual:blog-pages'
 
 const RESOLVED_CONFIG = '\0' + VIRTUAL_CONFIG
 const RESOLVED_POSTS = '\0' + VIRTUAL_POSTS
 const RESOLVED_PROJECTS = '\0' + VIRTUAL_PROJECTS
 const RESOLVED_ENTRY = '\0' + VIRTUAL_ENTRY
 const RESOLVED_HOME = '\0' + VIRTUAL_HOME
+const RESOLVED_PAGES = '\0' + VIRTUAL_PAGES
 
 const DEFAULT_EXCLUDE = [
   '**/node_modules/**',
   '**/dist/**',
   '**/.git/**',
   '**/.claude/**',
-  'index.md',
 ]
 
 function buildInlineHtml(title: string) {
@@ -106,6 +107,31 @@ function buildHomeData(root: string): string {
   return `export default ${JSON.stringify(data)}`
 }
 
+function buildPagesData(root: string): string {
+  const files = fg.sync('*.md', { cwd: root, absolute: true })
+  const pages: Record<string, FrontmatterData[]> = {}
+  for (const absPath of files) {
+    const raw = fs.readFileSync(absPath, 'utf-8')
+    const { data } = parseFrontmatter(raw)
+    const layout = data.layout as string | undefined
+    if (!layout) continue
+    if (!pages[layout]) pages[layout] = []
+    pages[layout].push(data)
+  }
+  return `export default ${JSON.stringify(pages)}`
+}
+
+function getPageFiles(root: string): string[] {
+  const files = fg.sync('*.md', { cwd: root, absolute: true })
+  const pageFiles: string[] = []
+  for (const absPath of files) {
+    const raw = fs.readFileSync(absPath, 'utf-8')
+    const { data } = parseFrontmatter(raw)
+    if (data.layout) pageFiles.push(absPath)
+  }
+  return pageFiles
+}
+
 function buildPostsData(root: string, config: BlogConfig): string {
   const include = config.include ?? ['**/*.md']
   const exclude = [...DEFAULT_EXCLUDE, ...(config.exclude ?? [])]
@@ -116,15 +142,19 @@ function buildPostsData(root: string, config: BlogConfig): string {
     absolute: true,
   })
 
-  const posts = files.map(absPath => {
-    const rawContent = fs.readFileSync(absPath, 'utf-8')
-    const { data, content } = parseFrontmatter(rawContent)
-    const title = (data.title as string | undefined) || extractH1(content)
-    const date = parseDate(data.date as string | Date | undefined) ?? getGitDate(absPath) ?? null
-    const tags: string[] = Array.isArray(data.tags) ? data.tags.map(String) : []
-    const slug = filePathToSlug(absPath, root)
-    return { slug, title, date, tags, rawContent }
-  })
+  const pageFileSet = new Set(getPageFiles(root))
+
+  const posts = files
+    .filter(absPath => !pageFileSet.has(absPath))
+    .map(absPath => {
+      const rawContent = fs.readFileSync(absPath, 'utf-8')
+      const { data, content } = parseFrontmatter(rawContent)
+      const title = (data.title as string | undefined) || extractH1(content)
+      const date = parseDate(data.date as string | Date | undefined) ?? getGitDate(absPath) ?? null
+      const tags: string[] = Array.isArray(data.tags) ? data.tags.map(String) : []
+      const slug = filePathToSlug(absPath, root)
+      return { slug, title, date, tags, rawContent }
+    })
 
   return `export default ${JSON.stringify(posts)}`
 }
@@ -227,7 +257,10 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       watcher.on('add', invalidatePosts)
       watcher.on('unlink', invalidatePosts)
       watcher.on('change', (file) => {
-        if (file.endsWith('.md')) invalidatePosts()
+        if (file.endsWith('.md')) {
+          invalidatePosts()
+          if (path.dirname(file) === root) invalidatePages()
+        }
         if (file === path.join(root, 'index.md')) invalidateHome()
         if (file === configTs || file === configJs) {
           reloadBlogConfig(file).then(() => {
@@ -245,6 +278,7 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       if (id === VIRTUAL_PROJECTS) return RESOLVED_PROJECTS
       if (id === VIRTUAL_ENTRY) return RESOLVED_ENTRY
       if (id === VIRTUAL_HOME) return RESOLVED_HOME
+      if (id === VIRTUAL_PAGES) return RESOLVED_PAGES
     },
 
     async load(id) {
@@ -260,6 +294,7 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
           copyright: resolvedConfig.copyright ?? '',
           projects: resolvedConfig.projects ?? [],
           techStack: resolvedConfig.techStack ?? [],
+          nav: resolvedConfig.nav ?? [],
           include: resolvedConfig.include ?? ['**/*.md'],
           exclude: resolvedConfig.exclude ?? [],
           base: resolvedConfig.base ?? '/',
@@ -269,6 +304,10 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
 
       if (id === RESOLVED_HOME) {
         return buildHomeData(root)
+      }
+
+      if (id === RESOLVED_PAGES) {
+        return buildPagesData(root)
       }
 
       if (id === RESOLVED_POSTS) {
@@ -335,6 +374,13 @@ ${cssLinks ? cssLinks + '\n' : ''}    <title>${userConfig.title ?? 'Blog'}</titl
   function invalidateHome() {
     if (!devServer) return
     const mod = devServer.moduleGraph.getModuleById(RESOLVED_HOME)
+    if (mod) devServer.moduleGraph.invalidateModule(mod)
+    devServer.ws.send({ type: 'full-reload' })
+  }
+
+  function invalidatePages() {
+    if (!devServer) return
+    const mod = devServer.moduleGraph.getModuleById(RESOLVED_PAGES)
     if (mod) devServer.moduleGraph.invalidateModule(mod)
     devServer.ws.send({ type: 'full-reload' })
   }

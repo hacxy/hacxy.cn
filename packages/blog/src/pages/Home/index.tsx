@@ -8,7 +8,7 @@ import NotFound from "../NotFound";
 import { getAllPosts } from "../../utils/posts";
 import projectsData from "virtual:github-projects";
 import blogConfig from "virtual:blog-config";
-import homeData from "virtual:blog-home";
+import pages from "virtual:blog-pages";
 import styles from "../../styles/common.module.scss";
 
 function Row({ index, children, style }: { index: number; children: React.ReactNode; style?: React.CSSProperties }) {
@@ -25,6 +25,7 @@ function Row({ index, children, style }: { index: number; children: React.ReactN
 }
 
 export default function Home() {
+  const homeData = pages.home?.[0];
   if (!homeData) {
     return <NotFound />;
   }
