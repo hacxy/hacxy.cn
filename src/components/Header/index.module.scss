@@ -11,6 +11,12 @@
     background: var(--bg-blur);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+
+    @media (max-width: 960px) {
+      background: var(--bg);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
   }
 }
 
@@ -137,6 +143,8 @@
   border-radius: 3px;
   transition: opacity 0.15s ease, color 0.15s ease;
   line-height: 1;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 
   &:hover {
     opacity: 1;
