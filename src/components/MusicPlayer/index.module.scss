@@ -26,10 +26,6 @@ $panel-h-mobile: 72vh;
   left: 0;
   right: 0;
   z-index: 200;
-
-  @media (max-width: 640px) {
-    display: none;
-  }
 }
 
 /* ── Expanded panel ───────────────────────────────────── */
@@ -52,6 +48,9 @@ $panel-h-mobile: 72vh;
     height: $panel-h-mobile;
     display: flex;
     flex-direction: column;
+    background: var(--bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   &.panelVisible {
@@ -340,6 +339,12 @@ $panel-h-mobile: 72vh;
 
   @media (min-width: 641px) {
     cursor: default;
+  }
+
+  @media (max-width: 640px) {
+    background: var(--bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }
 
