@@ -1,4 +1,6 @@
 ---
-title: ClaudeCode教程
-isolated: true
+title: Claude Code 教程
+sort: 0
+exclude:
+  - index.md
 ---
