@@ -2,4 +2,5 @@
   position: relative;
   z-index: 1;
   isolation: isolate;
+  padding-bottom: var(--music-player-h, 0);
 }

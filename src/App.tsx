@@ -5,6 +5,7 @@ import classNames from "classnames";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import CodeStreamBg from "./components/CodeStreamBg";
+import MusicPlayer from "./components/MusicPlayer";
 import { getInitialTheme, applyTheme } from "./utils/theme";
 import styles from "./App.module.scss";
 
@@ -45,6 +46,7 @@ export default function App() {
         </Suspense>
       </main>
       <Footer />
+      <MusicPlayer />
     </div>
   );
 }

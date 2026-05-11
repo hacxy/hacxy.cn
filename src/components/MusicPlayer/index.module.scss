@@ -1,0 +1,488 @@
+$bar-h: 56px;
+$panel-h: 380px;
+$panel-h-mobile: 72vh;
+
+@keyframes coverSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes charIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.wrap {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+}
+
+/* ── Expanded panel ───────────────────────────────────── */
+
+.panel {
+  position: absolute;
+  bottom: $bar-h;
+  left: 0;
+  right: 0;
+  height: $panel-h;
+  background: var(--bg-blur);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  transform: translateY(calc(100% + #{$bar-h}));
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+
+  @media (max-width: 640px) {
+    height: $panel-h-mobile;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &.panelVisible {
+    transform: translateY(0);
+  }
+}
+
+.closeBtn {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--fg);
+  opacity: 0.4;
+  padding: 0.3rem;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.12s ease;
+  z-index: 1;
+
+  &:hover {
+    opacity: 0.85;
+  }
+}
+
+.panelInner {
+  display: flex;
+  height: 100%;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+/* ── Left pane (cover + controls) ───────────────────────── */
+
+.panelLeft {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem 1.5rem 1.5rem 1.75rem;
+  flex-shrink: 0;
+
+  @media (max-width: 640px) {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 0.85rem 1rem 0.5rem;
+    gap: 0.75rem;
+  }
+}
+
+.panelCover {
+  width: 130px;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+
+  @media (max-width: 640px) {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+.panelInfo {
+  text-align: center;
+  min-width: 0;
+
+  @media (max-width: 640px) {
+    text-align: left;
+    flex: 1;
+  }
+}
+
+.panelTitle {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+
+  @media (max-width: 640px) {
+    font-size: 0.85rem;
+    max-width: 100%;
+  }
+}
+
+.panelArtist {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.panelControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
+}
+
+/* ── Progress bar ────────────────────────────────────────── */
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
+}
+
+.time {
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.seek {
+  flex: 1;
+  height: 2px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--border);
+  border-radius: 1px;
+  outline: none;
+  cursor: pointer;
+  accent-color: var(--accent);
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+}
+
+/* ── Right pane (lyrics) ─────────────────────────────────── */
+
+.panelRight {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+
+  @media (max-width: 640px) {
+    flex: 1;
+  }
+}
+
+.lyrics {
+  height: 100%;
+  overflow-y: auto;
+  padding: 0 1.5rem;
+  scroll-behavior: smooth;
+
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+.lyricsTopPad,
+.lyricsBottomPad {
+  height: 40%;
+}
+
+.lyricLine {
+  font-size: 0.82rem;
+  line-height: 1.9;
+  color: var(--muted);
+  text-align: center;
+  transition: color 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+  cursor: default;
+  user-select: none;
+
+  @media (max-width: 640px) {
+    font-size: 0.78rem;
+  }
+}
+
+.lyricActive {
+  color: var(--fg);
+  font-weight: 500;
+  transform: scale(1.04);
+}
+
+/* ── KRC char-level highlight (Apple Music style) ─────────── */
+
+@keyframes krcFill {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0% 0 0); }
+}
+
+.krcLine {
+  display: inline;
+}
+
+.krcChar {
+  position: relative;
+  display: inline-block;
+}
+
+.krcCharBase {
+  display: block;
+  color: inherit;
+}
+
+.krcCharFill {
+  position: absolute;
+  inset: 0;
+  color: var(--accent);
+  white-space: pre;
+  pointer-events: none;
+  clip-path: inset(0 100% 0 0);
+  animation-name: krcFill;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+
+.lyricLine:not(.lyricActive) .krcCharFill {
+  display: none;
+}
+
+/* ── Bar KRC char highlight ──────────────────────────────── */
+
+.barKrcChar {
+  position: relative;
+  display: inline-block;
+}
+
+.barKrcCharBase {
+  display: block;
+  color: var(--muted);
+}
+
+.barKrcCharFill {
+  position: absolute;
+  inset: 0;
+  color: var(--fg);
+  white-space: pre;
+  pointer-events: none;
+  clip-path: inset(0 100% 0 0);
+  animation-name: krcFill;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+
+.noLyrics {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+/* ── Mini bar ────────────────────────────────────────────── */
+
+.bar {
+  position: relative;
+  height: $bar-h;
+  background: var(--bg-blur);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem 0 0.875rem;
+  gap: 0.5rem;
+  cursor: pointer;
+
+  @media (min-width: 641px) {
+    cursor: default;
+  }
+}
+
+.barProgress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--border);
+}
+
+.barProgressFill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.5s linear;
+  opacity: 0.7;
+}
+
+.barLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.barCover {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  animation: coverSpin 18s linear infinite;
+  animation-play-state: paused;
+
+  &.playing {
+    animation-play-state: running;
+  }
+}
+
+.barInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.barTitle {
+  font-size: 0.8rem;
+  color: var(--fg);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barLyric {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barLyricChar {
+  display: inline-block;
+  animation: charIn 0.22s ease both;
+}
+
+.barControls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.expandBtn {
+  flex-shrink: 0;
+  margin-left: 0.25rem;
+}
+
+/* ── Shared control buttons ─────────────────────────────── */
+
+.ctrlBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--fg);
+  opacity: 0.5;
+  padding: 0.4rem;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.12s ease, background 0.12s ease;
+  min-width: 32px;
+  min-height: 32px;
+
+  &:hover {
+    opacity: 0.9;
+    background: var(--code-bg);
+  }
+}
+
+.playBtn {
+  opacity: 0.85;
+  color: var(--accent);
+
+  &:hover {
+    opacity: 1;
+    background: var(--accent-dim);
+  }
+}
+
+/* ── Mobile footer (controls + progress, hidden on desktop) ── */
+
+.mobileFooter {
+  display: none;
+
+  @media (max-width: 640px) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.5rem 1rem 0.75rem;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+
+    .panelControls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .progress {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .lyrics {
+    padding: 0 1.25rem;
+  }
+}
