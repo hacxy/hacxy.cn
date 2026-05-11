@@ -43,38 +43,6 @@ export default function About() {
             </div>
           </div>
         )}
-        {(blogConfig.email || blogConfig.bilibili || blogConfig.github) && (
-          <div
-            className="slide-enter"
-            style={{ "--enter-stage": 3 } as React.CSSProperties}
-          >
-            <p className={styles.sectionHeading}>联系我</p>
-            <ul className={styles.techList}>
-              {blogConfig.email && (
-                <li className={styles.techItem}>
-                  <Icon icon="lucide:mail" width={18} height={18} />
-                  <a href={`mailto:${blogConfig.email}`}>{blogConfig.email}</a>
-                </li>
-              )}
-              {blogConfig.github && (
-                <li className={styles.techItem}>
-                  <Icon icon="lucide:github" width={18} height={18} />
-                  <a href={`https://github.com/${blogConfig.github}`} target="_blank" rel="noopener noreferrer">
-                    {blogConfig.github}
-                  </a>
-                </li>
-              )}
-              {blogConfig.bilibili && (
-                <li className={styles.techItem}>
-                  <Icon icon="simple-icons:bilibili" width={18} height={18} />
-                  <a href={blogConfig.bilibili} target="_blank" rel="noopener noreferrer">
-                    Bilibili
-                  </a>
-                </li>
-              )}
-            </ul>
-          </div>
-        )}
       </div>
     </PageTransition>
   );

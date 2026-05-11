@@ -13,8 +13,9 @@ declare module 'virtual:blog-config' {
     alt?: string
   }
   export interface NavItem {
-    text: string
+    text?: string
     link: string
+    icon?: string
   }
   export interface ResolvedSidebarItem {
     text: string
@@ -26,12 +27,8 @@ declare module 'virtual:blog-config' {
     author: string
     title: string
     logo: string | LogoImage | null
-    github: string
     bio: string
-    email: string
-    bilibili: string
     copyright: string
-    projects: string[]
     techStack: TechGroup[]
     nav: NavItem[]
     sidebar: ResolvedSidebarItem[]

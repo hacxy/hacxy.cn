@@ -5,20 +5,17 @@ export type LogoConfig =
   | { src: string; alt?: string } // local or remote image
 
 export interface NavItem {
-  text: string
+  text?: string
   link: string
+  icon?: string  // iconify icon name; if set with no text, renders icon-only
 }
 
 export interface BlogConfig {
   author: string
   title?: string
   logo?: LogoConfig
-  github?: string
   bio?: string
-  email?: string
-  bilibili?: string
   copyright?: string
-  projects?: string[]
   techStack?: TechGroup[]
   nav?: NavItem[]
   include?: string[]
