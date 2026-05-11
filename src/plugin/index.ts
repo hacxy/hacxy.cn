@@ -57,6 +57,43 @@ function extractH1(content: string): string | null {
   return match ? match[1].trim() : null
 }
 
+function extractDescription(content: string, maxLen = 160): string {
+  // 去掉 frontmatter 后，取第一段非标题、非代码块的纯文字
+  const cleaned = content
+    .replace(/^---[\s\S]*?---/m, '')
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/^#+\s.*/gm, '')
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[*_`~]/g, '')
+    .trim()
+  const firstPara = cleaned.split(/\n\n+/).find(p => p.trim().length > 20) ?? ''
+  const text = firstPara.replace(/\s+/g, ' ').trim()
+  return text.length > maxLen ? text.slice(0, maxLen - 1) + '…' : text
+}
+
+function injectSeoMeta(html: string, meta: { title: string; description: string; url: string }): string {
+  const { title, description, url } = meta
+  const escaped = {
+    title: escapeHtml(title),
+    description: escapeHtml(description),
+    url: escapeHtml(url),
+  }
+  const tags = [
+    `<title>${escaped.title}</title>`,
+    `<meta name="description" content="${escaped.description}" />`,
+    `<meta property="og:title" content="${escaped.title}" />`,
+    `<meta property="og:description" content="${escaped.description}" />`,
+    `<meta property="og:url" content="${escaped.url}" />`,
+    `<meta property="og:type" content="article" />`,
+    `<link rel="canonical" href="${escaped.url}" />`,
+  ].join('\n    ')
+
+  // 替换 <title> 并注入 meta（保留原有 title 标签位置）
+  return html
+    .replace(/<title>[^<]*<\/title>/, tags)
+}
+
 function parseDate(raw: string | Date | undefined): string | null {
   if (!raw) return null
   if (raw instanceof Date) return raw.toISOString().slice(0, 10)
@@ -379,6 +416,83 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
           projects.map(name => fetchGithubProject(github, name))
         )
         return `export default ${JSON.stringify(fetched)}`
+      }
+    },
+
+    async closeBundle() {
+      const distDir = path.resolve(root, 'dist')
+      if (!fs.existsSync(distDir)) return
+
+      const siteUrl = (resolvedConfig.siteUrl ?? '').replace(/\/$/, '')
+      const siteTitle = resolvedConfig.title ?? 'Blog'
+      const include = resolvedConfig.include ?? ['**/*.md']
+      const exclude = [...DEFAULT_EXCLUDE, ...(resolvedConfig.exclude ?? [])]
+
+      // 收集所有文章
+      const files = fg.sync(include, { cwd: resolvedContentDir, ignore: exclude, absolute: true })
+      const pageFileSet = new Set(getPageFiles(resolvedContentDir))
+      const posts = files
+        .filter(f => !pageFileSet.has(f))
+        .map(absPath => {
+          const raw = fs.readFileSync(absPath, 'utf-8')
+          const { data, content } = parseFrontmatter(raw)
+          const slug = filePathToSlug(absPath, resolvedContentDir)
+          const fileName = path.basename(absPath, '.md')
+          const title = (data.title as string | undefined) || extractH1(content) || fileName
+          const summary = (data.summary as string | undefined) ?? extractDescription(content)
+          const date = parseDate(data.date as string | Date | undefined) ?? getGitDate(absPath) ?? null
+          return { slug, title, summary, date }
+        })
+
+      // 读取构建产物 index.html
+      const templateHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf-8')
+
+      // 为每篇文章生成预渲染 HTML
+      for (const post of posts) {
+        const url = `${siteUrl}/${post.slug}`
+        const html = injectSeoMeta(templateHtml, {
+          title: `${post.title} | ${siteTitle}`,
+          description: post.summary ?? '',
+          url,
+        })
+        const outDir = path.join(distDir, post.slug)
+        fs.mkdirSync(outDir, { recursive: true })
+        fs.writeFileSync(path.join(outDir, 'index.html'), html, 'utf-8')
+      }
+
+      // 静态页面
+      const staticPages = [
+        { path: '', title: siteTitle, description: resolvedConfig.bio ?? '' },
+        { path: 'posts', title: `Blog | ${siteTitle}`, description: '所有文章' },
+        { path: 'tags', title: `Tags | ${siteTitle}`, description: '标签' },
+        { path: 'about', title: `About | ${siteTitle}`, description: '' },
+      ]
+      for (const page of staticPages) {
+        const url = page.path ? `${siteUrl}/${page.path}` : siteUrl
+        const html = injectSeoMeta(templateHtml, { title: page.title, description: page.description, url })
+        if (page.path) {
+          const outDir = path.join(distDir, page.path)
+          fs.mkdirSync(outDir, { recursive: true })
+          fs.writeFileSync(path.join(outDir, 'index.html'), html, 'utf-8')
+        } else {
+          fs.writeFileSync(path.join(distDir, 'index.html'), html, 'utf-8')
+        }
+      }
+
+      // 生成 sitemap.xml
+      if (siteUrl) {
+        const now = new Date().toISOString().slice(0, 10)
+        const urls = [
+          `  <url><loc>${siteUrl}/</loc><lastmod>${now}</lastmod></url>`,
+          `  <url><loc>${siteUrl}/posts</loc><lastmod>${now}</lastmod></url>`,
+          `  <url><loc>${siteUrl}/tags</loc><lastmod>${now}</lastmod></url>`,
+          ...posts.map(p =>
+            `  <url><loc>${siteUrl}/${p.slug}</loc>${p.date ? `<lastmod>${p.date}</lastmod>` : ''}</url>`
+          ),
+        ]
+        const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`
+        fs.writeFileSync(path.join(distDir, 'sitemap.xml'), sitemap, 'utf-8')
+        console.log(`[blog] sitemap.xml generated with ${posts.length + 3} URLs`)
       }
     },
   }

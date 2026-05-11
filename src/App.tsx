@@ -6,6 +6,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import CodeStreamBg from "./components/CodeStreamBg";
 import MusicPlayer from "./components/MusicPlayer";
+import PageMetaManager from "./components/PageMetaManager";
 import { getInitialTheme, applyTheme } from "./utils/theme";
 import styles from "./App.module.scss";
 
@@ -29,6 +30,7 @@ export default function App() {
 
   return (
     <div className={classNames("app-wrapper", styles.appWrapper)}>
+      <PageMetaManager />
       <CodeStreamBg />
       <Header theme={theme} onToggleTheme={toggleTheme} />
       <main>
