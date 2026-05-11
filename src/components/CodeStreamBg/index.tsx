@@ -78,6 +78,8 @@ interface CardEntry {
   vx: number;
   baseOp: number;
   cancelAnim: () => void;
+  startAnim: () => void;
+  animStarted: boolean;
   col: number;
 }
 
@@ -91,12 +93,6 @@ function escBr(s: string): string {
   return esc(s).replace(/\n/g, "<br>");
 }
 
-/**
- * Animate a typewriter effect into `targetEl`.
- * Phase 1: type user message char-by-char with blinking cursor.
- * Phase 2: brief pause, then reveal claude row and stream ai text + code.
- * Returns a cancel function that stops all pending timers.
- */
 function animateCard(
   convo: Convo,
   userTextEl: HTMLSpanElement,
@@ -104,10 +100,11 @@ function animateCard(
   codeEl: HTMLElement | null,
   cursorEl: HTMLSpanElement,
   aiRow: HTMLDivElement,
-): () => void {
-  const USER_SPEED = 55;   // ms per char (typing)
-  const AI_SPEED   = 22;   // ms per char (streaming)
-  const PAUSE      = 420;  // ms between user done → ai starts
+): { cancel: () => void; start: () => void } {
+  // Each card gets its own randomised speeds for distinct "personality"
+  const USER_SPEED = 35 + Math.random() * 60;   // 35–95 ms per char
+  const AI_SPEED   = 12 + Math.random() * 28;   // 12–40 ms per char
+  const PAUSE      = 300 + Math.random() * 400;  // 300–700 ms
 
   const timers = new Set<ReturnType<typeof setTimeout>>();
 
@@ -119,7 +116,6 @@ function animateCard(
     timers.add(id);
   }
 
-  // Phase 1: type user message
   let ui = 0;
   function typeUser() {
     if (ui <= convo.user.length) {
@@ -164,15 +160,14 @@ function animateCard(
     }
   }
 
-  schedule(typeUser, 300 + Math.random() * 400);
-
-  return () => {
-    for (const id of timers) clearTimeout(id);
-    timers.clear();
+  return {
+    cancel: () => { for (const id of timers) clearTimeout(id); timers.clear(); },
+    // Small natural pause after entering the viewport before typing starts
+    start:  () => { schedule(typeUser, 100 + Math.random() * 400); },
   };
 }
 
-function makeCardEl(convo: Convo, s: typeof styles): { el: HTMLDivElement; cancelAnim: () => void } {
+function makeCardEl(convo: Convo, s: typeof styles): { el: HTMLDivElement; cancelAnim: () => void; startAnim: () => void } {
   const el = document.createElement("div");
   el.className = s.card;
 
@@ -238,9 +233,9 @@ function makeCardEl(convo: Convo, s: typeof styles): { el: HTMLDivElement; cance
   cursor.className = s.cursor;
   uText.appendChild(cursor);
 
-  const cancelAnim = animateCard(convo, uText, cText, codeEl, cursor, cRow);
+  const { cancel, start } = animateCard(convo, uText, cText, codeEl, cursor, cRow);
 
-  return { el, cancelAnim };
+  return { el, cancelAnim: cancel, startAnim: start };
 }
 
 export default function CodeStreamBg() {
@@ -250,10 +245,11 @@ export default function CodeStreamBg() {
     const bg = bgRef.current;
     if (!bg) return;
 
-    const CARD_W  = 290;
-    const CARD_GAP = 24;
-    const BASE_OP = 0.12;
-    const SPEED   = 0.3;
+    const CARD_W    = 290;
+    const CARD_GAP  = 24;
+    const CARD_MAX_H = 220; // conservative max card height (for overlap prevention)
+    const BASE_OP   = 0.12;
+    const SPEED     = 0.32;
 
     function getColCount() {
       return Math.max(1, Math.floor(window.innerWidth / (CARD_W + CARD_GAP)));
@@ -269,26 +265,39 @@ export default function CodeStreamBg() {
     let lastT  = 0;
     let spawnT = 0;
 
-    function pickCol(): number {
+    // Returns the safest column + y so new cards never visually overlap existing ones.
+    // Each card can grow up to CARD_MAX_H, so new cards must spawn at least
+    // CARD_MAX_H + GAP below the bottommost card in the chosen column.
+    function pickColAndY(): { col: number; y: number } {
+      const H = window.innerHeight;
       const colCount = getColCount();
-      const occupied = new Map<number, number>();
-      for (const c of pool) occupied.set(c.col, Math.min(occupied.get(c.col) ?? Infinity, c.y));
-      // prefer empty cols
-      for (let i = 0; i < colCount; i++) {
-        if (!occupied.has(i)) return i;
+      const colBottoms = new Map<number, number>(); // col → max y (furthest below viewport)
+      for (const c of pool) {
+        const cur = colBottoms.get(c.col) ?? -Infinity;
+        if (c.y > cur) colBottoms.set(c.col, c.y);
       }
-      // fallback: col whose card is furthest from top (lowest on screen = least blocking)
-      let best = 0, bestY = -Infinity;
+      // Prefer empty columns — can spawn immediately at natural position
       for (let i = 0; i < colCount; i++) {
-        const y = occupied.get(i) ?? -Infinity;
-        if (y > bestY) { bestY = y; best = i; }
+        if (!colBottoms.has(i)) {
+          return { col: i, y: H + 60 + Math.random() * 120 };
+        }
       }
-      return best;
+      // All columns occupied — pick the one whose required safe spawn Y is smallest
+      // (i.e., the card will appear on screen soonest without overlapping)
+      let bestCol = 0;
+      let bestY = Infinity;
+      for (let i = 0; i < colCount; i++) {
+        const bottom = colBottoms.get(i)!;
+        const candidateY = bottom + CARD_MAX_H + 60;
+        if (candidateY < bestY) { bestY = candidateY; bestCol = i; }
+      }
+      return { col: bestCol, y: bestY + Math.random() * 60 };
     }
 
-    function newEntry(el: HTMLDivElement, cancelAnim: () => void, x: number, y: number, col: number): CardEntry {
+    function newEntry(el: HTMLDivElement, cancelAnim: () => void, startAnim: () => void, x: number, y: number, col: number): CardEntry {
       return {
-        el, x, y, col, cancelAnim,
+        el, x, y, col, cancelAnim, startAnim,
+        animStarted: false,
         vy: -(SPEED + Math.random() * 0.15),
         vx: 0,
         baseOp: BASE_OP + Math.random() * 0.08,
@@ -296,18 +305,16 @@ export default function CodeStreamBg() {
     }
 
     function spawnCard() {
-      const H = window.innerHeight;
-      const col = pickCol();
+      const { col, y } = pickColAndY();
       const colCount = getColCount();
       const convo = CONVOS[Math.floor(Math.random() * CONVOS.length)];
-      const { el, cancelAnim } = makeCardEl(convo, styles);
+      const { el, cancelAnim, startAnim } = makeCardEl(convo, styles);
       bg!.appendChild(el);
       const x   = colToX(col, colCount);
-      const y   = H + 60 + Math.random() * 120;
       const rot = (Math.random() - 0.5) * 4;
       el.style.transform = `rotate(${rot}deg)`;
       el.style.opacity   = "0";
-      pool.push(newEntry(el, cancelAnim, x, y, col));
+      pool.push(newEntry(el, cancelAnim, startAnim, x, y, col));
     }
 
     function seed() {
@@ -315,13 +322,13 @@ export default function CodeStreamBg() {
       const colCount = getColCount();
       for (let col = 0; col < colCount; col++) {
         const convo = CONVOS[col % CONVOS.length];
-        const { el, cancelAnim } = makeCardEl(convo, styles);
+        const { el, cancelAnim, startAnim } = makeCardEl(convo, styles);
         bg!.appendChild(el);
         const x   = colToX(col, colCount);
         const y   = H * 0.1 + Math.random() * H * 0.8;
         const rot = (Math.random() - 0.5) * 4;
         el.style.cssText = `left:${x}px;top:${y}px;transform:rotate(${rot}deg);opacity:0`;
-        pool.push(newEntry(el, cancelAnim, x, y, col));
+        pool.push(newEntry(el, cancelAnim, startAnim, x, y, col));
       }
     }
 
@@ -332,8 +339,8 @@ export default function CodeStreamBg() {
 
       const H        = window.innerHeight;
       const colCount = getColCount();
-      // spawn at most one card every ~80 frames, and only if a col is free
-      if (spawnT > 80 / colCount && pool.length < colCount * 3) {
+      // spawn at most one card every ~100 frames per column
+      if (spawnT > 100 / colCount && pool.length < colCount * 4) {
         spawnT = 0;
         spawnCard();
       }
@@ -351,8 +358,16 @@ export default function CodeStreamBg() {
         c.el.style.opacity = `${alpha}`;
 
         if (c.y < -500) {
+          c.cancelAnim();
           c.el.remove();
           pool.splice(i, 1);
+          continue;
+        }
+
+        // Start animation only once the card scrolls into the visible viewport
+        if (!c.animStarted && c.y <= H) {
+          c.animStarted = true;
+          c.startAnim();
         }
       }
 
@@ -364,7 +379,7 @@ export default function CodeStreamBg() {
 
     return () => {
       cancelAnimationFrame(rafId);
-      pool.forEach((c) => c.el.remove());
+      pool.forEach((c) => { c.cancelAnim(); c.el.remove(); });
       pool = [];
     };
   }, []);
