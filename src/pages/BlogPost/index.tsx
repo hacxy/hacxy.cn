@@ -1,22 +1,21 @@
 import { useParams, Link } from "react-router";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";import remarkGfm from "remark-gfm";
+import { Icon } from "@iconify/react";
+import classNames from "classnames";
 import "../../styles/markdown.scss";
 import PageTransition from "../../components/PageTransition";
 import Sidebar from "../../components/Sidebar";
 import TableOfContents from "../../components/TableOfContents";
 import CodeBlock from "../../components/CodeBlock";
 import AISummary from "../../components/AISummary";
-import type { ReactNode } from "react";
+import type { ReactNode, ElementType } from "react";
 import { getPostBySlug, parseFrontmatter } from "../../utils/posts";
+import { textToId } from "../../utils/slugify";
+import type { SidebarItemData } from "../../types/sidebar";
+import styles from "./index.module.scss";
+import common from "../../styles/common.module.scss";
 import blogConfig from "virtual:blog-config";
-
-function textToId(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\u4e00-\u9fff\s-]/g, "")
-    .replace(/\s+/g, "-");
-}
 
 function extractText(children: ReactNode): string {
   if (typeof children === "string") return children;
@@ -29,18 +28,9 @@ function extractText(children: ReactNode): string {
 }
 
 function Heading({ level, children }: { level: number; children?: ReactNode }) {
-  const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+  const Tag = `h${level}` as ElementType;
   const id = textToId(extractText(children));
   return <Tag id={id}>{children}</Tag>;
-}
-import styles from "./index.module.scss";
-import common from "../../styles/common.module.scss";
-
-interface SidebarItemData {
-  text: string;
-  link?: string;
-  items?: SidebarItemData[];
-  isolated?: boolean;
 }
 
 function flattenSidebarLinks(items: SidebarItemData[]): string[] {
@@ -94,6 +84,18 @@ function getSidebarAdjacentPosts(slug: string) {
 
 export default function BlogPost() {
   const { "*": slug } = useParams();
+  const [drawerState, setDrawerState] = useState<{ slug: string | undefined; open: "sidebar" | "toc" | null }>({ slug, open: null });
+
+  const openDrawer = drawerState.slug === slug ? drawerState.open : null;
+
+  useEffect(() => {
+    if (openDrawer) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [openDrawer]);
 
   if (!slug) return null;
 
@@ -104,11 +106,7 @@ export default function BlogPost() {
       <PageTransition>
         <div className={common.pageContent}>
           <p style={{ opacity: 0.5 }}>Post not found.</p>
-          <Link
-            to="/posts"
-            className={common.navLink}
-            style={{ marginTop: "1rem", display: "inline-block" }}
-          >
+          <Link to="/posts" className={common.navLink} style={{ marginTop: "1rem", display: "inline-block" }}>
             ← All posts
           </Link>
         </div>
@@ -127,6 +125,64 @@ export default function BlogPost() {
   const hasSidebar = inSidebar && sidebarLinks.length > 0;
   const { prev, next } = getSidebarAdjacentPosts(slug);
 
+  function closeDrawer() {
+    setDrawerState({ slug, open: null });
+  }
+
+  const mobileFab = (
+    <>
+      {openDrawer && <div className={styles.drawerOverlay} onClick={closeDrawer} />}
+
+      {/* 侧边栏抽屉（左侧） */}
+      {hasSidebar && (
+        <div className={classNames(styles.mobileDrawer, styles.mobileDrawerLeft, { [styles.mobileDrawerOpen]: openDrawer === "sidebar" })}>
+          <div className={styles.mobileDrawerHeader}>
+            <span className={styles.mobileDrawerTitle}>章节</span>
+            <button className={styles.mobileDrawerClose} onClick={closeDrawer} aria-label="关闭">
+              <Icon icon="lucide:x" width={18} height={18} />
+            </button>
+          </div>
+          <div className={styles.mobileDrawerBody}>
+            <Sidebar items={effectiveSidebar} currentPath={currentPath} onNavigate={closeDrawer} />
+          </div>
+        </div>
+      )}
+
+      {/* 目录抽屉（右侧） */}
+      <div className={classNames(styles.mobileDrawer, styles.mobileDrawerRight, { [styles.mobileDrawerOpen]: openDrawer === "toc" })}>
+        <div className={styles.mobileDrawerHeader}>
+          <span className={styles.mobileDrawerTitle}>目录</span>
+          <button className={styles.mobileDrawerClose} onClick={closeDrawer} aria-label="关闭">
+            <Icon icon="lucide:x" width={18} height={18} />
+          </button>
+        </div>
+        <div className={styles.mobileDrawerBody}>
+          <TableOfContents content={content} onNavigate={closeDrawer} />
+        </div>
+      </div>
+
+      {/* 固定按钮栏 */}
+      <div className={styles.mobileFab}>
+        {hasSidebar && (
+          <button
+            className={classNames(styles.mobileFabBtn, { [styles.mobileFabBtnActive]: openDrawer === "sidebar" })}
+            onClick={() => setDrawerState((v) => ({ slug, open: v.open === "sidebar" ? null : "sidebar" }))}
+            aria-label="章节导航"
+          >
+            <Icon icon="lucide:layout-list" width={17} height={17} />
+          </button>
+        )}
+        <button
+          className={classNames(styles.mobileFabBtn, { [styles.mobileFabBtnActive]: openDrawer === "toc" })}
+          onClick={() => setDrawerState((v) => ({ slug, open: v.open === "toc" ? null : "toc" }))}
+          aria-label="目录"
+        >
+          <Icon icon="lucide:list" width={17} height={17} />
+        </button>
+      </div>
+    </>
+  );
+
   if (!hasSidebar) {
     return (
       <PageTransition>
@@ -136,20 +192,24 @@ export default function BlogPost() {
           </div>
           <TableOfContents content={content} />
         </div>
+        {mobileFab}
       </PageTransition>
     );
   }
 
   return (
-    <div className={common.pageWithSidebar}>
-      <Sidebar items={effectiveSidebar} currentPath={currentPath} />
-      <PageTransition key={slug}>
-        <div className={common.sidebarContent}>
-          {renderContent()}
-        </div>
-      </PageTransition>
-      <TableOfContents content={content} />
-    </div>
+    <>
+      <div className={common.pageWithSidebar}>
+        <Sidebar items={effectiveSidebar} currentPath={currentPath} />
+        <PageTransition key={slug}>
+          <div className={common.sidebarContent}>
+            {renderContent()}
+          </div>
+        </PageTransition>
+        <TableOfContents content={content} />
+      </div>
+      {mobileFab}
+    </>
   );
 
   function renderContent() {
@@ -157,13 +217,9 @@ export default function BlogPost() {
       <>
         <div
           className="slide-enter"
-          style={{ "--enter-stage": 1 } as React.CSSProperties}
+          style={{ "--enter-stage": 1, marginBottom: "2.5rem" } as React.CSSProperties}
         >
-          <Link
-            to="/posts"
-            className={common.navLink}
-            style={{ fontSize: "0.85rem", marginBottom: "2.5rem", display: "inline-block" }}
-          >
+          <Link to="/posts" className={common.navLink} style={{ fontSize: "0.85rem" }}>
             ← Blog
           </Link>
         </div>
@@ -173,10 +229,10 @@ export default function BlogPost() {
             className="slide-enter"
             style={{ "--enter-stage": 2, marginBottom: "2.5rem" } as React.CSSProperties}
           >
-            {post.date && (
-              <time className={styles.postDate}>{post.date}</time>
+            {post!.date && (
+              <time className={styles.postDate}>{post!.date}</time>
             )}
-            <h1 className={styles.postTitle}>{post.title}</h1>
+            <h1 className={styles.postTitle}>{post!.title}</h1>
             {tags.length > 0 && (
               <div className={styles.tagList}>
                 {tags.map((tag) => (
@@ -191,10 +247,7 @@ export default function BlogPost() {
           <hr className={styles.divider} />
 
           {summary && (
-            <div
-              className="slide-enter"
-              style={{ "--enter-stage": 3 } as React.CSSProperties}
-            >
+            <div className="slide-enter" style={{ "--enter-stage": 3 } as React.CSSProperties}>
               <AISummary text={summary} />
             </div>
           )}

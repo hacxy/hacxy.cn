@@ -5,6 +5,7 @@ import classNames from "classnames";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import CodeStreamBg from "./components/CodeStreamBg";
+import { getInitialTheme, applyTheme } from "./utils/theme";
 import styles from "./App.module.scss";
 
 const Home = lazy(() => import("./pages/Home"));
@@ -16,16 +17,10 @@ const About = lazy(() => import("./pages/About"));
 export default function App() {
   const location = useLocation();
 
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    const stored = localStorage.getItem("theme");
-    if (stored === "light" || stored === "dark") return stored;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
-  });
+  const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
+    applyTheme(theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
 

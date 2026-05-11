@@ -1,5 +1,8 @@
-import yaml from 'js-yaml'
 import rawPosts from 'virtual:blog-posts'
+import { parseFrontmatter } from './frontmatter'
+
+export type { FrontmatterData } from './frontmatter'
+export { parseFrontmatter }
 
 export interface Post {
   slug: string
@@ -8,23 +11,6 @@ export interface Post {
   tags: string[]
   series: string | null
   rawContent: string
-}
-
-export interface FrontmatterData {
-  title?: string
-  date?: string | Date
-  tags?: unknown[]
-  [key: string]: unknown
-}
-
-const FM_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/
-
-export function parseFrontmatter(raw: string): { data: FrontmatterData; content: string } {
-  const match = raw.match(FM_PATTERN)
-  if (!match) return { data: {}, content: raw }
-  const data = (yaml.load(match[1]) ?? {}) as FrontmatterData
-  const content = raw.slice(match[0].length)
-  return { data, content }
 }
 
 export function getAllPosts(): Post[] {
@@ -38,16 +24,6 @@ export function getAllPosts(): Post[] {
 
 export function getPostBySlug(slug: string): Post | undefined {
   return rawPosts.find(p => p.slug === slug)
-}
-
-export function getAdjacentPosts(slug: string): { prev: Post | null; next: Post | null } {
-  const posts = getAllPosts()
-  const idx = posts.findIndex(p => p.slug === slug)
-  if (idx === -1) return { prev: null, next: null }
-  return {
-    prev: posts[idx - 1] ?? null,
-    next: posts[idx + 1] ?? null,
-  }
 }
 
 export function getPostsByTag(tag: string): Post[] {

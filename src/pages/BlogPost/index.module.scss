@@ -95,3 +95,152 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
+
+/* ── 移动端抽屉 ──────────────────────────────────────────── */
+
+.drawerOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.mobileDrawer {
+  position: fixed;
+  top: 0;
+  z-index: 201;
+  width: min(300px, 82vw);
+  height: 100dvh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+
+  // 只在移动端显示
+  @media (min-width: 961px) {
+    display: none;
+  }
+}
+
+.mobileDrawerLeft {
+  left: 0;
+  border-right: 1px solid var(--border);
+  transform: translateX(-100%);
+
+  &.mobileDrawerOpen {
+    transform: translateX(0);
+  }
+}
+
+.mobileDrawerRight {
+  right: 0;
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);
+
+  &.mobileDrawerOpen {
+    transform: translateX(0);
+  }
+}
+
+.mobileDrawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  height: var(--header-height, 4rem);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.mobileDrawerTitle {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  &::before {
+    content: "// ";
+    color: var(--accent);
+    opacity: 0.7;
+  }
+}
+
+.mobileDrawerClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--fg);
+  opacity: 0.4;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  border-radius: 3px;
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.mobileDrawerBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+
+  // 让内部 aside 撑满
+  aside {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0;
+    border: none;
+  }
+}
+
+/* ── 固定浮动按钮（仅移动端文章页） ───────────────────────── */
+
+.mobileFab {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.25rem;
+  z-index: 199;
+  display: none;
+  flex-direction: column;
+  gap: 0.6rem;
+
+  @media (max-width: 960px) {
+    display: flex;
+  }
+}
+
+.mobileFabBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  opacity: 0.65;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  &.mobileFabBtnActive {
+    opacity: 1;
+    color: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  }
+}

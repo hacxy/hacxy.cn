@@ -8,7 +8,7 @@ interface SidebarItemData {
   items?: SidebarItemData[];
 }
 
-function SidebarGroup({ item, currentPath }: { item: SidebarItemData; currentPath: string }) {
+function SidebarGroup({ item, currentPath, onNavigate }: { item: SidebarItemData; currentPath: string; onNavigate?: () => void }) {
   if (item.items && item.items.length > 0) {
     return (
       <div className={styles.group}>
@@ -16,7 +16,7 @@ function SidebarGroup({ item, currentPath }: { item: SidebarItemData; currentPat
         <ul className={styles.list}>
           {item.items.map((child, i) => (
             <li key={child.link ?? i}>
-              <SidebarGroup item={child} currentPath={currentPath} />
+              <SidebarGroup item={child} currentPath={currentPath} onNavigate={onNavigate} />
             </li>
           ))}
         </ul>
@@ -31,6 +31,7 @@ function SidebarGroup({ item, currentPath }: { item: SidebarItemData; currentPat
         className={classNames(styles.link, {
           [styles.active]: currentPath === item.link,
         })}
+        onClick={onNavigate}
       >
         {item.text}
       </NavLink>
@@ -40,14 +41,14 @@ function SidebarGroup({ item, currentPath }: { item: SidebarItemData; currentPat
   return <span className={styles.groupTitle}>{item.text}</span>;
 }
 
-export default function Sidebar({ items, currentPath }: { items: SidebarItemData[]; currentPath: string }) {
+export default function Sidebar({ items, currentPath, onNavigate }: { items: SidebarItemData[]; currentPath: string; onNavigate?: () => void }) {
   if (!items || items.length === 0) return null;
 
   return (
     <aside className={styles.sidebar}>
       <nav className={styles.nav}>
         {items.map((item, i) => (
-          <SidebarGroup key={item.link ?? i} item={item} currentPath={currentPath} />
+          <SidebarGroup key={item.link ?? i} item={item} currentPath={currentPath} onNavigate={onNavigate} />
         ))}
       </nav>
     </aside>

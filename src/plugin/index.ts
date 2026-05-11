@@ -5,9 +5,10 @@ import path from 'path'
 import { pathToFileURL } from 'url'
 import { createRequire } from 'module'
 import { execSync } from 'child_process'
-import yaml from 'js-yaml'
 import fg from 'fast-glob'
 import { build as esbuild } from 'esbuild'
+import { parseFrontmatter } from '../utils/frontmatter'
+import type { FrontmatterData } from '../utils/frontmatter'
 
 const VIRTUAL_CONFIG = 'virtual:blog-config'
 const VIRTUAL_POSTS = 'virtual:blog-posts'
@@ -27,6 +28,14 @@ const DEFAULT_EXCLUDE = [
   '**/index.md',
 ]
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 function buildInlineHtml(title: string) {
   return `<!DOCTYPE html>
 <html lang="zh">
@@ -34,31 +43,13 @@ function buildInlineHtml(title: string) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>${title}</title>
+    <title>${escapeHtml(title)}</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>`
-}
-
-interface FrontmatterData {
-  title?: string
-  date?: string | Date
-  tags?: unknown[]
-  summary?: string
-  [key: string]: unknown
-}
-
-const FM_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/
-
-function parseFrontmatter(raw: string): { data: FrontmatterData; content: string } {
-  const match = raw.match(FM_PATTERN)
-  if (!match) return { data: {}, content: raw }
-  const data = (yaml.load(match[1]) ?? {}) as FrontmatterData
-  const content = raw.slice(match[0].length)
-  return { data, content }
 }
 
 function extractH1(content: string): string | null {
@@ -153,7 +144,10 @@ function scanDirForSidebar(
     if (localExclude.has(entry.name)) continue
 
     if (exclude.some(pattern => {
-      const p = pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*')
+      const p = pattern
+        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+        .replace(/\*\*/g, '.*')
+        .replace(/(?<!\.)\*/g, '[^/]*')
       return new RegExp(`^${p}$`).test(relPath)
     })) continue
 
@@ -383,13 +377,13 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
     if (posts) devServer.moduleGraph.invalidateModule(posts)
     const config = devServer.moduleGraph.getModuleById(RESOLVED_CONFIG)
     if (config) devServer.moduleGraph.invalidateModule(config)
-    devServer.ws.send({ type: 'full-reload' })
+    devServer.hot.send({ type: 'full-reload' })
   }
 
   function invalidatePages() {
     if (!devServer) return
     const mod = devServer.moduleGraph.getModuleById(RESOLVED_PAGES)
     if (mod) devServer.moduleGraph.invalidateModule(mod)
-    devServer.ws.send({ type: 'full-reload' })
+    devServer.hot.send({ type: 'full-reload' })
   }
 }
