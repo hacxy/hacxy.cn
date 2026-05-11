@@ -12,6 +12,7 @@ html {
   -webkit-text-size-adjust: 100%;
   scrollbar-width: thin;
   scrollbar-color: rgba(150, 150, 150, 0.4) transparent;
+  background-color: var(--bg);
 }
 
 [data-theme="dark"] html {
@@ -33,21 +34,6 @@ html {
   background: rgba(80, 80, 80, 0.5);
 }
 
-/* scan-line overlay — dark mode only */
-[data-theme="dark"] body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0px,
-    transparent 3px,
-    rgba(0, 0, 0, 0.025) 3px,
-    rgba(0, 0, 0, 0.025) 4px
-  );
-}
 
 body {
   font-family: var(--font-sans);
