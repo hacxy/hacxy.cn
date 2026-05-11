@@ -193,9 +193,10 @@ export default function MusicPlayer() {
       const t = audio.currentTime;
       setCurrentTime(t);
       const lines = useKrc ? krcLines! : lrcLines;
+      const lookupTime = t + 0.3;
       let idx = -1;
       for (let i = lines.length - 1; i >= 0; i--) {
-        if (lines[i].time <= t) {
+        if (lines[i].time <= lookupTime) {
           idx = i;
           break;
         }
