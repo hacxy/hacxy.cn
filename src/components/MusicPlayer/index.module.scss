@@ -26,6 +26,10 @@ $panel-h-mobile: 72vh;
   left: 0;
   right: 0;
   z-index: 200;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
 }
 
 /* ── Expanded panel ───────────────────────────────────── */
