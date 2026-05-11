@@ -50,28 +50,37 @@ export default function Header({ theme, onToggleTheme }: HeaderProps) {
           <span className={styles.logoCursor}>_</span>
         </NavLink>
         <nav className={styles.nav}>
-          {(blogConfig.nav ?? []).map((item) => (
-            <NavLink
-              key={item.link}
-              to={item.link}
-              className={({ isActive }) =>
-                classNames(styles.navLink, { [styles.active]: isActive })
-              }
-            >
-              {item.text}
-            </NavLink>
-          ))}
-          {blogConfig.github && (
-            <a
-              href={`https://github.com/${blogConfig.github}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.navIconLink}
-              aria-label="GitHub"
-            >
-              <Icon icon="lucide:github" width={18} height={18} />
-            </a>
-          )}
+          {(blogConfig.nav ?? []).map((item) => {
+            const isExternal = /^https?:\/\//.test(item.link);
+            const content = (
+              <>
+                {item.icon && <Icon icon={item.icon} width={18} height={18} />}
+                {item.text && <span>{item.text}</span>}
+              </>
+            );
+            return isExternal ? (
+              <a
+                key={item.link}
+                href={item.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={item.icon && !item.text ? styles.navIconLink : styles.navLink}
+                aria-label={item.text ?? item.icon}
+              >
+                {content}
+              </a>
+            ) : (
+              <NavLink
+                key={item.link}
+                to={item.link}
+                className={({ isActive }) =>
+                  classNames(styles.navLink, { [styles.active]: isActive })
+                }
+              >
+                {content}
+              </NavLink>
+            );
+          })}
           <button
             className={styles.themeToggle}
             onClick={onToggleTheme}

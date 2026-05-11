@@ -220,11 +220,26 @@ function buildPostsData(contentDir: string, config: BlogConfig): string {
   return `export default ${JSON.stringify(posts)}`
 }
 
+function readHomeFrontmatter(contentDir: string): { github?: string; projects?: string[] } {
+  const homePath = path.join(contentDir, 'index.md')
+  if (!fs.existsSync(homePath)) return {}
+  try {
+    const { data } = parseFrontmatter(fs.readFileSync(homePath, 'utf-8'))
+    return {
+      github:   typeof data.github === 'string' ? data.github : undefined,
+      projects: Array.isArray(data.projects) ? (data.projects as string[]) : undefined,
+    }
+  } catch {
+    return {}
+  }
+}
+
 async function fetchGithubProject(github: string, name: string) {
+  const username = github.replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '')
   try {
     const headers: Record<string, string> = { 'User-Agent': 'hacxy-blog-build' }
     if (process.env.GITHUB_TOKEN) headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`
-    const res = await fetch(`https://api.github.com/repos/${github}/${name}`, { headers })
+    const res = await fetch(`https://api.github.com/repos/${username}/${name}`, { headers })
     if (!res.ok) throw new Error(`GitHub API ${res.status}`)
     const data = await res.json() as { description: string; stargazers_count: number; html_url: string }
     return {
@@ -235,7 +250,7 @@ async function fetchGithubProject(github: string, name: string) {
     }
   } catch (e) {
     console.warn(`[blog] failed to fetch github project ${name}:`, e)
-    return { name, description: '', stars: 0, url: `https://github.com/${github}/${name}` }
+    return { name, description: '', stars: 0, url: `https://github.com/${username}/${name}` }
   }
 }
 
@@ -335,12 +350,8 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
           author: resolvedConfig.author,
           title: resolvedConfig.title ?? 'Blog',
           logo: resolvedConfig.logo ?? null,
-          github: resolvedConfig.github ?? '',
           bio: resolvedConfig.bio ?? '',
-          email: resolvedConfig.email ?? '',
-          bilibili: resolvedConfig.bilibili ?? '',
           copyright: resolvedConfig.copyright ?? '',
-          projects: resolvedConfig.projects ?? [],
           techStack: resolvedConfig.techStack ?? [],
           nav: resolvedConfig.nav ?? [],
           sidebar: buildSidebar(resolvedContentDir, resolvedConfig),
@@ -360,13 +371,14 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       }
 
       if (id === RESOLVED_PROJECTS) {
-        if (!userConfig.github || !userConfig.projects?.length) {
+        const { github, projects } = readHomeFrontmatter(resolvedContentDir)
+        if (!github || !projects?.length) {
           return `export default []`
         }
-        const projects = await Promise.all(
-          userConfig.projects.map(name => fetchGithubProject(userConfig.github!, name))
+        const fetched = await Promise.all(
+          projects.map(name => fetchGithubProject(github, name))
         )
-        return `export default ${JSON.stringify(projects)}`
+        return `export default ${JSON.stringify(fetched)}`
       }
     },
   }

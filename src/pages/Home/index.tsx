@@ -6,6 +6,7 @@ import PageTransition from "../../components/PageTransition";
 import Typewriter from "../../components/Typewriter";
 import NotFound from "../NotFound";
 import { getAllPosts } from "../../utils/posts";
+import { SOCIAL_META, getLinkHref, type SocialLink } from "../../utils/social";
 import projectsData from "virtual:github-projects";
 import blogConfig from "virtual:blog-config";
 import pages from "virtual:blog-pages";
@@ -32,6 +33,7 @@ export default function Home() {
 
   const name = (homeData.name as string | undefined) ?? blogConfig.author;
   const bio = (homeData.bio as string | undefined) ?? blogConfig.bio ?? '';
+  const contact = (homeData.contact as SocialLink[] | undefined) ?? [];
 
   const recentPosts = getAllPosts().slice(0, 5);
 
@@ -117,33 +119,25 @@ export default function Home() {
           </div>
         )}
 
-        {(blogConfig.email || blogConfig.bilibili) && (
+        {contact.length > 0 && (
           <div style={{ marginTop: "3rem" }}>
             <Row index={socialRow}>
               <p className={styles.sectionHeading}>Contact</p>
             </Row>
             <Row index={socialRow + 1}>
               <div className={styles.socialLinks}>
-                {blogConfig.email && (
+                {contact.map((link) => (
                   <a
-                    href={`mailto:${blogConfig.email}`}
+                    key={`${link.type}-${link.url}`}
+                    href={getLinkHref(link)}
+                    target={link.type === 'email' ? undefined : "_blank"}
+                    rel={link.type === 'email' ? undefined : "noopener noreferrer"}
                     className={styles.navLink}
-                    aria-label="Email"
+                    aria-label={link.label ?? SOCIAL_META[link.type].label}
                   >
-                    <Icon icon="lucide:mail" width={16} height={16} />
+                    <Icon icon={SOCIAL_META[link.type].icon} width={16} height={16} />
                   </a>
-                )}
-                {blogConfig.bilibili && (
-                  <a
-                    href={blogConfig.bilibili}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.navLink}
-                    aria-label="BiliBili"
-                  >
-                    <Icon icon="simple-icons:bilibili" width={16} height={16} />
-                  </a>
-                )}
+                ))}
               </div>
             </Row>
           </div>

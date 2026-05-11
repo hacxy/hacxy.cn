@@ -56,7 +56,7 @@
 
 .link {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.3rem;
   font-size: 0.8rem;
   color: var(--fg);
@@ -65,10 +65,8 @@
   padding: 0.22rem 0.4rem;
   border-radius: 3px;
   line-height: 1.4;
+  word-break: break-word;
   transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 
   &::before {
     content: "›";

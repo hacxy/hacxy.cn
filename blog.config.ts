@@ -4,17 +4,14 @@ export default defineBlogConfig({
   contentDir: "content",
   title: "Hacxy's Blog",
   author: "Hacxy",
-  github: "hacxy",
   bio: "了解真相，才能获得真正的自由",
-  email: "hacxy.js@outlook.com",
-  bilibili: "https://space.bilibili.com/589367703",
   copyright: "2024-PRESENT © Hacxy",
   nav: [
     { text: "Blog", link: "/posts" },
     { text: "Tags", link: "/tags" },
     { text: "About", link: "/about" },
+    { icon: "lucide:github", link: "https://github.com/hacxy" },
   ],
-  projects: ["l2d", "skills"],
   techStack: [
     {
       category: "框架",
