@@ -22,6 +22,7 @@ export interface BlogConfig {
   exclude?: string[]
   base?: string
   contentDir?: string
+  siteUrl?: string
 }
 
 export function defineBlogConfig(config: BlogConfig): BlogConfig {

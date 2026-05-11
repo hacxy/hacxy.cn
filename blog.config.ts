@@ -4,6 +4,7 @@ export default defineBlogConfig({
   contentDir: "content",
   title: "Hacxy's Blog",
   author: "Hacxy",
+  siteUrl: "https://hacxy.cn",
   bio: "了解真相，才能获得真正的自由",
   copyright: "2024-PRESENT © Hacxy",
   nav: [
