@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import styles from "./index.module.scss";
 
@@ -11,6 +11,12 @@ export default function AISummary({ text }: AISummaryProps) {
   const [done, setDone] = useState(false);
   const [started, setStarted] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) clearInterval(timerRef.current);
+    };
+  }, []);
 
   const start = useCallback(() => {
     setStarted(true);

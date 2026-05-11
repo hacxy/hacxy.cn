@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { textToId } from "../../utils/slugify";
 import styles from "./index.module.scss";
 
 interface TocItem {
@@ -23,17 +24,14 @@ function extractHeadings(markdown: string): TocItem[] {
     if (!match) continue;
 
     const text = match[2].trim();
-    const id = text
-      .toLowerCase()
-      .replace(/[^\w\u4e00-\u9fff\s-]/g, "")
-      .replace(/\s+/g, "-");
+    const id = textToId(text);
     headings.push({ id, text, level: match[1].length });
   }
 
   return headings;
 }
 
-export default function TableOfContents({ content }: { content: string }) {
+export default function TableOfContents({ content, onNavigate }: { content: string; onNavigate?: () => void }) {
   const headings = useMemo(() => extractHeadings(content), [content]);
   const [activeId, setActiveId] = useState("");
 
@@ -76,6 +74,7 @@ export default function TableOfContents({ content }: { content: string }) {
               onClick={(e) => {
                 e.preventDefault();
                 document.getElementById(heading.id)?.scrollIntoView({ behavior: "smooth" });
+                onNavigate?.();
               }}
             >
               {heading.text}

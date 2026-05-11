@@ -55,7 +55,18 @@ export default function BlogList() {
   }
 
   const groups = getPostsGroupedByYear();
-  let stageCounter = 0;
+
+  const groupsWithStages = groups.map(({ year, posts }) => {
+    const items = posts.map((post) => ({ post }));
+    return { year, items };
+  });
+
+  let counter = 0;
+  const staged = groupsWithStages.map(({ year, items }) => ({
+    year,
+    yearStage: ++counter,
+    items: items.map(({ post }) => ({ post, stage: ++counter })),
+  }));
 
   return (
     <PageTransition>
@@ -68,20 +79,20 @@ export default function BlogList() {
             ← Home
           </Link>
         </div>
-        {groups.map(({ year, posts }) => (
+        {staged.map(({ year, yearStage, items }) => (
           <div key={year} className={styles.yearGroup}>
             <div
               className={`${styles.yearHeading} slide-enter`}
-              style={{ "--enter-stage": ++stageCounter } as React.CSSProperties}
+              style={{ "--enter-stage": yearStage } as React.CSSProperties}
             >
               {year}
             </div>
             <ul className={styles.postList}>
-              {posts.map((post) => (
+              {items.map(({ post, stage }) => (
                 <li
                   key={post.slug}
                   className={`${styles.postListItem} slide-enter`}
-                  style={{ "--enter-stage": ++stageCounter } as React.CSSProperties}
+                  style={{ "--enter-stage": stage } as React.CSSProperties}
                 >
                   {post.date && (
                     <time className={styles.postDate}>{post.date.slice(5)}</time>

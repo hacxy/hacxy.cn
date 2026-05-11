@@ -1,4 +1,4 @@
-import { useState, useEffect, isValidElement } from "react";
+import { useState, useEffect, useRef, isValidElement } from "react";
 import type { ReactNode, ReactElement, ComponentPropsWithoutRef } from "react";
 import { Icon } from "@iconify/react";
 import { getHighlighter } from "../../utils/highlighter";
@@ -24,6 +24,13 @@ type CodeBlockProps = ComponentPropsWithoutRef<"pre"> & { node?: unknown };
 export default function CodeBlock({ children, ...props }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
   const [shikiHtml, setShikiHtml] = useState<string>("");
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current !== null) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   const codeEl = findCodeElement(children);
 
@@ -60,7 +67,7 @@ export default function CodeBlock({ children, ...props }: CodeBlockProps) {
         document.body.removeChild(ta);
       }
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       // copy failed
     }
