@@ -13,11 +13,13 @@ summary: Claude Code 是 Anthropic 官方推出的 AI 编程助手 CLI 工具，
 
 如果你用过 ChatGPT 或者其他 AI 聊天工具来写代码，你一定遇到过这种情况：把一段代码粘进去，让它帮你修，它给出了答案，但你不确定这个修改放到整个项目里是否正确；或者你描述了一个需求，它生成了代码，但和你的已有架构完全对不上。
 
-Claude Code 解决的正是这个问题。
+这个问题其实挺根本的——AI 看不到你的项目，它只能根据你贴进去的那一小块内容猜。
+
+[Claude Code](https://claude.ai/code) 解决的正是这个问题。
 
 ## 一句话描述
 
-Claude Code 是 Anthropic 官方开发的 AI 编程助手，以命令行工具（CLI）的形式运行在你的终端里。它能直接读取你的项目文件、执行命令、修改代码，并在真实的开发环境中完成任务——不是生成一段"示例代码"让你自己去套，而是直接在你的项目里做事。
+Claude Code 是 [Anthropic](https://anthropic.com) 官方开发的 AI 编程助手，以命令行工具（CLI）的形式运行在你的终端里。它能直接读取你的项目文件、执行命令、修改代码，并在真实的开发环境中完成任务——不是生成一段"示例代码"让你自己去套，而是直接在你的项目里做事。
 
 ## 和普通 AI 聊天有什么不同
 
@@ -82,14 +84,14 @@ Claude Code 有几种使用方式：
 
 **桌面应用**：独立的 macOS / Windows 应用，界面更友好。
 
-**Web 端**：`claude.ai/code`，无需安装，打开即用（功能略有限制）。
+**Web 端**：[claude.ai/code](https://claude.ai/code)，无需安装，打开即用（功能略有限制）。
 
 ## 需要什么账号
 
 使用 Claude Code 需要：
 
 - **Claude 订阅账号**（Pro / Max / Team / Enterprise），或者
-- **Anthropic Console 账号**（按用量付费）
+- **[Anthropic Console](https://console.anthropic.com) 账号**（按用量付费）
 
 它本质上是 Claude 大模型的能力加上编程工具链的结合。模型越强（Opus > Sonnet > Haiku），处理复杂任务的能力越好，但消耗的 token 也更多。
 
