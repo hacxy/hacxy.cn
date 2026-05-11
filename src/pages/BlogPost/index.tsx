@@ -89,6 +89,10 @@ export default function BlogPost() {
   const openDrawer = drawerState.slug === slug ? drawerState.open : null;
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [slug]);
+
+  useEffect(() => {
     if (openDrawer) {
       document.body.style.overflow = "hidden";
     } else {
