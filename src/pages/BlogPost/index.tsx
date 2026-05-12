@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import ReactMarkdown from "react-markdown";import remarkGfm from "remark-gfm";
 import { Icon } from "@iconify/react";
 import classNames from "classnames";
@@ -9,28 +9,30 @@ import Sidebar from "../../components/Sidebar";
 import TableOfContents from "../../components/TableOfContents";
 import CodeBlock from "../../components/CodeBlock";
 import AISummary from "../../components/AISummary";
-import type { ReactNode, ElementType } from "react";
 import { getPostBySlug, parseFrontmatter } from "../../utils/posts";
-import { textToId } from "../../utils/slugify";
+import { extractHeadings } from "../../utils/headings";
 import type { SidebarItemData } from "../../types/sidebar";
 import styles from "./index.module.scss";
 import common from "../../styles/common.module.scss";
+import type { TocItem } from "../../utils/headings";
 import blogConfig from "virtual:blog-config";
 
-function extractText(children: ReactNode): string {
-  if (typeof children === "string") return children;
-  if (typeof children === "number") return String(children);
-  if (Array.isArray(children)) return children.map(extractText).join("");
-  if (children && typeof children === "object" && "props" in children) {
-    return extractText((children.props as { children?: ReactNode }).children);
-  }
-  return "";
-}
-
-function Heading({ level, children }: { level: number; children?: ReactNode }) {
-  const Tag = `h${level}` as ElementType;
-  const id = textToId(extractText(children));
-  return <Tag id={id}>{children}</Tag>;
+function MarkdownWithHeadings({ content, headings }: { content: string; headings: TocItem[] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!ref.current) return;
+    const els = ref.current.querySelectorAll("h2, h3, h4");
+    els.forEach((el, i) => {
+      if (headings[i]) el.id = headings[i].id;
+    });
+  }, [headings]);
+  return (
+    <div ref={ref}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: CodeBlock }}>
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
 }
 
 function flattenSidebarLinks(items: SidebarItemData[]): string[] {
@@ -101,9 +103,15 @@ export default function BlogPost() {
     return () => { document.body.style.overflow = ""; };
   }, [openDrawer]);
 
-  if (!slug) return null;
+  const post = slug ? getPostBySlug(slug) : undefined;
+  const { content, data } = useMemo(() => {
+    if (!post) return { content: "", data: {} as Record<string, unknown> };
+    const { content: rawBody, data: fm } = parseFrontmatter(post.rawContent);
+    return { content: rawBody.replace(/^\s*#[^\n]*\n?/, ""), data: fm };
+  }, [post]);
+  const headings = useMemo(() => extractHeadings(content), [content]);
 
-  const post = getPostBySlug(slug);
+  if (!slug) return null;
 
   if (!post) {
     return (
@@ -118,8 +126,6 @@ export default function BlogPost() {
     );
   }
 
-  const { content: rawBody, data } = parseFrontmatter(post.rawContent);
-  const content = rawBody.replace(/^\s*#[^\n]*\n?/, "");
   const tags: string[] = Array.isArray(data.tags) ? data.tags.map(String) : [];
   const summary = typeof data.summary === "string" ? data.summary : "";
   const currentPath = `/${slug}`;
@@ -161,7 +167,7 @@ export default function BlogPost() {
           </button>
         </div>
         <div className={styles.mobileDrawerBody}>
-          <TableOfContents content={content} onNavigate={closeDrawer} />
+          <TableOfContents headings={headings} onNavigate={closeDrawer} />
         </div>
       </div>
 
@@ -194,7 +200,7 @@ export default function BlogPost() {
           <div className={common.sidebarContent}>
             {renderContent()}
           </div>
-          <TableOfContents content={content} />
+          <TableOfContents headings={headings} />
         </div>
         {mobileFab}
       </PageTransition>
@@ -210,7 +216,7 @@ export default function BlogPost() {
             {renderContent()}
           </div>
         </PageTransition>
-        <TableOfContents content={content} />
+        <TableOfContents headings={headings} />
       </div>
       {mobileFab}
     </>
@@ -260,17 +266,7 @@ export default function BlogPost() {
             className="markdown-body slide-enter"
             style={{ "--enter-stage": summary ? 4 : 3 } as React.CSSProperties}
           >
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                pre: CodeBlock,
-                h2: ({ children }) => <Heading level={2}>{children}</Heading>,
-                h3: ({ children }) => <Heading level={3}>{children}</Heading>,
-                h4: ({ children }) => <Heading level={4}>{children}</Heading>,
-              }}
-            >
-              {content}
-            </ReactMarkdown>
+            <MarkdownWithHeadings content={content} headings={headings} />
           </div>
         </article>
 
