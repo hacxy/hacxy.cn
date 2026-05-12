@@ -11,6 +11,7 @@ export default defineBlogConfig({
     { text: "Blog", link: "/posts" },
     { text: "Tags", link: "/tags" },
     { text: "About", link: "/about" },
+    { text: "Skills", link: "/skills" },
     { icon: "lucide:github", link: "https://github.com/hacxy" },
   ],
   techStack: [

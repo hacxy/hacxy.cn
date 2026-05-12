@@ -15,6 +15,7 @@ const BlogList = lazy(() => import("./pages/BlogList"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const Tags = lazy(() => import("./pages/Tags"));
 const About = lazy(() => import("./pages/About"));
+const Skills = lazy(() => import("./pages/Skills"));
 
 export default function App() {
   const location = useLocation();
@@ -42,6 +43,7 @@ export default function App() {
               <Route path="/posts" element={<BlogList />} />
               <Route path="/tags" element={<Tags />} />
               <Route path="/tags/:tag" element={<BlogList />} />
+              <Route path="/skills" element={<Skills />} />
               <Route path="/*" element={<BlogPost />} />
             </Routes>
           </AnimatePresence>
