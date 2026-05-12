@@ -118,8 +118,8 @@ export default function BlogPost() {
       <PageTransition>
         <div className={common.pageContent}>
           <p style={{ opacity: 0.5 }}>Post not found.</p>
-          <Link to="/posts" className={common.navLink} style={{ marginTop: "1rem", display: "inline-block" }}>
-            ← All posts
+          <Link to="/" className={common.navLink} style={{ marginTop: "1rem", display: "inline-block" }}>
+            ← Home
           </Link>
         </div>
       </PageTransition>
@@ -225,15 +225,6 @@ export default function BlogPost() {
   function renderContent() {
     return (
       <>
-        <div
-          className="slide-enter"
-          style={{ "--enter-stage": 1, marginBottom: "2.5rem" } as React.CSSProperties}
-        >
-          <Link to="/posts" className={common.navLink} style={{ fontSize: "0.85rem" }}>
-            ← Blog
-          </Link>
-        </div>
-
         <article>
           <header
             className="slide-enter"

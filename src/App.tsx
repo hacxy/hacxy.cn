@@ -40,7 +40,6 @@ export default function App() {
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
-              <Route path="/posts" element={<BlogList />} />
               <Route path="/tags" element={<Tags />} />
               <Route path="/tags/:tag" element={<BlogList />} />
               <Route path="/skills" element={<Skills />} />
