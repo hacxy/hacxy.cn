@@ -22,7 +22,7 @@
   padding-left: 0.5rem;
 
   &::before {
-    content: "// ";
+    content: "";
     color: var(--accent);
     opacity: 0.7;
   }
