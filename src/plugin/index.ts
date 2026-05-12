@@ -466,6 +466,7 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
         { path: 'posts', title: `Blog | ${siteTitle}`, description: '所有文章' },
         { path: 'tags', title: `Tags | ${siteTitle}`, description: '标签' },
         { path: 'about', title: `About | ${siteTitle}`, description: '' },
+        { path: 'skills', title: `Skills | ${siteTitle}`, description: 'Agent skill collection for Claude Code and other AI coding assistants' },
       ]
       for (const page of staticPages) {
         const url = page.path ? `${siteUrl}/${page.path}` : siteUrl
