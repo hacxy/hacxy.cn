@@ -38,7 +38,7 @@ function BarLyric({ text, lyricKey, krcLine, activationTime }: BarLyricProps) {
             animationDelay: `${delay}s`,
           };
           return (
-            <span key={c.offset} className={styles.barKrcChar}>
+            <span key={c.id} className={styles.barKrcChar}>
               <span className={styles.barKrcCharFill} style={fillStyle}>{c.char}</span>
               <span className={styles.barKrcCharBase}>{c.char}</span>
             </span>
@@ -74,7 +74,7 @@ function KrcLineView({ line, activationTime }: KrcLineViewProps) {
       {line.chars.map((c) => {
         if (activationTime === null) {
           return (
-            <span key={c.offset} className={styles.krcChar}>
+            <span key={c.id} className={styles.krcChar}>
               <span className={styles.krcCharBase}>{c.char}</span>
             </span>
           );
@@ -88,7 +88,7 @@ function KrcLineView({ line, activationTime }: KrcLineViewProps) {
           animationDelay: `${delay}s`,
         };
         return (
-          <span key={c.offset} className={styles.krcChar}>
+          <span key={c.id} className={styles.krcChar}>
             <span className={styles.krcCharFill} style={fillStyle}>{c.char}</span>
             <span className={styles.krcCharBase}>{c.char}</span>
           </span>

@@ -1,4 +1,5 @@
 export interface KrcChar {
+  id: string;
   offset: number;
   duration: number;
   char: string;
@@ -26,11 +27,13 @@ export function parseKrc(raw: string): KrcLine[] {
 
     const chars: KrcChar[] = [];
     let m: RegExpExecArray | null;
+    let charIdx = 0;
     charRe.lastIndex = 0;
     while ((m = charRe.exec(rest)) !== null) {
       const ch = m[3];
       if (!ch) continue;
       chars.push({
+        id: `${lineStart}-${charIdx++}`,
         offset: parseInt(m[1], 10),
         duration: parseInt(m[2], 10),
         char: ch,

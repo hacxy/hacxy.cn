@@ -1,38 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
-import { textToId } from "../../utils/slugify";
+import { useState, useEffect } from "react";
+import type { TocItem } from "../../utils/headings";
 import styles from "./index.module.scss";
 
-interface TocItem {
-  id: string;
-  text: string;
-  level: number;
-}
-
-function extractHeadings(markdown: string): TocItem[] {
-  const headings: TocItem[] = [];
-  const lines = markdown.split("\n");
-  let inCodeBlock = false;
-
-  for (const line of lines) {
-    if (line.trimStart().startsWith("```")) {
-      inCodeBlock = !inCodeBlock;
-      continue;
-    }
-    if (inCodeBlock) continue;
-
-    const match = line.match(/^(#{2,4})\s+(.+)$/);
-    if (!match) continue;
-
-    const text = match[2].trim();
-    const id = textToId(text);
-    headings.push({ id, text, level: match[1].length });
-  }
-
-  return headings;
-}
-
-export default function TableOfContents({ content, onNavigate }: { content: string; onNavigate?: () => void }) {
-  const headings = useMemo(() => extractHeadings(content), [content]);
+export default function TableOfContents({ headings, onNavigate }: { headings: TocItem[]; onNavigate?: () => void }) {
   const [activeId, setActiveId] = useState("");
 
   useEffect(() => {
