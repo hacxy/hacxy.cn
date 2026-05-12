@@ -8,8 +8,9 @@
 
   @media (max-width: 960px) {
     flex-direction: column;
-    max-width: var(--max-width);
+    max-width: 100%;
     min-height: unset;
+    overflow-x: hidden;
   }
 }
 
@@ -48,10 +49,14 @@
     opacity: 0.65;
 
     &::before {
-      content: "// ";
+      content: "";
       color: var(--accent);
       opacity: 0.8;
       font-style: normal;
+    }
+
+    @media (max-width: 640px) {
+      font-size: 1.1rem;
     }
   }
 
@@ -60,6 +65,10 @@
     font-family: var(--font-mono);
     opacity: 0.4;
     line-height: 1.6;
+
+    @media (max-width: 640px) {
+      font-size: 0.78rem;
+    }
   }
 }
 
@@ -113,8 +122,9 @@
     flex-direction: row;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.4rem 0.6rem;
+    padding: 0.45rem 0.7rem;
     width: auto;
+    border: 1px solid var(--border);
 
     &.active {
       box-shadow: none;
@@ -227,9 +237,11 @@
   max-width: var(--max-width);
   margin: 0 auto;
   padding: 1.5rem 0 2rem 2rem;
+  overflow-x: hidden;
 
   @media (max-width: 960px) {
     padding: 0;
+    max-width: 100%;
   }
 }
 
@@ -243,6 +255,10 @@
   letter-spacing: -0.02em;
   color: var(--fg);
   margin-bottom: 0.5rem;
+
+  @media (max-width: 640px) {
+    font-size: 1.25rem;
+  }
 }
 
 .contentDesc {
@@ -251,6 +267,11 @@
   line-height: 1.7;
   margin-bottom: 0.75rem;
   opacity: 0.75;
+  word-break: break-word;
+
+  @media (max-width: 640px) {
+    font-size: 0.82rem;
+  }
 }
 
 .contentMeta {
@@ -258,6 +279,12 @@
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
 }
 
 .installCmd {
@@ -266,6 +293,7 @@
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--muted);
+  max-width: 100%;
 
   code {
     background: var(--code-bg);
@@ -273,6 +301,14 @@
     border-radius: 3px;
     border: 1px solid var(--border);
     user-select: all;
+    overflow-x: auto;
+    white-space: nowrap;
+    max-width: calc(100vw - 3rem);
+    display: block;
+
+    @media (max-width: 640px) {
+      font-size: 0.65rem;
+    }
   }
 }
 

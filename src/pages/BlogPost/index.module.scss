@@ -9,7 +9,7 @@
   letter-spacing: 0.02em;
 
   &::before {
-    content: "//";
+    content: "";
     color: var(--accent);
     opacity: 0.7;
   }
@@ -162,7 +162,7 @@
   text-transform: uppercase;
 
   &::before {
-    content: "// ";
+    content: "";
     color: var(--accent);
     opacity: 0.7;
   }
