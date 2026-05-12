@@ -6,6 +6,7 @@ import PageTransition from "../../components/PageTransition";
 import Typewriter from "../../components/Typewriter";
 import NotFound from "../NotFound";
 import { getAllPosts } from "../../utils/posts";
+import { preloadSkills } from "../../utils/skills";
 import { SOCIAL_META, getLinkHref, type SocialLink } from "../../utils/social";
 import projectsData from "virtual:github-projects";
 import blogConfig from "virtual:blog-config";
@@ -25,6 +26,8 @@ function Row({ index, children, style }: { index: number; children: React.ReactN
   );
 }
 
+preloadSkills();
+
 export default function Home() {
   const homeData = pages.home?.[0];
   if (!homeData) {
@@ -38,8 +41,7 @@ export default function Home() {
   const recentPosts = getAllPosts().slice(0, 5);
 
   const postsStart = 2;
-  const allPostsRow = postsStart + recentPosts.length;
-  const projectsHeadingRow = allPostsRow + 1;
+  const projectsHeadingRow = postsStart + recentPosts.length;
   const projectsStart = projectsHeadingRow + 1;
   const socialRow = projectsStart + projectsData.length;
 
@@ -76,13 +78,6 @@ export default function Home() {
               </motion.li>
             ))}
           </ul>
-          {recentPosts.length > 0 && (
-            <Row index={allPostsRow} style={{ marginTop: "1.5rem" }}>
-              <Link to="/posts" className={styles.navLink}>
-                All posts →
-              </Link>
-            </Row>
-          )}
         </div>
 
         {projectsData.length > 0 && (

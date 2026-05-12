@@ -463,7 +463,6 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       // 静态页面
       const staticPages = [
         { path: '', title: siteTitle, description: resolvedConfig.bio ?? '' },
-        { path: 'posts', title: `Blog | ${siteTitle}`, description: '所有文章' },
         { path: 'tags', title: `Tags | ${siteTitle}`, description: '标签' },
         { path: 'about', title: `About | ${siteTitle}`, description: '' },
         { path: 'skills', title: `Skills | ${siteTitle}`, description: 'Agent skill collection for Claude Code and other AI coding assistants' },

@@ -1,12 +1,16 @@
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import PageTransition from "../../components/PageTransition";
 import NotFound from "../NotFound";
-import { getPostsGroupedByYear, getPostsByTag } from "../../utils/posts";
+import { getPostsByTag, getAllPosts } from "../../utils/posts";
 import pages from "virtual:blog-pages";
 import styles from "../../styles/common.module.scss";
 
+const POSTS_PER_PAGE = 10;
+
 export default function BlogList() {
   const { tag } = useParams<{ tag?: string }>();
+  const [searchParams] = useSearchParams();
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
 
   if (!pages.posts?.length) {
     return <NotFound />;
@@ -54,18 +58,27 @@ export default function BlogList() {
     );
   }
 
-  const groups = getPostsGroupedByYear();
+  const allPosts = getAllPosts();
+  const totalPages = Math.max(1, Math.ceil(allPosts.length / POSTS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * POSTS_PER_PAGE;
+  const pagePosts = allPosts.slice(start, start + POSTS_PER_PAGE);
 
-  const groupsWithStages = groups.map(({ year, posts }) => {
-    const items = posts.map((post) => ({ post }));
-    return { year, items };
-  });
+  const groups = new Map<string, typeof pagePosts>();
+  for (const post of pagePosts) {
+    const year = post.date ? post.date.slice(0, 4) : "—";
+    if (!groups.has(year)) groups.set(year, []);
+    groups.get(year)!.push(post);
+  }
+  const yearGroups = Array.from(groups.entries())
+    .map(([year, posts]) => ({ year, posts }))
+    .sort((a, b) => b.year.localeCompare(a.year));
 
   let counter = 0;
-  const staged = groupsWithStages.map(({ year, items }) => ({
+  const staged = yearGroups.map(({ year, posts }) => ({
     year,
     yearStage: ++counter,
-    items: items.map(({ post }) => ({ post, stage: ++counter })),
+    items: posts.map((post) => ({ post, stage: ++counter })),
   }));
 
   return (
@@ -106,6 +119,31 @@ export default function BlogList() {
             </ul>
           </div>
         ))}
+
+        {totalPages > 1 && (
+          <nav className={styles.pagination}>
+            {currentPage > 1 ? (
+              <Link
+                to={currentPage === 2 ? "/posts" : `/posts?page=${currentPage - 1}`}
+                className={styles.pageBtn}
+              >
+                ← 上一页
+              </Link>
+            ) : (
+              <span className={styles.pageBtnDisabled}>← 上一页</span>
+            )}
+            <span className={styles.pageInfo}>
+              {currentPage} / {totalPages}
+            </span>
+            {currentPage < totalPages ? (
+              <Link to={`/posts?page=${currentPage + 1}`} className={styles.pageBtn}>
+                下一页 →
+              </Link>
+            ) : (
+              <span className={styles.pageBtnDisabled}>下一页 →</span>
+            )}
+          </nav>
+        )}
       </div>
     </PageTransition>
   );

@@ -7,59 +7,13 @@ import classNames from "classnames";
 import "../../styles/markdown.scss";
 import PageTransition from "../../components/PageTransition";
 import CodeBlock from "../../components/CodeBlock";
+import { getSkills, REPO, type SkillData } from "../../utils/skills";
 import styles from "./Skills.module.scss";
-
-interface SkillData {
-  name: string;
-  description: string;
-  markdownBody: string;
-  url: string;
-}
-
-interface SkillListItem {
-  name: string;
-  description: string;
-  files: string[];
-}
-
-const REPO = "hacxy/skills";
-const SKILLS_API = "https://skills-manager.hacxy.cn/api/public";
-
-function stripFrontmatter(raw: string): string {
-  const match = raw.match(/^---\s*\n[\s\S]*?\n---\s*\n?([\s\S]*)$/);
-  return match ? match[1] : raw;
-}
 
 function extractFirstSentence(text: string): string {
   if (!text) return "";
   const match = text.match(/^[^.!?。！？]+[.!?。！？]/);
   return match ? match[0] : text.slice(0, 80) + (text.length > 80 ? "..." : "");
-}
-
-async function fetchSkills(): Promise<SkillData[]> {
-  const res = await fetch(`${SKILLS_API}/skills`);
-  if (!res.ok) throw new Error(`Skills API ${res.status}`);
-  const list: SkillListItem[] = await res.json();
-
-  const skills = await Promise.all(
-    list.map(async (item): Promise<SkillData> => {
-      let markdownBody = "";
-      try {
-        const fileRes = await fetch(`${SKILLS_API}/file/${item.name}/SKILL.md`);
-        if (fileRes.ok) {
-          markdownBody = stripFrontmatter(await fileRes.text());
-        }
-      } catch { /* use empty body */ }
-      return {
-        name: item.name,
-        description: item.description,
-        markdownBody,
-        url: `https://github.com/${REPO}/tree/main/skills/${item.name}`,
-      };
-    })
-  );
-
-  return skills;
 }
 
 export default function Skills() {
@@ -69,7 +23,7 @@ export default function Skills() {
   const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSkills()
+    getSkills()
       .then((data) => {
         setSkills(data);
         if (data.length > 0) setSelected(data[0].name);
