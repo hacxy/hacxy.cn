@@ -42,6 +42,14 @@ export function getAllTags(): { tag: string; count: number }[] {
     .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))
 }
 
+export function getAllSeries(): string[] {
+  const set = new Set<string>()
+  for (const post of rawPosts) {
+    if (post.series) set.add(post.series)
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b))
+}
+
 export function getPostsGroupedByYear(): { year: string; posts: Post[] }[] {
   const posts = getAllPosts()
   const groups = new Map<string, Post[]>()

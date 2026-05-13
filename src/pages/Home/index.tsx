@@ -38,10 +38,11 @@ export default function Home() {
   const bio = (homeData.bio as string | undefined) ?? blogConfig.bio ?? '';
   const contact = (homeData.contact as SocialLink[] | undefined) ?? [];
 
-  const recentPosts = getAllPosts();
+  const recentPosts = getAllPosts().slice(0, 5);
 
   const postsStart = 2;
-  const projectsHeadingRow = postsStart + recentPosts.length;
+  const allPostsRow = postsStart + recentPosts.length;
+  const projectsHeadingRow = allPostsRow + 1;
   const projectsStart = projectsHeadingRow + 1;
   const socialRow = projectsStart + projectsData.length;
 
@@ -59,7 +60,7 @@ export default function Home() {
 
         <div style={{ marginTop: "3rem" }}>
           <Row index={1}>
-            <p className={styles.sectionHeading}>Posts</p>
+            <p className={styles.sectionHeading}>Recent Posts</p>
           </Row>
           <ul className={styles.postList}>
             {recentPosts.map((post, i) => (
@@ -78,6 +79,11 @@ export default function Home() {
               </motion.li>
             ))}
           </ul>
+          <Row index={allPostsRow} style={{ marginTop: "1.5rem" }}>
+            <Link to="/posts" className={styles.navLink}>
+              All posts →
+            </Link>
+          </Row>
         </div>
 
         {projectsData.length > 0 && (

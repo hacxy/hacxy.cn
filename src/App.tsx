@@ -13,7 +13,6 @@ import styles from "./App.module.scss";
 const Home = lazy(() => import("./pages/Home"));
 const BlogList = lazy(() => import("./pages/BlogList"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
-const Tags = lazy(() => import("./pages/Tags"));
 const About = lazy(() => import("./pages/About"));
 const Skills = lazy(() => import("./pages/Skills"));
 
@@ -40,8 +39,7 @@ export default function App() {
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
-              <Route path="/tags" element={<Tags />} />
-              <Route path="/tags/:tag" element={<BlogList />} />
+              <Route path="/posts" element={<BlogList />} />
               <Route path="/skills" element={<Skills />} />
               <Route path="/*" element={<BlogPost />} />
             </Routes>

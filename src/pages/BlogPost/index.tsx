@@ -237,7 +237,7 @@ export default function BlogPost() {
             {tags.length > 0 && (
               <div className={styles.tagList}>
                 {tags.map((tag) => (
-                  <Link key={tag} to={`/tags/${tag}`} className={common.tagChip}>
+                  <Link key={tag} to={`/posts?tag=${encodeURIComponent(tag)}`} className={common.tagChip}>
                     {tag}
                   </Link>
                 ))}
