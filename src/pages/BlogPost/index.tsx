@@ -230,6 +230,11 @@ export default function BlogPost() {
             className="slide-enter"
             style={{ "--enter-stage": 2, marginBottom: "2.5rem" } as React.CSSProperties}
           >
+            {post!.series && (
+              <Link to={`/posts?series=${encodeURIComponent(post!.series)}`} className={common.seriesTag}>
+                {post!.series}
+              </Link>
+            )}
             {post!.date && (
               <time className={styles.postDate}>{post!.date}</time>
             )}
