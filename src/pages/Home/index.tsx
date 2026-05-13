@@ -38,7 +38,7 @@ export default function Home() {
   const bio = (homeData.bio as string | undefined) ?? blogConfig.bio ?? '';
   const contact = (homeData.contact as SocialLink[] | undefined) ?? [];
 
-  const recentPosts = getAllPosts().slice(0, 5);
+  const recentPosts = getAllPosts();
 
   const postsStart = 2;
   const projectsHeadingRow = postsStart + recentPosts.length;
@@ -59,7 +59,7 @@ export default function Home() {
 
         <div style={{ marginTop: "3rem" }}>
           <Row index={1}>
-            <p className={styles.sectionHeading}>Recent Posts</p>
+            <p className={styles.sectionHeading}>Posts</p>
           </Row>
           <ul className={styles.postList}>
             {recentPosts.map((post, i) => (
