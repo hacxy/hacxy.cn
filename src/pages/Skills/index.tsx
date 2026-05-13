@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -7,8 +7,30 @@ import classNames from "classnames";
 import "../../styles/markdown.scss";
 import PageTransition from "../../components/PageTransition";
 import CodeBlock from "../../components/CodeBlock";
+import TerminalDemo from "./TerminalDemo";
 import { getSkills, REPO, type SkillData } from "../../utils/skills";
 import styles from "./Skills.module.scss";
+
+function CopyCommand({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* fallback: user-select: all on code */ }
+  }, [text]);
+
+  return (
+    <span className={styles.installCmd}>
+      <code>{text}</code>
+      <button type="button" className={styles.copyBtn} onClick={copy} aria-label="Copy">
+        <Icon icon={copied ? "lucide:check" : "lucide:copy"} width={13} height={13} />
+      </button>
+    </span>
+  );
+}
 
 function extractFirstSentence(text: string): string {
   if (!text) return "";
@@ -21,6 +43,7 @@ export default function Skills() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<"demo" | "docs">("demo");
 
   useEffect(() => {
     getSkills()
@@ -33,6 +56,11 @@ export default function Skills() {
   }, []);
 
   const activeSkill = skills.find((s) => s.name === selected);
+
+  function selectSkill(name: string) {
+    setSelected(name);
+    setMobileTab("demo");
+  }
 
   return (
     <PageTransition>
@@ -73,7 +101,7 @@ export default function Skills() {
                       className={classNames(styles.skillCard, {
                         [styles.active]: selected === skill.name,
                       })}
-                      onClick={() => setSelected(skill.name)}
+                      onClick={() => selectSkill(skill.name)}
                     >
                       <span className={styles.skillCardName}>
                         <span className={styles.skillCardIndex}>
@@ -139,9 +167,7 @@ export default function Skills() {
                     <p className={styles.contentDesc}>{activeSkill.description}</p>
                   )}
                   <div className={styles.contentMeta}>
-                    <span className={styles.installCmd}>
-                      <code>npx skills add {REPO} --skill {activeSkill.name}</code>
-                    </span>
+                    <CopyCommand text={`npx skills add ${REPO} --skill ${activeSkill.name}`} />
                     <a
                       href={activeSkill.url}
                       target="_blank"
@@ -154,24 +180,49 @@ export default function Skills() {
                   </div>
                 </div>
 
-                <hr className={styles.divider} />
-
-                <div className="markdown-body">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: CodeBlock }}>
-                    {activeSkill.markdownBody}
-                  </ReactMarkdown>
+                {/* Mobile tab switcher */}
+                <div className={styles.tabBar}>
+                  <button
+                    type="button"
+                    className={classNames(styles.tab, { [styles.tabActive]: mobileTab === "demo" })}
+                    onClick={() => setMobileTab("demo")}
+                  >
+                    <Icon icon="lucide:terminal" width={14} height={14} />
+                    Demo
+                  </button>
+                  <button
+                    type="button"
+                    className={classNames(styles.tab, { [styles.tabActive]: mobileTab === "docs" })}
+                    onClick={() => setMobileTab("docs")}
+                  >
+                    <Icon icon="lucide:file-text" width={14} height={14} />
+                    Docs
+                  </button>
                 </div>
 
-                <div className={styles.repoLink}>
-                  <a
-                    href={`https://github.com/${REPO}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.githubLink}
-                  >
-                    <Icon icon="lucide:github" width={14} height={14} />
-                    View all skills on GitHub &rarr;
-                  </a>
+                {/* Desktop: show both; Mobile: show based on tab */}
+                <div className={classNames(styles.demoSection, { [styles.mobileHidden]: mobileTab !== "demo" })}>
+                  <TerminalDemo skillName={activeSkill.name} />
+                </div>
+
+                <div className={classNames(styles.docsSection, { [styles.mobileHidden]: mobileTab !== "docs" })}>
+                  <div className="markdown-body">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: CodeBlock }}>
+                      {activeSkill.markdownBody}
+                    </ReactMarkdown>
+                  </div>
+
+                  <div className={styles.repoLink}>
+                    <a
+                      href={`https://github.com/${REPO}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.githubLink}
+                    >
+                      <Icon icon="lucide:github" width={14} height={14} />
+                      View all skills on GitHub &rarr;
+                    </a>
+                  </div>
                 </div>
               </motion.div>
             )}
