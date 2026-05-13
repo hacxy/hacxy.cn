@@ -274,16 +274,14 @@ function readHomeFrontmatter(contentDir: string): { github?: string; projects?: 
 async function fetchGithubProject(github: string, name: string) {
   const username = github.replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '')
   try {
-    const headers: Record<string, string> = { 'User-Agent': 'hacxy-blog-build' }
-    if (process.env.GITHUB_TOKEN) headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`
-    const res = await fetch(`https://api.github.com/repos/${username}/${name}`, { headers })
-    if (!res.ok) throw new Error(`GitHub API ${res.status}`)
-    const data = await res.json() as { description: string; stargazers_count: number; html_url: string }
+    const res = await fetch(`https://profile.hacxy.cn/api/public/repo/${name}`)
+    if (!res.ok) throw new Error(`Profile API ${res.status}`)
+    const data = await res.json() as { description: string | null; stars: number }
     return {
       name,
       description: data.description ?? '',
-      stars: data.stargazers_count ?? 0,
-      url: data.html_url,
+      stars: data.stars ?? 0,
+      url: `https://github.com/${username}/${name}`,
     }
   } catch (e) {
     console.warn(`[blog] failed to fetch github project ${name}:`, e)
@@ -463,7 +461,7 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       // 静态页面
       const staticPages = [
         { path: '', title: siteTitle, description: resolvedConfig.bio ?? '' },
-        { path: 'tags', title: `Tags | ${siteTitle}`, description: '标签' },
+        { path: 'posts', title: `Posts | ${siteTitle}`, description: '所有文章' },
         { path: 'about', title: `About | ${siteTitle}`, description: '' },
         { path: 'skills', title: `Skills | ${siteTitle}`, description: 'Agent skill collection for Claude Code and other AI coding assistants' },
       ]

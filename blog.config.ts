@@ -8,7 +8,7 @@ export default defineBlogConfig({
   bio: "了解真相，才能获得真正的自由",
   copyright: "2024-PRESENT © Hacxy",
   nav: [
-    { text: "Tags", link: "/tags" },
+    { text: "Posts", link: "/posts" },
     { text: "About", link: "/about" },
     { text: "Skills", link: "/skills" },
     { icon: "lucide:github", link: "https://github.com/hacxy" },

@@ -91,6 +91,12 @@
   }
 }
 
+.postListScroll {
+  height: 25rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
 .postList {
   list-style: none;
 }
@@ -99,7 +105,7 @@
   display: flex;
   align-items: baseline;
   gap: 0.75rem;
-  padding: 0.35rem 0;
+  padding: 0.2rem 0;
   border-bottom: 1px solid transparent;
   transition: border-color 0.15s ease;
 
@@ -173,6 +179,10 @@
 
 .yearGroup {
   margin-bottom: 1.5rem;
+
+  &:only-child {
+    margin-bottom: 0;
+  }
 }
 
 .yearHeading {
@@ -372,8 +382,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 2.5rem;
-  padding-top: 1.5rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--border);
 }
 
@@ -405,4 +414,78 @@
   font-size: 0.72rem;
   font-family: var(--font-mono);
   color: var(--muted);
+}
+
+/* ============ Filter chips ============ */
+.filterGroup {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.filterLabel {
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  min-width: 3rem;
+}
+
+.filterChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  color: var(--fg);
+  opacity: 0.5;
+  padding: 0.15em 0.5em;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    opacity: 0.8;
+    border-color: var(--accent);
+  }
+}
+
+.filterChipActive {
+  opacity: 1;
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim, rgba(0, 143, 98, 0.1));
+}
+
+.filterCount {
+  font-size: 0.65rem;
+  opacity: 0.5;
+}
+
+.filterClear {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--fg);
+  opacity: 0.35;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 0.25rem;
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 0.8;
+  }
 }
