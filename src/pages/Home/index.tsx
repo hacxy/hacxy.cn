@@ -75,7 +75,6 @@ export default function Home() {
                 <Link to={`/${post.slug}`} className={styles.postLink}>
                   {post.title}
                 </Link>
-                {post.series && <span className={styles.seriesTag}>{post.series}</span>}
               </motion.li>
             ))}
           </ul>
