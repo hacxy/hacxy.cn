@@ -12,7 +12,7 @@ interface SkillListItem {
 }
 
 const REPO = 'hacxy/skills'
-const SKILLS_API = 'https://skills-manager.hacxy.cn/api/public'
+const SKILLS_API = 'https://profile.hacxy.cn/api/public'
 
 function stripFrontmatter(raw: string): string {
   const match = raw.match(/^---\s*\n[\s\S]*?\n---\s*\n?([\s\S]*)$/)
