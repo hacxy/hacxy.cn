@@ -1,4 +1,5 @@
 import { NavLink } from "react-router";
+import { motion } from "motion/react";
 import classNames from "classnames";
 import styles from "./index.module.scss";
 
@@ -8,33 +9,44 @@ interface SidebarItemData {
   items?: SidebarItemData[];
 }
 
-function SidebarGroup({ item, currentPath, onNavigate }: { item: SidebarItemData; currentPath: string; onNavigate?: () => void }) {
+function SidebarGroup({ item, currentPath, onNavigate, delay }: { item: SidebarItemData; currentPath: string; onNavigate?: () => void; delay: number }) {
   if (item.items && item.items.length > 0) {
     return (
-      <div className={styles.group}>
+      <motion.div
+        className={styles.group}
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3, delay }}
+      >
         <p className={styles.groupTitle}>{item.text}</p>
         <ul className={styles.list}>
           {item.items.map((child, i) => (
             <li key={child.link ?? i}>
-              <SidebarGroup item={child} currentPath={currentPath} onNavigate={onNavigate} />
+              <SidebarGroup item={child} currentPath={currentPath} onNavigate={onNavigate} delay={delay + (i + 1) * 0.04} />
             </li>
           ))}
         </ul>
-      </div>
+      </motion.div>
     );
   }
 
   if (item.link) {
     return (
-      <NavLink
-        to={item.link}
-        className={classNames(styles.link, {
-          [styles.active]: currentPath === item.link,
-        })}
-        onClick={onNavigate}
+      <motion.div
+        initial={{ opacity: 0, x: -8 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.25, delay }}
       >
-        {item.text}
-      </NavLink>
+        <NavLink
+          to={item.link}
+          className={classNames(styles.link, {
+            [styles.active]: currentPath === item.link,
+          })}
+          onClick={onNavigate}
+        >
+          {item.text}
+        </NavLink>
+      </motion.div>
     );
   }
 
@@ -48,7 +60,7 @@ export default function Sidebar({ items, currentPath, onNavigate }: { items: Sid
     <aside className={styles.sidebar}>
       <nav className={styles.nav}>
         {items.map((item, i) => (
-          <SidebarGroup key={item.link ?? i} item={item} currentPath={currentPath} onNavigate={onNavigate} />
+          <SidebarGroup key={item.link ?? i} item={item} currentPath={currentPath} onNavigate={onNavigate} delay={i * 0.06} />
         ))}
       </nav>
     </aside>
