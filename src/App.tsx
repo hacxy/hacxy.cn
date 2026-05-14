@@ -36,7 +36,7 @@ export default function App() {
       <main>
         <Suspense>
           <AnimatePresence mode="wait">
-            <Routes location={location} key={location.pathname}>
+            <Routes location={location} key={location.pathname.split("/")[1] || "/"}>
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
               <Route path="/posts" element={<BlogList />} />

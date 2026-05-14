@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { motion } from "motion/react";
 import type { TocItem } from "../../utils/headings";
 import styles from "./index.module.scss";
 
@@ -34,21 +33,14 @@ export default function TableOfContents({ headings, onNavigate }: { headings: To
 
   return (
     <aside className={styles.toc}>
-      <motion.p
-        className={styles.title}
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.3 }}
-      >
+      <p className={styles.title} style={{ animation: "sidebar-fade-in 0.3s both" }}>
         目录
-      </motion.p>
+      </p>
       <ul className={styles.list}>
         {headings.map((heading, i) => (
-          <motion.li
+          <li
             key={heading.id}
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.25, delay: (i + 1) * 0.04 }}
+            style={{ animation: `sidebar-fade-in 0.25s ${(i + 1) * 0.04}s both` }}
           >
             <a
               href={`#${heading.id}`}
@@ -62,7 +54,7 @@ export default function TableOfContents({ headings, onNavigate }: { headings: To
             >
               {heading.text}
             </a>
-          </motion.li>
+          </li>
         ))}
       </ul>
     </aside>

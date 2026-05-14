@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
 import { NavLink } from "react-router";
 import { Icon } from "@iconify/react";
 import classNames from "classnames";
@@ -29,8 +29,11 @@ export default function Header({ theme, onToggleTheme }: HeaderProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     updateHeaderHeight();
+  }, [updateHeaderHeight]);
+
+  useEffect(() => {
     window.addEventListener("resize", updateHeaderHeight);
     return () => window.removeEventListener("resize", updateHeaderHeight);
   }, [updateHeaderHeight]);
