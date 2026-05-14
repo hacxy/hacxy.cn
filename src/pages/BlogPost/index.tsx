@@ -1,6 +1,8 @@
 import { useParams, Link } from "react-router";
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
-import ReactMarkdown from "react-markdown";import remarkGfm from "remark-gfm";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { Icon } from "@iconify/react";
 import classNames from "classnames";
 import "../../styles/markdown.scss";
@@ -28,7 +30,7 @@ function MarkdownWithHeadings({ content, headings }: { content: string; headings
   }, [headings]);
   return (
     <div ref={ref}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: CodeBlock }}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{ pre: CodeBlock }}>
         {content}
       </ReactMarkdown>
     </div>
@@ -211,11 +213,9 @@ export default function BlogPost() {
     <>
       <div className={common.pageWithSidebar}>
         <Sidebar items={effectiveSidebar} currentPath={currentPath} />
-        <PageTransition key={slug}>
-          <div className={common.sidebarContent}>
-            {renderContent()}
-          </div>
-        </PageTransition>
+        <div className={common.sidebarContent}>
+          {renderContent()}
+        </div>
         <TableOfContents headings={headings} />
       </div>
       {mobileFab}

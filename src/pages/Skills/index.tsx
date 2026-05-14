@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { Icon } from "@iconify/react";
 import classNames from "classnames";
 import "../../styles/markdown.scss";
@@ -207,7 +208,7 @@ export default function Skills() {
 
                 <div className={classNames(styles.docsSection, { [styles.mobileHidden]: mobileTab !== "docs" })}>
                   <div className="markdown-body">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: CodeBlock }}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{ pre: CodeBlock }}>
                       {activeSkill.markdownBody}
                     </ReactMarkdown>
                   </div>

@@ -10,6 +10,7 @@
 html {
   font-size: 15px;
   -webkit-text-size-adjust: 100%;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: rgba(150, 150, 150, 0.4) transparent;
   background-color: var(--bg);
@@ -62,6 +63,11 @@ body {
 }
 
 /* ============ Animations ============ */
+@keyframes sidebar-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes slide-enter {
   0% {
     transform: translateY(10px);

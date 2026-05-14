@@ -1,0 +1,36 @@
+<svg viewBox="0 0 520 280" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #1a1a1a; }
+    .fg-sub { fill: #1a1a1a; opacity: 0.5; }
+    .stroke { stroke: #1a1a1a; }
+    .box1 { fill: rgba(0,0,0,0.06); stroke: rgba(0,0,0,0.15); }
+    .box2 { fill: rgba(0,0,0,0.10); stroke: rgba(0,0,0,0.15); }
+    .box3 { fill: rgba(0,0,0,0.04); stroke: rgba(0,0,0,0.15); }
+    .arrow-head { fill: #1a1a1a; }
+    @media (prefers-color-scheme: dark) {
+      .fg { fill: #e5e5e5; }
+      .fg-sub { fill: #e5e5e5; opacity: 0.5; }
+      .stroke { stroke: #e5e5e5; }
+      .box1 { fill: rgba(255,255,255,0.08); stroke: rgba(255,255,255,0.2); }
+      .box2 { fill: rgba(255,255,255,0.12); stroke: rgba(255,255,255,0.2); }
+      .box3 { fill: rgba(255,255,255,0.05); stroke: rgba(255,255,255,0.2); }
+      .arrow-head { fill: #e5e5e5; }
+    }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" class="arrow-head"/>
+    </marker>
+  </defs>
+  <rect x="60" y="10" width="400" height="70" rx="10" class="box1" stroke-width="1.5"/>
+  <text x="260" y="38" text-anchor="middle" class="fg" font-size="15" font-weight="bold">Claude Code CLI</text>
+  <text x="260" y="58" text-anchor="middle" class="fg-sub" font-size="13">交互式终端工具 — 你直接用</text>
+  <rect x="60" y="100" width="400" height="70" rx="10" class="box2" stroke-width="1.5"/>
+  <text x="260" y="128" text-anchor="middle" class="fg" font-size="15" font-weight="bold">Agent SDK</text>
+  <text x="260" y="148" text-anchor="middle" class="fg-sub" font-size="13">Agent 即服务 — 你写代码调用，自带 Agent 能力</text>
+  <rect x="60" y="190" width="400" height="70" rx="10" class="box3" stroke-width="1.5"/>
+  <text x="260" y="218" text-anchor="middle" class="fg" font-size="15" font-weight="bold">Client SDK</text>
+  <text x="260" y="238" text-anchor="middle" class="fg-sub" font-size="13">API 封装 — 你写代码调用，自己造 Agent</text>
+  <line x1="260" y1="80" x2="260" y2="100" class="stroke" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="260" y1="170" x2="260" y2="190" class="stroke" stroke-width="1.5" marker-end="url(#arrow)"/>
+</svg>
