@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { Icon } from "@iconify/react";
+import remarkIconify from "../../plugins/remark-iconify";
 import classNames from "classnames";
 import "../../styles/markdown.scss";
 import PageTransition from "../../components/PageTransition";
@@ -208,7 +209,14 @@ export default function Skills() {
 
                 <div className={classNames(styles.docsSection, { [styles.mobileHidden]: mobileTab !== "docs" })}>
                   <div className="markdown-body">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{ pre: CodeBlock }}>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm, remarkIconify]}
+                      rehypePlugins={[rehypeRaw]}
+                      components={{
+                        pre: CodeBlock,
+                        iconify: (props: { icon?: string }) => <Icon icon={props.icon ?? ""} style={{ verticalAlign: "-0.125em" }} />,
+                      }}
+                    >
                       {activeSkill.markdownBody}
                     </ReactMarkdown>
                   </div>
