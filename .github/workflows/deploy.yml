@@ -37,10 +37,10 @@ jobs:
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
+          username: deploy
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "dist/"
-          target: "/${{secrets.SSH_USERNAME}}/Projects/.blog_temp/"
+          target: "/srv/projects/.blog_temp/"
           rm: true
           strip_components: 1
 
@@ -48,9 +48,9 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
+          username: deploy
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            rm -rf /${{secrets.SSH_USERNAME}}/Projects/blog/*
-            cp -rf /${{secrets.SSH_USERNAME}}/Projects/.blog_temp/*  /${{secrets.SSH_USERNAME}}/Projects/blog/
-      - run: echo "博客项目部署完成！"
+            rm -rf /srv/projects/blog/*
+            cp -rf /srv/projects/.blog_temp/* /srv/projects/blog/
+            rm -rf /srv/projects/.blog_temp
