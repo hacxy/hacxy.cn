@@ -50,6 +50,9 @@ importers:
       shiki:
         specifier: ^4.0.2
         version: 4.0.2
+      unist-util-visit:
+        specifier: ^5.1.0
+        version: 5.1.0
       vite:
         specifier: ^8.0.0
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(sass@1.99.0)(yaml@2.8.4)
