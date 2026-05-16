@@ -1,11 +1,11 @@
 ---
 layout: home
 name: Hacxy
-bio: 了解真相，才能获得真正的自由
+bio: Hi，我是 Hacxy 👋 一个喜欢折腾前端和 AI 的开源项目开发者
 github: https://github.com/hacxy
 projects:
   - l2d
-  - skills
+  - l2d-widget
 contact:
   - type: github
     url: https://github.com/hacxy
