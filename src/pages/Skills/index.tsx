@@ -9,7 +9,6 @@ import classNames from "classnames";
 import "../../styles/markdown.scss";
 import PageTransition from "../../components/PageTransition";
 import CodeBlock from "../../components/CodeBlock";
-import TerminalDemo from "./TerminalDemo";
 import { getSkills, REPO, type SkillData } from "../../utils/skills";
 import styles from "./Skills.module.scss";
 
@@ -45,7 +44,6 @@ export default function Skills() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const [mobileTab, setMobileTab] = useState<"demo" | "docs">("demo");
 
   useEffect(() => {
     getSkills()
@@ -61,7 +59,6 @@ export default function Skills() {
 
   function selectSkill(name: string) {
     setSelected(name);
-    setMobileTab("demo");
   }
 
   return (
@@ -182,56 +179,29 @@ export default function Skills() {
                   </div>
                 </div>
 
-                {/* Mobile tab switcher */}
-                <div className={styles.tabBar}>
-                  <button
-                    type="button"
-                    className={classNames(styles.tab, { [styles.tabActive]: mobileTab === "demo" })}
-                    onClick={() => setMobileTab("demo")}
+                <div className="markdown-body">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkIconify]}
+                    rehypePlugins={[rehypeRaw]}
+                    components={{
+                      pre: CodeBlock,
+                      iconify: (props: { icon?: string }) => <Icon icon={props.icon ?? ""} style={{ verticalAlign: "-0.125em" }} />,
+                    }}
                   >
-                    <Icon icon="lucide:terminal" width={14} height={14} />
-                    Demo
-                  </button>
-                  <button
-                    type="button"
-                    className={classNames(styles.tab, { [styles.tabActive]: mobileTab === "docs" })}
-                    onClick={() => setMobileTab("docs")}
-                  >
-                    <Icon icon="lucide:file-text" width={14} height={14} />
-                    Docs
-                  </button>
+                    {activeSkill.markdownBody}
+                  </ReactMarkdown>
                 </div>
 
-                {/* Desktop: show both; Mobile: show based on tab */}
-                <div className={classNames(styles.demoSection, { [styles.mobileHidden]: mobileTab !== "demo" })}>
-                  <TerminalDemo skillName={activeSkill.name} />
-                </div>
-
-                <div className={classNames(styles.docsSection, { [styles.mobileHidden]: mobileTab !== "docs" })}>
-                  <div className="markdown-body">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm, remarkIconify]}
-                      rehypePlugins={[rehypeRaw]}
-                      components={{
-                        pre: CodeBlock,
-                        iconify: (props: { icon?: string }) => <Icon icon={props.icon ?? ""} style={{ verticalAlign: "-0.125em" }} />,
-                      }}
-                    >
-                      {activeSkill.markdownBody}
-                    </ReactMarkdown>
-                  </div>
-
-                  <div className={styles.repoLink}>
-                    <a
-                      href={`https://github.com/${REPO}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.githubLink}
-                    >
-                      <Icon icon="lucide:github" width={14} height={14} />
-                      View all skills on GitHub &rarr;
-                    </a>
-                  </div>
+                <div className={styles.repoLink}>
+                  <a
+                    href={`https://github.com/${REPO}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.githubLink}
+                  >
+                    <Icon icon="lucide:github" width={14} height={14} />
+                    View all skills on GitHub &rarr;
+                  </a>
                 </div>
               </motion.div>
             )}

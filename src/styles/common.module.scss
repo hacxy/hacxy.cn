@@ -8,14 +8,16 @@
 
 .pageWithSidebar {
   display: flex;
+  align-items: flex-start;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1.25rem;
+  padding: 2rem 1.25rem 6rem;
   gap: 1.5rem;
 
   @media (max-width: 960px) {
     max-width: var(--max-width);
     display: block;
+    padding-bottom: 2rem;
   }
 }
 

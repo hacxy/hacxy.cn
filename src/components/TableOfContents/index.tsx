@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { TocItem } from "../../utils/headings";
 import styles from "./index.module.scss";
 
 export default function TableOfContents({ headings, onNavigate }: { headings: TocItem[]; onNavigate?: () => void }) {
   const [activeId, setActiveId] = useState("");
+  const tocRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (headings.length === 0) return;
@@ -30,12 +31,26 @@ export default function TableOfContents({ headings, onNavigate }: { headings: To
     };
   }, [headings]);
 
+  useEffect(() => {
+    if (!activeId || !tocRef.current) return;
+    const container = tocRef.current;
+    const activeEl = container.querySelector<HTMLElement>(`a[href="#${CSS.escape(activeId)}"]`);
+    if (!activeEl) return;
+    const elTop = activeEl.offsetTop - container.offsetTop;
+    const elBottom = elTop + activeEl.offsetHeight;
+    if (elTop < container.scrollTop) {
+      container.scrollTo({ top: elTop - 8, behavior: "smooth" });
+    } else if (elBottom > container.scrollTop + container.clientHeight) {
+      container.scrollTo({ top: elBottom - container.clientHeight + 8, behavior: "smooth" });
+    }
+  }, [activeId]);
+
   if (headings.length === 0) return null;
 
   const minLevel = Math.min(...headings.map((h) => h.level));
 
   return (
-    <aside className={styles.toc}>
+    <aside className={styles.toc} ref={tocRef}>
       <p className={styles.title} style={{ animation: "sidebar-fade-in 0.3s both" }}>
         目录
       </p>

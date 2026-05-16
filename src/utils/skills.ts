@@ -19,6 +19,10 @@ function stripFrontmatter(raw: string): string {
   return match ? match[1] : raw
 }
 
+function cleanDescription(desc: string): string {
+  return desc.replace(/^[>|]-?\s*/, '').trim()
+}
+
 async function fetchSkills(): Promise<SkillData[]> {
   const res = await fetch(`${SKILLS_API}/skills`)
   if (!res.ok) throw new Error(`Skills API ${res.status}`)
@@ -35,7 +39,7 @@ async function fetchSkills(): Promise<SkillData[]> {
       } catch { /* use empty body */ }
       return {
         name: item.name,
-        description: item.description,
+        description: cleanDescription(item.description),
         markdownBody,
         url: `https://github.com/${REPO}/tree/main/skills/${item.name}`,
       }
