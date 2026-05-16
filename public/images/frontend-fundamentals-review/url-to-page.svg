@@ -1,0 +1,95 @@
+<svg viewBox="0 0 680 420" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <style>
+    .fg { fill: #1a1a1a; }
+    .fg-sub { fill: #1a1a1a; opacity: 0.5; }
+    .stroke { stroke: #1a1a1a; }
+    .box { fill: rgba(0,0,0,0.05); stroke: rgba(0,0,0,0.15); }
+    .box-accent { fill: rgba(0,0,0,0.08); stroke: rgba(0,0,0,0.2); }
+    .arrow-head { fill: #1a1a1a; }
+    @media (prefers-color-scheme: dark) {
+      .fg { fill: #e5e5e5; }
+      .fg-sub { fill: #e5e5e5; opacity: 0.5; }
+      .stroke { stroke: #e5e5e5; }
+      .box { fill: rgba(255,255,255,0.06); stroke: rgba(255,255,255,0.18); }
+      .box-accent { fill: rgba(255,255,255,0.1); stroke: rgba(255,255,255,0.25); }
+      .arrow-head { fill: #e5e5e5; }
+    }
+  </style>
+  <defs>
+    <marker id="ah" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" class="arrow-head"/>
+    </marker>
+  </defs>
+
+  <!-- Row 1: DNS → TCP → HTTP Request → Response -->
+  <rect x="20" y="30" width="120" height="44" rx="8" class="box" stroke-width="1.5"/>
+  <text x="80" y="48" text-anchor="middle" class="fg-sub" font-size="11">1</text>
+  <text x="80" y="62" text-anchor="middle" class="fg" font-size="13">DNS 解析</text>
+
+  <line x1="140" y1="52" x2="170" y2="52" class="stroke" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <rect x="172" y="30" width="120" height="44" rx="8" class="box" stroke-width="1.5"/>
+  <text x="232" y="48" text-anchor="middle" class="fg-sub" font-size="11">2</text>
+  <text x="232" y="62" text-anchor="middle" class="fg" font-size="13">TCP 连接</text>
+
+  <line x1="292" y1="52" x2="322" y2="52" class="stroke" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <rect x="324" y="30" width="140" height="44" rx="8" class="box" stroke-width="1.5"/>
+  <text x="394" y="48" text-anchor="middle" class="fg-sub" font-size="11">3</text>
+  <text x="394" y="62" text-anchor="middle" class="fg" font-size="13">HTTP 请求/响应</text>
+
+  <line x1="464" y1="52" x2="494" y2="52" class="stroke" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <rect x="496" y="30" width="120" height="44" rx="8" class="box-accent" stroke-width="1.5"/>
+  <text x="556" y="48" text-anchor="middle" class="fg-sub" font-size="11">4</text>
+  <text x="556" y="62" text-anchor="middle" class="fg" font-size="13">浏览器解析</text>
+
+  <!-- Arrow down from "浏览器解析" -->
+  <line x1="556" y1="74" x2="556" y2="110" class="stroke" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <!-- Row 2: Parsing phase - two parallel branches -->
+  <!-- HTML → DOM -->
+  <rect x="80" y="112" width="200" height="44" rx="8" class="box" stroke-width="1.5"/>
+  <text x="180" y="138" text-anchor="middle" class="fg" font-size="13">解析 HTML → DOM 树</text>
+
+  <!-- CSS → CSSOM -->
+  <rect x="380" y="112" width="220" height="44" rx="8" class="box" stroke-width="1.5"/>
+  <text x="490" y="138" text-anchor="middle" class="fg" font-size="13">解析 CSS → CSSOM 树</text>
+
+  <!-- Parallel label -->
+  <text x="330" y="138" text-anchor="middle" class="fg-sub" font-size="12">+</text>
+
+  <!-- Arrows down to merge -->
+  <line x1="180" y1="156" x2="180" y2="185" class="stroke" stroke-width="1.5"/>
+  <line x1="490" y1="156" x2="490" y2="185" class="stroke" stroke-width="1.5"/>
+
+  <!-- Converge lines -->
+  <line x1="180" y1="185" x2="340" y2="185" class="stroke" stroke-width="1.5"/>
+  <line x1="490" y1="185" x2="340" y2="185" class="stroke" stroke-width="1.5"/>
+  <line x1="340" y1="185" x2="340" y2="200" class="stroke" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <!-- Row 3: Render Tree -->
+  <rect x="250" y="202" width="180" height="44" rx="8" class="box-accent" stroke-width="1.5"/>
+  <text x="340" y="228" text-anchor="middle" class="fg" font-size="14" font-weight="500">Render 树</text>
+
+  <line x1="340" y1="246" x2="340" y2="276" class="stroke" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <!-- Row 4: Layout → Paint → Composite -->
+  <rect x="80" y="278" width="140" height="44" rx="8" class="box" stroke-width="1.5"/>
+  <text x="150" y="304" text-anchor="middle" class="fg" font-size="13">Layout 布局</text>
+
+  <line x1="220" y1="300" x2="250" y2="300" class="stroke" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <rect x="252" y="278" width="140" height="44" rx="8" class="box" stroke-width="1.5"/>
+  <text x="322" y="304" text-anchor="middle" class="fg" font-size="13">Paint 绘制</text>
+
+  <line x1="392" y1="300" x2="422" y2="300" class="stroke" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <rect x="424" y="278" width="170" height="44" rx="8" class="box-accent" stroke-width="1.5"/>
+  <text x="509" y="304" text-anchor="middle" class="fg" font-size="13">Composite 合成</text>
+
+  <!-- Bottom note -->
+  <text x="340" y="365" text-anchor="middle" class="fg-sub" font-size="11">重排（Reflow）从 Layout 开始重新走 → 代价高</text>
+  <text x="340" y="382" text-anchor="middle" class="fg-sub" font-size="11">重绘（Repaint）从 Paint 开始 → 代价较低</text>
+  <text x="340" y="399" text-anchor="middle" class="fg-sub" font-size="11">transform/opacity 只触发 Composite → 代价最低</text>
+</svg>
