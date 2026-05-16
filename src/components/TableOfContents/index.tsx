@@ -8,23 +8,26 @@ export default function TableOfContents({ headings, onNavigate }: { headings: To
   useEffect(() => {
     if (headings.length === 0) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
-          }
-        }
-      },
-      { rootMargin: "0px 0px -80% 0px", threshold: 0 }
-    );
+    function updateActive() {
+      const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--header-height") || "0", 10);
+      const threshold = headerHeight + 32;
 
-    for (const { id } of headings) {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
+      let current = "";
+      for (const { id } of headings) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= threshold) {
+          current = id;
+        }
+      }
+      setActiveId(current);
     }
 
-    return () => observer.disconnect();
+    const raf = requestAnimationFrame(updateActive);
+    window.addEventListener("scroll", updateActive, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", updateActive);
+    };
   }, [headings]);
 
   if (headings.length === 0) return null;
