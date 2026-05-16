@@ -1,1 +1,93 @@
-// About 页面使用 common.module.scss 中的样式
+.section {
+  margin-top: 2.5rem;
+}
+
+.bio {
+  p {
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: var(--fg);
+    opacity: 0.75;
+    margin-bottom: 0.8rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      transition: opacity 0.15s ease;
+
+      &:hover {
+        opacity: 0.75;
+      }
+    }
+  }
+}
+
+.techGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.techTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--fg);
+  text-decoration: none;
+  opacity: 0.75;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  transition: opacity 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    opacity: 1;
+    border-color: var(--accent);
+  }
+}
+
+.hobbyList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hobbyItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--fg);
+  opacity: 0.75;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.contactList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.contactLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--fg);
+  text-decoration: none;
+  opacity: 0.55;
+  transition: opacity 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    opacity: 1;
+    color: var(--accent);
+  }
+}
