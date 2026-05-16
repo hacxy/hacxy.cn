@@ -1,5 +1,6 @@
 .wrapper {
   display: flex;
+  align-items: flex-start;
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 1.25rem;
@@ -19,8 +20,8 @@
   width: 280px;
   flex-shrink: 0;
   position: sticky;
-  top: var(--header-height, 4rem);
-  max-height: calc(100vh - var(--header-height, 4rem) - 1rem);
+  top: calc(var(--header-height, 4rem) + 2rem);
+  max-height: calc(100vh - var(--header-height, 4rem) - 4rem);
   overflow-y: auto;
   padding: 1.5rem 0;
   border-right: 1px solid var(--border);
@@ -347,61 +348,7 @@
   }
 }
 
-/* ============ Tab switcher (mobile only) ============ */
-.tabBar {
-  display: none;
-  gap: 0;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
-
-  @media (max-width: 960px) {
-    display: flex;
-  }
-}
-
-.tab {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  padding: 0.6rem 0;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--fg);
-  opacity: 0.4;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: opacity 0.15s ease, border-color 0.15s ease;
-
-  &:hover {
-    opacity: 0.7;
-  }
-}
-
-.tabActive {
-  opacity: 1;
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-
 /* ============ Content sections ============ */
-.demoSection,
-.docsSection {
-  @media (max-width: 960px) {
-    &.mobileHidden {
-      display: none;
-    }
-  }
-}
-
-.divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 0 0 1.5rem;
-}
 
 .emptyState {
   display: flex;
