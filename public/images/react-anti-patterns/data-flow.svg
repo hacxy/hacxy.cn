@@ -1,0 +1,64 @@
+<svg viewBox="0 0 560 240" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #1a1a1a; }
+    .fg-sub { fill: #1a1a1a; opacity: 0.5; }
+    .stroke { stroke: #1a1a1a; }
+    .box { fill: rgba(0,0,0,0.06); stroke: rgba(0,0,0,0.15); }
+    .box-bad { fill: rgba(220,38,38,0.08); stroke: rgba(220,38,38,0.3); }
+    .box-good { fill: rgba(22,163,74,0.08); stroke: rgba(22,163,74,0.3); }
+    .arrow-head { fill: #1a1a1a; }
+    .red { fill: #dc2626; }
+    .green { fill: #16a34a; }
+    .dashed { stroke-dasharray: 5,4; }
+    @media (prefers-color-scheme: dark) {
+      .fg { fill: #e5e5e5; }
+      .fg-sub { fill: #e5e5e5; opacity: 0.5; }
+      .stroke { stroke: #e5e5e5; }
+      .box { fill: rgba(255,255,255,0.08); stroke: rgba(255,255,255,0.2); }
+      .box-bad { fill: rgba(248,113,113,0.1); stroke: rgba(248,113,113,0.3); }
+      .box-good { fill: rgba(74,222,128,0.1); stroke: rgba(74,222,128,0.3); }
+      .arrow-head { fill: #e5e5e5; }
+      .red { fill: #f87171; }
+      .green { fill: #4ade80; }
+    }
+  </style>
+  <defs>
+    <marker id="ah2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" class="arrow-head"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="280" y="24" text-anchor="middle" class="fg" font-size="15" font-weight="bold">数据流方向：单向 vs 逆向通知</text>
+
+  <!-- Bad: child notifies parent via effect -->
+  <text x="140" y="55" text-anchor="middle" class="red" font-size="13" font-weight="bold">反模式：子组件 Effect 通知父</text>
+  <rect x="70" y="68" width="140" height="40" rx="8" class="box" stroke-width="1.5"/>
+  <text x="140" y="93" text-anchor="middle" class="fg" font-size="14">Parent</text>
+
+  <line x1="140" y1="108" x2="140" y2="135" class="stroke" stroke-width="1.5" marker-end="url(#ah2)"/>
+  <rect x="70" y="138" width="140" height="40" rx="8" class="box" stroke-width="1.5"/>
+  <text x="140" y="163" text-anchor="middle" class="fg" font-size="14">Child</text>
+
+  <line x1="210" y1="155" x2="235" y2="155" class="stroke dashed" stroke-width="1.5"/>
+  <line x1="235" y1="155" x2="235" y2="88" class="stroke dashed" stroke-width="1.5"/>
+  <line x1="235" y1="88" x2="212" y2="88" class="stroke dashed" stroke-width="1.5" marker-end="url(#ah2)"/>
+  <text x="258" y="126" text-anchor="start" class="red" font-size="11">useEffect →</text>
+  <text x="258" y="141" text-anchor="start" class="red" font-size="11">onChange()</text>
+
+  <!-- Good: parent owns the logic -->
+  <text x="420" y="55" text-anchor="middle" class="green" font-size="13" font-weight="bold">正确：父组件直接管理</text>
+  <rect x="350" y="68" width="140" height="60" rx="8" class="box-good" stroke-width="1.5"/>
+  <text x="420" y="90" text-anchor="middle" class="fg" font-size="14">Parent</text>
+  <text x="420" y="108" text-anchor="middle" class="fg-sub" font-size="11">数据获取 + 状态管理</text>
+
+  <line x1="420" y1="128" x2="420" y2="135" class="stroke" stroke-width="1.5" marker-end="url(#ah2)"/>
+  <rect x="350" y="138" width="140" height="40" rx="8" class="box-good" stroke-width="1.5"/>
+  <text x="420" y="157" text-anchor="middle" class="fg" font-size="14">Child</text>
+  <text x="420" y="170" text-anchor="middle" class="fg-sub" font-size="11">纯展示</text>
+
+  <text x="420" y="205" text-anchor="middle" class="fg-sub" font-size="12">props 单向流动 ↓</text>
+
+  <text x="140" y="205" text-anchor="middle" class="red" font-size="12">额外渲染 + 数据流混乱</text>
+  <text x="420" y="222" text-anchor="middle" class="green" font-size="12">清晰可预测</text>
+</svg>
