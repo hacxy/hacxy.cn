@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router";
-import { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -95,7 +95,8 @@ function getSidebarAdjacentPosts(slug: string) {
 }
 
 export default function BlogPost() {
-  const { "*": slug } = useParams();
+  const { "*": rawSlug } = useParams();
+  const slug = rawSlug?.replace(/\/+$/, "");
   const [drawerState, setDrawerState] = useState<{ slug: string | undefined; open: "sidebar" | "toc" | null }>({ slug, open: null });
 
   const openDrawer = drawerState.slug === slug ? drawerState.open : null;
@@ -114,12 +115,6 @@ export default function BlogPost() {
   }, [openDrawer]);
 
   const post = slug ? getPostBySlug(slug) : undefined;
-  const { content, data } = useMemo(() => {
-    if (!post) return { content: "", data: {} as Record<string, unknown> };
-    const { content: rawBody, data: fm } = parseFrontmatter(post.rawContent);
-    return { content: rawBody.replace(/^\s*#[^\n]*\n?/, ""), data: fm };
-  }, [post]);
-  const headings = useMemo(() => extractHeadings(content), [content]);
 
   if (!slug) return null;
 
@@ -136,6 +131,9 @@ export default function BlogPost() {
     );
   }
 
+  const { content: rawBody, data } = parseFrontmatter(post.rawContent);
+  const content = rawBody.replace(/^\s*#[^\n]*\n?/, "");
+  const headings = extractHeadings(content);
   const tags: string[] = Array.isArray(data.tags) ? data.tags.map(String) : [];
   const summary = typeof data.summary === "string" ? data.summary : "";
   const currentPath = `/${slug}`;
