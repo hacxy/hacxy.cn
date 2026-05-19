@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -43,23 +44,45 @@ export default function Skills() {
   const [skills, setSkills] = useState<SkillData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selected = searchParams.get("skill");
 
   useEffect(() => {
     getSkills()
-      .then((data) => {
-        setSkills(data);
-        if (data.length > 0) setSelected(data[0].name);
-      })
+      .then((data) => setSkills(data))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (skills.length === 0) return;
+    const current = searchParams.get("skill");
+    if (current && skills.some((s) => s.name === current)) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("skill", skills[0].name);
+        return next;
+      },
+      { replace: true },
+    );
+  }, [skills, searchParams, setSearchParams]);
+
   const activeSkill = skills.find((s) => s.name === selected);
 
-  function selectSkill(name: string) {
-    setSelected(name);
-  }
+  const selectSkill = useCallback(
+    (name: string) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("skill", name);
+          return next;
+        },
+        { replace: false },
+      );
+    },
+    [setSearchParams],
+  );
 
   return (
     <PageTransition>
