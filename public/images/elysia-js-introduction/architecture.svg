@@ -1,0 +1,101 @@
+<svg viewBox="0 0 560 420" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #1a1a1a; }
+    .fg-sub { fill: #1a1a1a; opacity: 0.5; }
+    .stroke { stroke: #1a1a1a; }
+    .box { fill: rgba(0,0,0,0.04); stroke: rgba(0,0,0,0.15); }
+    .box-accent { fill: rgba(59,130,246,0.08); stroke: rgba(59,130,246,0.3); }
+    .box-green { fill: rgba(34,197,94,0.08); stroke: rgba(34,197,94,0.3); }
+    .box-purple { fill: rgba(168,85,247,0.08); stroke: rgba(168,85,247,0.3); }
+    .arrow-head { fill: #1a1a1a; }
+    .label-sm { fill: #1a1a1a; opacity: 0.6; }
+    @media (prefers-color-scheme: dark) {
+      .fg { fill: #e5e5e5; }
+      .fg-sub { fill: #e5e5e5; opacity: 0.5; }
+      .stroke { stroke: #e5e5e5; }
+      .box { fill: rgba(255,255,255,0.06); stroke: rgba(255,255,255,0.18); }
+      .box-accent { fill: rgba(96,165,250,0.1); stroke: rgba(96,165,250,0.35); }
+      .box-green { fill: rgba(74,222,128,0.1); stroke: rgba(74,222,128,0.35); }
+      .box-purple { fill: rgba(192,132,252,0.1); stroke: rgba(192,132,252,0.35); }
+      .arrow-head { fill: #e5e5e5; }
+      .label-sm { fill: #e5e5e5; opacity: 0.6; }
+    }
+  </style>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-head"/>
+    </marker>
+  </defs>
+
+  <!-- Bun Runtime (bottom layer) -->
+  <rect x="30" y="360" width="500" height="45" rx="8" class="box"/>
+  <text x="280" y="388" text-anchor="middle" class="fg" font-size="15" font-weight="600">Bun Runtime</text>
+
+  <!-- Arrow: Elysia → Bun -->
+  <line x1="280" y1="340" x2="280" y2="358" class="stroke" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Elysia Core (middle layer) -->
+  <rect x="30" y="170" width="500" height="165" rx="10" class="box-accent" stroke-width="1.5"/>
+  <text x="280" y="196" text-anchor="middle" class="fg" font-size="15" font-weight="700">Elysia Core</text>
+
+  <!-- Lifecycle blocks inside core -->
+  <rect x="50" y="210" width="120" height="40" rx="6" class="box" stroke-width="1"/>
+  <text x="110" y="235" text-anchor="middle" class="fg" font-size="12">Lifecycle Hooks</text>
+
+  <rect x="185" y="210" width="120" height="40" rx="6" class="box" stroke-width="1"/>
+  <text x="245" y="235" text-anchor="middle" class="fg" font-size="12">Schema Validation</text>
+
+  <rect x="320" y="210" width="100" height="40" rx="6" class="box" stroke-width="1"/>
+  <text x="370" y="235" text-anchor="middle" class="fg" font-size="12">Router</text>
+
+  <rect x="435" y="210" width="75" height="40" rx="6" class="box" stroke-width="1"/>
+  <text x="472" y="235" text-anchor="middle" class="fg" font-size="12">Guard</text>
+
+  <!-- Plugin System -->
+  <rect x="50" y="265" width="200" height="50" rx="6" class="box-purple" stroke-width="1"/>
+  <text x="150" y="285" text-anchor="middle" class="fg" font-size="12" font-weight="600">Plugin System</text>
+  <text x="150" y="302" text-anchor="middle" class="label-sm" font-size="10">state / decorate / derive</text>
+
+  <!-- OpenAPI -->
+  <rect x="270" y="265" width="120" height="50" rx="6" class="box-green" stroke-width="1"/>
+  <text x="330" y="285" text-anchor="middle" class="fg" font-size="12" font-weight="600">OpenAPI</text>
+  <text x="330" y="302" text-anchor="middle" class="label-sm" font-size="10">Auto Docs</text>
+
+  <!-- WebSocket -->
+  <rect x="405" y="265" width="85" height="50" rx="6" class="box" stroke-width="1"/>
+  <text x="447" y="290" text-anchor="middle" class="fg" font-size="12">WebSocket</text>
+
+  <!-- Client Layer (top) -->
+  <rect x="30" y="15" width="240" height="130" rx="10" class="box-green" stroke-width="1.5"/>
+  <text x="150" y="42" text-anchor="middle" class="fg" font-size="15" font-weight="700">Eden Treaty Client</text>
+
+  <rect x="50" y="55" width="200" height="35" rx="6" class="box" stroke-width="1"/>
+  <text x="150" y="78" text-anchor="middle" class="fg" font-size="12">Type-Safe API Calls</text>
+
+  <rect x="50" y="100" width="200" height="35" rx="6" class="box" stroke-width="1"/>
+  <text x="150" y="123" text-anchor="middle" class="fg" font-size="12">Auto Type Inference</text>
+
+  <!-- Arrow: Client → Elysia -->
+  <line x1="150" y1="145" x2="150" y2="168" class="stroke" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="125" y="160" text-anchor="end" class="label-sm" font-size="10">HTTP / WS</text>
+
+  <!-- Frameworks Comparison (right top) -->
+  <rect x="300" y="15" width="230" height="130" rx="10" class="box" stroke-width="1.5"/>
+  <text x="415" y="42" text-anchor="middle" class="fg" font-size="15" font-weight="700">Ecosystem</text>
+
+  <rect x="315" y="55" width="95" height="30" rx="5" class="box" stroke-width="1"/>
+  <text x="362" y="75" text-anchor="middle" class="fg" font-size="11">TypeBox</text>
+
+  <rect x="420" y="55" width="95" height="30" rx="5" class="box" stroke-width="1"/>
+  <text x="467" y="75" text-anchor="middle" class="fg" font-size="11">Swagger UI</text>
+
+  <rect x="315" y="95" width="95" height="30" rx="5" class="box" stroke-width="1"/>
+  <text x="362" y="115" text-anchor="middle" class="fg" font-size="11">Prisma</text>
+
+  <rect x="420" y="95" width="95" height="30" rx="5" class="box" stroke-width="1"/>
+  <text x="467" y="115" text-anchor="middle" class="fg" font-size="11">Drizzle</text>
+
+  <!-- Arrow: Ecosystem → Elysia -->
+  <line x1="415" y1="145" x2="415" y2="168" class="stroke" stroke-width="1.5" marker-end="url(#arrow)"/>
+</svg>
