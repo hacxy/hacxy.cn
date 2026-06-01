@@ -1,0 +1,93 @@
+<svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #1a1a1a; }
+    .fg-sub { fill: #1a1a1a; opacity: 0.6; }
+    .box { fill: rgba(0,0,0,0.05); stroke: rgba(0,0,0,0.15); }
+    .box-a { fill: rgba(59,130,246,0.08); stroke: rgba(59,130,246,0.4); }
+    .box-b { fill: rgba(16,185,129,0.08); stroke: rgba(16,185,129,0.4); }
+    .box-c { fill: rgba(245,158,11,0.08); stroke: rgba(245,158,11,0.4); }
+    .arrow { fill: none; stroke: #1a1a1a; stroke-width: 1.2; }
+    .arrow-head { fill: #1a1a1a; }
+    .line-v { stroke: #1a1a1a; stroke-width: 1.2; }
+    @media (prefers-color-scheme: dark) {
+      .fg { fill: #e5e5e5; }
+      .fg-sub { fill: #e5e5e5; opacity: 0.6; }
+      .box { fill: rgba(255,255,255,0.06); stroke: rgba(255,255,255,0.2); }
+      .box-a { fill: rgba(59,130,246,0.12); stroke: rgba(59,130,246,0.5); }
+      .box-b { fill: rgba(16,185,129,0.12); stroke: rgba(16,185,129,0.5); }
+      .box-c { fill: rgba(245,158,11,0.12); stroke: rgba(245,158,11,0.5); }
+      .arrow { fill: none; stroke: #e5e5e5; stroke-width: 1.2; }
+      .arrow-head { fill: #e5e5e5; }
+      .line-v { stroke: #e5e5e5; stroke-width: 1.2; }
+    }
+  </style>
+  <defs>
+    <marker id="ah2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0, 7 2.5, 0 5" class="arrow-head"/>
+    </marker>
+  </defs>
+  <!-- Title -->
+  <text x="300" y="18" text-anchor="middle" class="fg" font-size="14" font-weight="700">三种编排模式</text>
+
+  <!-- Pipeline -->
+  <rect x="10" y="35" width="180" height="150" rx="10" class="box-a" stroke-width="1.2"/>
+  <text x="100" y="55" text-anchor="middle" class="fg" font-size="12" font-weight="600">pipeline()</text>
+  <text x="100" y="72" text-anchor="middle" class="fg-sub" font-size="10">流水线</text>
+  <!-- Pipeline items flowing through stages -->
+  <rect x="25" y="88" width="30" height="16" rx="4" class="box" stroke-width="1"/>
+  <rect x="25" y="110" width="30" height="16" rx="4" class="box" stroke-width="1"/>
+  <rect x="25" y="132" width="30" height="16" rx="4" class="box" stroke-width="1"/>
+  <text x="40" y="100" text-anchor="middle" class="fg-sub" font-size="9">A</text>
+  <text x="40" y="122" text-anchor="middle" class="fg-sub" font-size="9">B</text>
+  <text x="40" y="144" text-anchor="middle" class="fg-sub" font-size="9">C</text>
+  <!-- Arrows through stages -->
+  <line x1="55" y1="96" x2="75" y2="96" class="arrow" marker-end="url(#ah2)"/>
+  <line x1="55" y1="118" x2="75" y2="118" class="arrow" marker-end="url(#ah2)"/>
+  <line x1="55" y1="140" x2="75" y2="140" class="arrow" marker-end="url(#ah2)"/>
+  <rect x="75" y="85" width="35" height="76" rx="4" class="box" stroke-width="1"/>
+  <text x="92" y="128" text-anchor="middle" class="fg-sub" font-size="8">S1</text>
+  <line x1="110" y1="96" x2="130" y2="96" class="arrow" marker-end="url(#ah2)"/>
+  <line x1="110" y1="118" x2="130" y2="118" class="arrow" marker-end="url(#ah2)"/>
+  <line x1="110" y1="140" x2="130" y2="140" class="arrow" marker-end="url(#ah2)"/>
+  <rect x="130" y="85" width="35" height="76" rx="4" class="box" stroke-width="1"/>
+  <text x="147" y="128" text-anchor="middle" class="fg-sub" font-size="8">S2</text>
+  <text x="100" y="178" text-anchor="middle" class="fg-sub" font-size="9">无屏障，独立流动</text>
+
+  <!-- Parallel -->
+  <rect x="210" y="35" width="180" height="150" rx="10" class="box-b" stroke-width="1.2"/>
+  <text x="300" y="55" text-anchor="middle" class="fg" font-size="12" font-weight="600">parallel()</text>
+  <text x="300" y="72" text-anchor="middle" class="fg-sub" font-size="10">并行屏障</text>
+  <!-- Parallel tasks -->
+  <rect x="225" y="88" width="30" height="16" rx="4" class="box" stroke-width="1"/>
+  <rect x="265" y="88" width="30" height="16" rx="4" class="box" stroke-width="1"/>
+  <rect x="305" y="88" width="30" height="16" rx="4" class="box" stroke-width="1"/>
+  <text x="240" y="100" text-anchor="middle" class="fg-sub" font-size="9">T1</text>
+  <text x="280" y="100" text-anchor="middle" class="fg-sub" font-size="9">T2</text>
+  <text x="320" y="100" text-anchor="middle" class="fg-sub" font-size="9">T3</text>
+  <!-- Arrows down to barrier -->
+  <line x1="240" y1="104" x2="240" y2="120" class="line-v" marker-end="url(#ah2)"/>
+  <line x1="280" y1="104" x2="280" y2="120" class="line-v" marker-end="url(#ah2)"/>
+  <line x1="320" y1="104" x2="320" y2="120" class="line-v" marker-end="url(#ah2)"/>
+  <!-- Barrier line -->
+  <line x1="220" y1="125" x2="380" y2="125" class="line-v" stroke-width="2.5"/>
+  <text x="300" y="140" text-anchor="middle" class="fg" font-size="10" font-weight="600">等待全部完成</text>
+  <!-- Arrow down -->
+  <line x1="300" y1="148" x2="300" y2="165" class="line-v" marker-end="url(#ah2)"/>
+  <rect x="265" y="165" width="70" height="18" rx="4" class="box" stroke-width="1"/>
+  <text x="300" y="178" text-anchor="middle" class="fg-sub" font-size="9">合并结果</text>
+
+  <!-- Phase -->
+  <rect x="410" y="35" width="180" height="150" rx="10" class="box-c" stroke-width="1.2"/>
+  <text x="500" y="55" text-anchor="middle" class="fg" font-size="12" font-weight="600">phase()</text>
+  <text x="500" y="72" text-anchor="middle" class="fg-sub" font-size="10">阶段分组</text>
+  <!-- Phase boxes -->
+  <rect x="425" y="85" width="150" height="28" rx="6" class="box" stroke-width="1"/>
+  <text x="500" y="103" text-anchor="middle" class="fg-sub" font-size="10">Phase 1: 探索</text>
+  <rect x="425" y="120" width="150" height="28" rx="6" class="box" stroke-width="1"/>
+  <text x="500" y="138" text-anchor="middle" class="fg-sub" font-size="10">Phase 2: 实现</text>
+  <rect x="425" y="155" width="150" height="28" rx="6" class="box" stroke-width="1"/>
+  <text x="500" y="173" text-anchor="middle" class="fg-sub" font-size="10">Phase 3: 验证</text>
+  <!-- Arrows between phases -->
+  <line x1="500" y1="113" x2="500" y2="120" class="line-v" marker-end="url(#ah2)"/>
+  <line x1="500" y1="148" x2="500" y2="155" class="line-v" marker-end="url(#ah2)"/>
+</svg>

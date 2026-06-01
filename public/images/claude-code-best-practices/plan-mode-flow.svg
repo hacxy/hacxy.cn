@@ -1,0 +1,45 @@
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #1a1a1a; }
+    .fg-sub { fill: #1a1a1a; opacity: 0.6; }
+    .box { fill: rgba(0,0,0,0.05); stroke: rgba(0,0,0,0.15); }
+    .box-highlight { fill: rgba(59,130,246,0.1); stroke: rgba(59,130,246,0.5); }
+    .arrow { fill: none; stroke: #1a1a1a; stroke-width: 1.5; }
+    .arrow-head { fill: #1a1a1a; }
+    @media (prefers-color-scheme: dark) {
+      .fg { fill: #e5e5e5; }
+      .fg-sub { fill: #e5e5e5; opacity: 0.6; }
+      .box { fill: rgba(255,255,255,0.06); stroke: rgba(255,255,255,0.2); }
+      .box-highlight { fill: rgba(59,130,246,0.15); stroke: rgba(59,130,246,0.6); }
+      .arrow { fill: none; stroke: #e5e5e5; stroke-width: 1.5; }
+      .arrow-head { fill: #e5e5e5; }
+    }
+  </style>
+  <defs>
+    <marker id="ah" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" class="arrow-head"/>
+    </marker>
+  </defs>
+  <!-- Step 1 -->
+  <rect x="10" y="20" width="120" height="80" rx="8" class="box" stroke-width="1.2"/>
+  <text x="70" y="52" text-anchor="middle" class="fg" font-size="12" font-weight="600">探索代码库</text>
+  <text x="70" y="72" text-anchor="middle" class="fg-sub" font-size="10">Read / Grep / Glob</text>
+  <!-- Arrow 1-2 -->
+  <line x1="130" y1="60" x2="155" y2="60" class="arrow" marker-end="url(#ah)"/>
+  <!-- Step 2 -->
+  <rect x="155" y="20" width="120" height="80" rx="8" class="box" stroke-width="1.2"/>
+  <text x="215" y="52" text-anchor="middle" class="fg" font-size="12" font-weight="600">设计方案</text>
+  <text x="215" y="72" text-anchor="middle" class="fg-sub" font-size="10">架构 + 实现路径</text>
+  <!-- Arrow 2-3 -->
+  <line x1="275" y1="60" x2="300" y2="60" class="arrow" marker-end="url(#ah)"/>
+  <!-- Step 3 -->
+  <rect x="300" y="20" width="120" height="80" rx="8" class="box-highlight" stroke-width="1.5"/>
+  <text x="360" y="52" text-anchor="middle" class="fg" font-size="12" font-weight="600">输出计划</text>
+  <text x="360" y="72" text-anchor="middle" class="fg-sub" font-size="10">ExitPlanMode</text>
+  <!-- Arrow 3-4 -->
+  <line x1="420" y1="60" x2="445" y2="60" class="arrow" marker-end="url(#ah)"/>
+  <!-- Step 4 -->
+  <rect x="445" y="20" width="130" height="80" rx="8" class="box" stroke-width="1.2"/>
+  <text x="510" y="52" text-anchor="middle" class="fg" font-size="12" font-weight="600">审批 → 执行</text>
+  <text x="510" y="72" text-anchor="middle" class="fg-sub" font-size="10">用户批准后改代码</text>
+</svg>
