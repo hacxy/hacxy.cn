@@ -1,0 +1,40 @@
+<svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #1a1a1a; }
+    .fg-sub { fill: #1a1a1a; opacity: 0.6; }
+    .stroke { stroke: #1a1a1a; }
+    .box { fill: rgba(0,0,0,0.05); stroke: rgba(0,0,0,0.15); }
+    .box-active { fill: rgba(59,130,246,0.1); stroke: rgba(59,130,246,0.5); }
+    .arrow { fill: none; stroke: #1a1a1a; stroke-width: 1.5; }
+    .arrow-head { fill: #1a1a1a; }
+    @media (prefers-color-scheme: dark) {
+      .fg { fill: #e5e5e5; }
+      .fg-sub { fill: #e5e5e5; opacity: 0.6; }
+      .stroke { stroke: #e5e5e5; }
+      .box { fill: rgba(255,255,255,0.06); stroke: rgba(255,255,255,0.2); }
+      .box-active { fill: rgba(59,130,246,0.15); stroke: rgba(59,130,246,0.6); }
+      .arrow { fill: none; stroke: #e5e5e5; stroke-width: 1.5; }
+      .arrow-head { fill: #e5e5e5; }
+    }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" class="arrow-head"/>
+    </marker>
+  </defs>
+  <!-- Outermost: User level -->
+  <rect x="20" y="10" width="460" height="180" rx="12" class="box" stroke-width="1.5"/>
+  <text x="40" y="36" class="fg" font-size="13" font-weight="600">~/.claude/CLAUDE.md</text>
+  <text x="200" y="36" class="fg-sub" font-size="11">用户级 · 所有项目</text>
+  <!-- Project level -->
+  <rect x="60" y="55" width="380" height="120" rx="10" class="box" stroke-width="1.2"/>
+  <text x="80" y="78" class="fg" font-size="13" font-weight="600">项目根目录/CLAUDE.md</text>
+  <text x="280" y="78" class="fg-sub" font-size="11">团队共享</text>
+  <!-- Sub dir level -->
+  <rect x="100" y="95" width="300" height="65" rx="8" class="box-active" stroke-width="1.5"/>
+  <text x="120" y="118" class="fg" font-size="13" font-weight="600">子目录/CLAUDE.md</text>
+  <text x="120" y="138" class="fg-sub" font-size="11">特定模块规则 · 优先级最高</text>
+  <!-- Arrow showing priority -->
+  <line x1="480" y1="100" x2="480" y2="50" class="arrow" marker-end="url(#arrowhead)"/>
+  <text x="460" y="80" class="fg-sub" font-size="10" transform="rotate(-90 460 80)">优先级 ↑</text>
+</svg>
