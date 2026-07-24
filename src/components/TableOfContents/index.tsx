@@ -4,7 +4,7 @@ import styles from "./index.module.scss";
 
 export default function TableOfContents({ headings, onNavigate }: { headings: TocItem[]; onNavigate?: () => void }) {
   const [activeId, setActiveId] = useState("");
-  const tocRef = useRef<HTMLElement>(null);
+  const tocRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (headings.length === 0) return;
@@ -50,31 +50,33 @@ export default function TableOfContents({ headings, onNavigate }: { headings: To
   const minLevel = Math.min(...headings.map((h) => h.level));
 
   return (
-    <aside className={styles.toc} ref={tocRef}>
-      <p className={styles.title} style={{ animation: "sidebar-fade-in 0.3s both" }}>
-        目录
-      </p>
-      <ul className={styles.list}>
-        {headings.map((heading, i) => (
-          <li
-            key={heading.id}
-            style={{ animation: `sidebar-fade-in 0.25s ${(i + 1) * 0.04}s both` }}
-          >
-            <a
-              href={`#${heading.id}`}
-              className={`${styles.link} ${activeId === heading.id ? styles.active : ""}`}
-              style={{ paddingLeft: `${(heading.level - minLevel) * 0.75 + 0.5}rem` }}
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById(heading.id)?.scrollIntoView({ behavior: "smooth" });
-                onNavigate?.();
-              }}
+    <aside className={styles.toc}>
+      <div className={styles.tocInner} ref={tocRef}>
+        <p className={styles.title} style={{ animation: "sidebar-fade-in 0.3s both" }}>
+          目录
+        </p>
+        <ul className={styles.list}>
+          {headings.map((heading, i) => (
+            <li
+              key={heading.id}
+              style={{ animation: `sidebar-fade-in 0.25s ${(i + 1) * 0.04}s both` }}
             >
-              {heading.text}
-            </a>
-          </li>
-        ))}
-      </ul>
+              <a
+                href={`#${heading.id}`}
+                className={`${styles.link} ${activeId === heading.id ? styles.active : ""}`}
+                style={{ paddingLeft: `${(heading.level - minLevel) * 0.75 + 0.5}rem` }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById(heading.id)?.scrollIntoView({ behavior: "smooth" });
+                  onNavigate?.();
+                }}
+              >
+                {heading.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
     </aside>
   );
 }

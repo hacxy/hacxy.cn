@@ -3,13 +3,18 @@
   flex-shrink: 0;
   position: sticky;
   top: calc(var(--header-height, 4rem) + 2rem);
-  max-height: calc(100vh - var(--header-height, 4rem) - 2rem);
-  overflow-y: auto;
-  padding: 0.5rem 0 0;
+  overflow: hidden;
 
   @media (max-width: 1200px) {
     display: none;
   }
+}
+
+.tocInner {
+  max-height: calc(100vh - var(--header-height, 4rem) - 2rem - 56px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.5rem 0 0;
 }
 
 .title {

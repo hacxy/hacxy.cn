@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { Icon } from "@iconify/react";
 import PageTransition from "../../components/PageTransition";
 import Typewriter from "../../components/Typewriter";
+import GitHubCalendar from "../../components/GitHubCalendar";
 import NotFound from "../NotFound";
 import { getAllPosts } from "../../utils/posts";
 import { preloadSkills } from "../../utils/skills";
@@ -34,13 +35,13 @@ export default function Home() {
     return <NotFound />;
   }
 
-  const name = (homeData.name as string | undefined) ?? blogConfig.author;
   const bio = (homeData.bio as string | undefined) ?? blogConfig.bio ?? '';
   const contact = (homeData.contact as SocialLink[] | undefined) ?? [];
 
-  const recentPosts = getAllPosts().slice(0, 5);
+  const allPosts = getAllPosts();
+  const recentPosts = allPosts.slice(0, 5);
 
-  const postsStart = 2;
+  const postsStart = 3;
   const allPostsRow = postsStart + recentPosts.length;
   const projectsHeadingRow = allPostsRow + 1;
   const projectsStart = projectsHeadingRow + 1;
@@ -51,15 +52,19 @@ export default function Home() {
       <div className={styles.pageContent}>
         <Row index={0} style={{ marginBottom: "3rem" }}>
           <div className={styles.homeIntro}>
-            <h1>{name}</h1>
             <p>
               <Typewriter text={bio} speed={60} delay={300} />
             </p>
           </div>
         </Row>
 
+        <Row index={1} style={{ marginBottom: "3rem" }}>
+          <p className={styles.sectionHeading}>Contributions</p>
+          <GitHubCalendar />
+        </Row>
+
         <div style={{ marginTop: "3rem" }}>
-          <Row index={1}>
+          <Row index={2}>
             <p className={styles.sectionHeading}>Recent Posts</p>
           </Row>
           <ul className={styles.postList}>

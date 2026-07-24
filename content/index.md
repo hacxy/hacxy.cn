@@ -1,7 +1,7 @@
 ---
 layout: home
 name: Hacxy
-bio: Hi，我是 Hacxy 👋 一个喜欢折腾前端和 AI 的开源项目开发者
+bio: "Hi! 我是 Hacxy，一位全栈开发者 · 开源项目作者。\n热衷于用代码构建有价值的数字产品。"
 github: https://github.com/hacxy
 projects:
   - l2d

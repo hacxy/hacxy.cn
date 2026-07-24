@@ -37,10 +37,20 @@ export default function Typewriter({
   }, [active, count, text, speed, onDone]);
 
   const done = count >= text.length;
+  const displayText = text.slice(0, count);
+
+  const renderText = (str: string) => {
+    return str.split('\n').map((line, index, array) => (
+      <span key={line}>
+        {line}
+        {index < array.length - 1 && <br />}
+      </span>
+    ));
+  };
 
   return (
     <span className={className} style={style}>
-      {text.slice(0, count)}
+      {renderText(displayText)}
       {!done && <span className={styles.cursor} aria-hidden="true" />}
     </span>
   );
