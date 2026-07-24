@@ -63,20 +63,22 @@ export default function Sidebar({ items, currentPath, onNavigate }: { items: Sid
 
   return (
     <aside className={styles.sidebar}>
-      <nav className={styles.nav}>
-        {items.map((item, i) => (
-          <div
-            key={item.link ?? i}
-            style={
-              shouldAnimate
-                ? { opacity: triggered ? 1 : 0, transition: `opacity 0.3s ease-out ${i * 0.08}s` }
-                : undefined
-            }
-          >
-            <SidebarGroup item={item} currentPath={currentPath} onNavigate={onNavigate} />
-          </div>
-        ))}
-      </nav>
+      <div className={styles.sidebarInner}>
+        <nav className={styles.nav}>
+          {items.map((item, i) => (
+            <div
+              key={item.link ?? i}
+              style={
+                shouldAnimate
+                  ? { opacity: triggered ? 1 : 0, transition: `opacity 0.3s ease-out ${i * 0.08}s` }
+                  : undefined
+              }
+            >
+              <SidebarGroup item={item} currentPath={currentPath} onNavigate={onNavigate} />
+            </div>
+          ))}
+        </nav>
+      </div>
     </aside>
   );
 }
