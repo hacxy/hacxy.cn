@@ -45,7 +45,8 @@ export default function Home() {
   const allPostsRow = postsStart + recentPosts.length;
   const projectsHeadingRow = allPostsRow + 1;
   const projectsStart = projectsHeadingRow + 1;
-  const socialRow = projectsStart + projectsData.length;
+  const projectsEnd = projectsStart + projectsData.length + 1;
+  const socialRow = projectsEnd;
 
   return (
     <PageTransition>
@@ -104,23 +105,31 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: (projectsStart + i) * 0.07 }}
                 >
-                  <div className={styles.projectItemTop}>
-                    <a
-                      href={project.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.projectLink}
-                    >
-                      {project.name}
-                    </a>
+                  <a
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.projectItemTop}
+                  >
+                    <span className={styles.projectLink}>{project.name}</span>
                     {project.description && (
                       <span className={styles.projectDesc}>{project.description}</span>
                     )}
                     <span className={styles.projectStars}>{project.stars}</span>
-                  </div>
+                  </a>
                 </motion.li>
               ))}
             </ul>
+            <Row index={projectsStart + projectsData.length} style={{ marginTop: "1.5rem" }}>
+              <a
+                href={`${(homeData.github as string) ?? ''}?tab=repositories`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.navLink}
+              >
+                All projects →
+              </a>
+            </Row>
           </div>
         )}
 

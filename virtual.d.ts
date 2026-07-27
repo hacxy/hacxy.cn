@@ -3,6 +3,7 @@ declare module 'virtual:blog-config' {
     name: string
     icon: string
     color?: string
+    url?: string
   }
   export interface TechGroup {
     category: string

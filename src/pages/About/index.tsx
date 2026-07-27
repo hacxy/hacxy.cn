@@ -20,7 +20,7 @@ export default function About() {
           style={{ "--enter-stage": 1 } as React.CSSProperties}
         >
           <h1>{blogConfig.author}</h1>
-          <p>前端开发者 / 开源爱好者</p>
+          <p>全栈开发者 · 开源项目作者</p>
         </div>
 
         <section
@@ -30,7 +30,7 @@ export default function About() {
           <p className={common.sectionHeading}>关于我</p>
           <div className={styles.bio}>
             <p>
-              前端开发者，热衷开源。写代码之外最大的乐趣就是把东西分享出去，看到有人用会很开心。
+              热衷于用代码构建有价值的数字产品。
             </p>
             <p>
               目前在维护的开源项目：
