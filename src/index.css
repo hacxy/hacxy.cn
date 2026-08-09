@@ -1,13 +1,25 @@
 @import 'tailwindcss';
 
-/*
- * Shiki 双主题代码高亮：亮色为内联 style，暗色通过 --shiki-dark 变量切换。
- * 站点暗色模式（html.dark class）在阶段 4 落地时，将本选择器改为 html.dark。
- */
-@media (prefers-color-scheme: dark) {
-  .shiki,
-  .shiki span {
-    color: var(--shiki-dark) !important;
-    background-color: var(--shiki-dark-bg) !important;
+/* 暗色模式为 class 策略：<html> 上的 .dark 由 inline 防闪烁脚本/切换按钮控制 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html {
+    background-color: #fff;
+    color: #1f2328;
   }
+  html.dark {
+    background-color: #0d1117;
+    color: #e6edf3;
+  }
+}
+
+/*
+ * Shiki 双主题代码高亮：亮色为内联 style，html.dark 时切换 --shiki-dark 变量。
+ * （.dark 由防闪烁脚本在首帧前设置，代码块随页面主题即时切换，无闪烁。）
+ */
+html.dark .shiki,
+html.dark .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
 }
