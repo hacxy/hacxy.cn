@@ -71,3 +71,34 @@ test('clicking a post on the homepage opens the post page', async ({ page }) => 
   await expect(page).toHaveURL(/\/posts\/hello-world/)
   await expect(page.getByRole('heading', { name: '你好，世界' })).toBeVisible()
 })
+
+test('post page shows TOC with working anchors', async ({ page }) => {
+  await page.goto('/posts/hello-world')
+
+  const toc = page.getByRole('navigation', { name: '文章目录' })
+  await expect(toc).toBeVisible()
+  await expect(toc.getByRole('link', { name: '接下来' })).toBeVisible()
+
+  await toc.getByRole('link', { name: '接下来' }).click()
+  // 锚点跳转：URL hash 指向目标标题（CJK 在 location.hash 中为百分号编码）
+  await expect.poll(() => page.evaluate(() => decodeURIComponent(location.hash))).toBe('#接下来')
+})
+
+test('prev/next navigation moves between posts', async ({ page }) => {
+  // 列表按日期倒序：hello-world（最新）无上一篇，下一篇指向 second-post
+  await page.goto('/posts/hello-world')
+  await expect(page.getByRole('link', { name: /下一篇/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /上一篇/ })).toHaveCount(0)
+
+  await page.getByRole('link', { name: /下一篇/ }).click()
+  await expect(page).toHaveURL(/\/posts\/second-post/)
+  await expect(page.getByRole('heading', { name: '第二篇文章' })).toBeVisible()
+
+  // second-post 的上一篇指回 hello-world，且无下一篇
+  await expect(page.getByRole('link', { name: /上一篇/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /下一篇/ })).toHaveCount(0)
+
+  await page.getByRole('link', { name: /上一篇/ }).click()
+  await expect(page).toHaveURL(/\/posts\/hello-world/)
+  await expect(page.getByRole('heading', { name: '你好，世界' })).toBeVisible()
+})
