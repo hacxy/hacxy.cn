@@ -46,6 +46,16 @@ test('direct access to a post returns prerendered HTML containing body text', as
   expect(html).toContain('这是 hacxy.cn 重建后的第一篇文章')
 })
 
+test('post page prerendered HTML contains shiki code highlight structure', async ({ request }) => {
+  const response = await request.get('/posts/hello-world')
+  const html = await response.text()
+
+  // 代码高亮在构建期完成：HTML 源码含 shiki 结构与双主题标记，爬虫无需执行 JS
+  expect(html).toContain('class="shiki')
+  expect(html).toContain('--shiki-dark')
+  expect(html).toContain('language-ts')
+})
+
 test('post page renders title, date and body content', async ({ page }) => {
   await page.goto('/posts/hello-world')
 
