@@ -73,6 +73,17 @@ function normalizeString(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
+/** 可选修订日期：与 date 同样兼容 YAML Date 对象，非法/缺失返回 undefined */
+function normalizeOptionalDate(value: unknown): string | undefined {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return formatDate(value)
+  }
+  if (typeof value === 'string') {
+    return value || undefined
+  }
+  return undefined
+}
+
 function normalizeStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string')
@@ -228,7 +239,7 @@ export async function parseMarkdown(raw: string, slug: string): Promise<Post> {
   const description = normalizeString(data.description)
   const tags = normalizeStringArray(data.tags)
   const draft = data.draft === true
-  const updated = normalizeString(data.updated) || undefined
+  const updated = normalizeOptionalDate(data.updated)
 
   const highlighter = await getHighlighter()
   const { html, toc } = await renderHtml(content, highlighter)

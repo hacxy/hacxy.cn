@@ -85,22 +85,20 @@ test('post page shows TOC with working anchors', async ({ page }) => {
 })
 
 test('prev/next navigation moves between posts', async ({ page }) => {
-  // 列表按日期倒序：hello-world（最新）无上一篇，下一篇指向 second-post
-  await page.goto('/posts/hello-world')
-  await expect(page.getByRole('link', { name: /下一篇/ })).toBeVisible()
+  // 最新文章（真实技术文章）无上一篇，下一篇指向 hello-world
+  await page.goto('/posts/prerendered-blog-with-vite')
   await expect(page.getByRole('link', { name: /上一篇/ })).toHaveCount(0)
+  await page.getByRole('link', { name: /下一篇/ }).click()
+  await expect(page).toHaveURL(/\/posts\/hello-world/)
 
+  // hello-world 位于中间：上一篇 = 最新文章，下一篇 = second-post
+  await expect(page.getByRole('link', { name: /上一篇/ })).toBeVisible()
   await page.getByRole('link', { name: /下一篇/ }).click()
   await expect(page).toHaveURL(/\/posts\/second-post/)
-  await expect(page.getByRole('heading', { name: '第二篇文章' })).toBeVisible()
 
-  // second-post 的上一篇指回 hello-world，且无下一篇
+  // 最旧文章（second-post）只有上一篇，没有下一篇
   await expect(page.getByRole('link', { name: /上一篇/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /下一篇/ })).toHaveCount(0)
-
-  await page.getByRole('link', { name: /上一篇/ }).click()
-  await expect(page).toHaveURL(/\/posts\/hello-world/)
-  await expect(page.getByRole('heading', { name: '你好，世界' })).toBeVisible()
 })
 
 test('draft posts are excluded from the build output', async ({ request }) => {
@@ -121,4 +119,27 @@ test('post images in assets/ are copied to the build and accessible', async ({ r
   // 图片文件在构建产物中真实存在且可访问
   const image = await request.get('/assets/fixture.png')
   expect(image.status()).toBe(200)
+})
+
+test('real article renders full flow: body, code, table and image in raw HTML', async ({
+  request,
+}) => {
+  const response = await request.get('/posts/prerendered-blog-with-vite')
+  expect(response.status()).toBe(200)
+  const html = await response.text()
+
+  // 正文文本直接进源码（爬虫无需执行 JS）
+  expect(html).toContain('用 React + Vite 搭一个构建期预渲染的静态博客')
+  expect(html).toContain('构建期一次性完成渲染')
+  // 代码高亮结构（Shiki 双主题）
+  expect(html).toContain('shiki-themes')
+  expect(html).toContain('--shiki-dark')
+  // GFM 表格
+  expect(html).toContain('<table>')
+  // 图片引用重写为绝对路径，且文件在产物中可访问
+  expect(html).toContain('src="/assets/architecture.svg"')
+  const image = await request.get('/assets/architecture.svg')
+  expect(image.status()).toBe(200)
+  // 目录（h2/h3 锚点，github-slugger 会剔除全角冒号）
+  expect(html).toContain('href="#渲染策略构建期一次性渲染"')
 })
