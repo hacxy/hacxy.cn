@@ -25,3 +25,12 @@ test('unknown path renders 404', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: '404' })).toBeVisible()
 })
+
+test('raw HTML source contains article title without executing JS', async ({ request }) => {
+  const response = await request.get('/')
+  const html = await response.text()
+
+  // 预渲染成立的地基：爬虫不执行 JS 也能读到标题与正文（SEO 验收核心）
+  expect(html).toContain('你好，世界')
+  expect(html).toContain('Hacxy')
+})
