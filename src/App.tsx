@@ -5,16 +5,23 @@ import About from './pages/About.tsx'
 import Home from './pages/Home.tsx'
 import NotFound from './pages/NotFound.tsx'
 
+/** 路由定义（与路由环境解耦）：客户端由 BrowserRouter 包裹，构建期预渲染由 StaticRouter 包裹 */
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<Home />} />
+        <Route path="about" element={<About />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
+  )
+}
+
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="about" element={<About />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
+      <AppRoutes />
     </BrowserRouter>
   )
 }
