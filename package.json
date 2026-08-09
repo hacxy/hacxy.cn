@@ -19,7 +19,6 @@
     "prepare": "husky",
     "typecheck": "tsc --noEmit"
   },
-  "packageManager": "pnpm@11.21.0",
   "lint-staged": {
     "*.{js,ts,jsx,tsx}": [
       "eslint --fix",

@@ -171,13 +171,25 @@ describe('loadPosts', () => {
     expect(posts.map((post) => post.slug)).toEqual(['published'])
   })
 
+  it('includes drafts when includeDrafts is enabled (dev preview)', async () => {
+    const sources = [
+      { slug: 'published', raw: '---\ndate: 2026-08-10\n---\n\n已发布' },
+      { slug: 'draft', raw: '---\ndate: 2026-08-09\ndraft: true\n---\n\n草稿' },
+    ]
+
+    const posts = await loadPosts(sources, { includeDrafts: true })
+
+    expect(posts.map((post) => post.slug)).toEqual(['published', 'draft'])
+    expect(posts.find((post) => post.slug === 'draft')?.draft).toBe(true)
+  })
+
   it('returns an empty array for empty sources', async () => {
     expect(await loadPosts([])).toEqual([])
   })
 })
 
 describe('content manifest', () => {
-  it('aggregates the fixture post with newest-first ordering', () => {
+  it('aggregates fixture posts with newest-first ordering', async () => {
     expect(posts.length).toBeGreaterThan(0)
 
     const hello = posts.find((post) => post.slug === 'hello-world')
@@ -192,5 +204,13 @@ describe('content manifest', () => {
         expect(prev.date >= current.date).toBe(true)
       }
     }
+  })
+
+  it('includes draft posts in non-production mode (dev/test preview)', () => {
+    // vitest 的 mode 为 test（≠ production），等同 dev：插件注入含 draft 的清单；
+    // production 构建时插件排除 draft（见 E2E「draft posts are excluded」）
+    const draft = posts.find((post) => post.slug === 'draft-post')
+    expect(draft).toBeDefined()
+    expect(draft?.draft).toBe(true)
   })
 })
