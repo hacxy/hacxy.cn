@@ -102,3 +102,13 @@ test('prev/next navigation moves between posts', async ({ page }) => {
   await expect(page).toHaveURL(/\/posts\/hello-world/)
   await expect(page.getByRole('heading', { name: '你好，世界' })).toBeVisible()
 })
+
+test('draft posts are excluded from the build output', async ({ request }) => {
+  // 首页列表与内容清单不含 draft 文章
+  const homeHtml = await (await request.get('/')).text()
+  expect(homeHtml).not.toContain('草稿中的文章')
+
+  // draft 文章不参与预渲染：直接访问回落 SPA 404，正文文本不出现在源码中
+  const draftHtml = await (await request.get('/posts/draft-post')).text()
+  expect(draftHtml).not.toContain('草稿正文')
+})
