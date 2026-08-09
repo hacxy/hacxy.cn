@@ -11,7 +11,8 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'pnpm dev --port 4173 --strictPort',
+    // E2E 跑在构建产物上（PRD 测试决策）：先构建再 preview，验证预渲染静态站
+    command: 'pnpm build && pnpm preview --port 4173 --strictPort',
     url: 'http://localhost:4173',
     reuseExistingServer: true,
     timeout: 120_000,
