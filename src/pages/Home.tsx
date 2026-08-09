@@ -7,15 +7,17 @@ import { siteName, tagline } from '../site.ts'
 export default function Home() {
   return (
     <div>
-      <h1>{siteName}</h1>
+      <h1 className="font-mono">{siteName}</h1>
       <p>{tagline}</p>
       <ul>
         {posts.map((post) => (
           <li key={post.slug}>
-            <Link to={`/posts/${post.slug}`}>{post.title}</Link>
+            <Link to={`/posts/${post.slug}`} className="text-accent">
+              {post.title}
+            </Link>
             {/* dev 模式清单含 draft 文章，构建产物不含；此处标记仅 dev 出现 */}
             {post.draft && <span>（草稿）</span>}
-            <span>{post.date}</span>
+            <span className="font-mono text-muted">{post.date}</span>
           </li>
         ))}
       </ul>

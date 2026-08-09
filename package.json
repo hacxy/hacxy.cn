@@ -44,6 +44,7 @@
     "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "@hacxy/eslint-config": "^0.14.0",
     "@hacxy/prettier-config": "^0.14.0",
     "@hacxy/tsconfig": "^0.14.0",
