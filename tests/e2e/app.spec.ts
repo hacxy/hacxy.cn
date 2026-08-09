@@ -223,3 +223,27 @@ test('fonts are self-hosted: woff2 on same origin, no external font requests', a
   const font = await request.get('/fonts/jetbrains-mono-latin-400-normal.woff2')
   expect(font.status()).toBe(200)
 })
+
+test('footer shows the CC BY-NC-SA 4.0 license', async ({ page }) => {
+  await page.goto('/')
+
+  await expect(page.getByText('CC BY-NC-SA 4.0')).toBeVisible()
+  await expect(page.getByRole('contentinfo')).toBeVisible()
+})
+
+test('layout has no horizontal overflow on mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 })
+
+  await page.goto('/')
+  const homeOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  )
+  expect(homeOverflow).toBe(false)
+
+  // 文章页含代码块与表格，最容易撑破小屏
+  await page.goto('/posts/prerendered-blog-with-vite')
+  const postOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  )
+  expect(postOverflow).toBe(false)
+})

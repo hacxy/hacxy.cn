@@ -58,6 +58,14 @@ html.dark {
   code {
     font-family: var(--font-mono);
   }
+  /* 移动端适配：长代码/宽表格在小屏横向滚动，不撑破单列布局 */
+  pre {
+    overflow-x: auto;
+  }
+  table {
+    display: block;
+    overflow-x: auto;
+  }
 }
 
 /*
