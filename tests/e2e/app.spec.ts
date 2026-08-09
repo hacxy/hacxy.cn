@@ -262,3 +262,26 @@ test('about page shows bio, social links and contact info', async ({ page }) => 
   await expect(mail).toBeVisible()
   await expect(mail).toHaveAttribute('href', 'mailto:hello@hacxy.cn')
 })
+
+test('every page ships OG/meta/canonical; posts ship JSON-LD Article', async ({ request }) => {
+  const home = await (await request.get('/')).text()
+  expect(home).toContain('rel="canonical" href="https://hacxy.cn/"')
+  expect(home).toContain('property="og:title"')
+  expect(home).toContain('name="description"')
+
+  const about = await (await request.get('/about')).text()
+  expect(about).toContain('rel="canonical" href="https://hacxy.cn/about"')
+  expect(about).toContain('<title>关于 · Hacxy</title>')
+
+  const post = await (await request.get('/posts/prerendered-blog-with-vite')).text()
+  expect(post).toContain(
+    'property="og:title" content="用 React + Vite 搭一个构建期预渲染的静态博客 · Hacxy"',
+  )
+  expect(post).toContain('rel="canonical" href="https://hacxy.cn/posts/prerendered-blog-with-vite"')
+  // JSON-LD Article 结构化数据
+  expect(post).toContain('application/ld+json')
+  expect(post).toContain('"@type": "Article"')
+  expect(post).toContain('"datePublished": "2026-08-11"')
+  expect(post).toContain('"dateModified": "2026-08-12"')
+  expect(post).toContain('"headline": "用 React + Vite 搭一个构建期预渲染的静态博客"')
+})
