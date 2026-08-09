@@ -247,3 +247,18 @@ test('layout has no horizontal overflow on mobile viewport', async ({ page }) =>
   )
   expect(postOverflow).toBe(false)
 })
+
+test('about page shows bio, social links and contact info', async ({ page }) => {
+  await page.goto('/about')
+
+  // 简介
+  await expect(page.getByText(/前端工程师/)).toBeVisible()
+  // 社交链接（外链）
+  const github = page.getByRole('link', { name: 'GitHub' })
+  await expect(github).toBeVisible()
+  await expect(github).toHaveAttribute('href', 'https://github.com/hacxy')
+  // 联系方式
+  const mail = page.getByRole('link', { name: 'hello@hacxy.cn' })
+  await expect(mail).toBeVisible()
+  await expect(mail).toHaveAttribute('href', 'mailto:hello@hacxy.cn')
+})
