@@ -39,10 +39,14 @@ export function postsPlugin(): Plugin {
     },
     async load(id) {
       if (id !== RESOLVED_ID) return
+      // 仅监听 .md 文件（目录本身不参与 import 分析，避免 vitest 误解析）
       for (const file of readdirSync(POSTS_DIR)) {
-        this.addWatchFile(join(POSTS_DIR, file))
+        if (file.endsWith('.md')) {
+          this.addWatchFile(join(POSTS_DIR, file))
+        }
       }
-      return `export default ${JSON.stringify(await collectPosts(includeDrafts))}`
+      const code = `export default ${JSON.stringify(await collectPosts(includeDrafts))}`
+      return code
     },
   }
 }
