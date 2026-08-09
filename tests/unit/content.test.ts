@@ -204,6 +204,52 @@ describe('loadPosts', () => {
   })
 })
 
+describe('parseMarkdown: field boundaries', () => {
+  it('keeps updated as YYYY-MM-DD when present (incl. YAML Date) and drops invalid values', async () => {
+    const withUpdated = await parseMarkdown(
+      '---\ntitle: 修订\ndate: 2026-08-01\nupdated: 2026-08-05\n---\n\n正文',
+      'updated',
+    )
+    // js-yaml 把 ISO 日期解析为 Date 对象，需与 date 字段同样规范化
+    expect(withUpdated.updated).toBe('2026-08-05')
+
+    const withoutUpdated = await parseMarkdown(
+      '---\ntitle: 无修订\ndate: 2026-08-01\n---\n\n正文',
+      'no-updated',
+    )
+    expect(withoutUpdated.updated).toBeUndefined()
+
+    const numericUpdated = await parseMarkdown(
+      '---\ntitle: 数字修订\ndate: 2026-08-01\nupdated: 20260805\n---\n\n正文',
+      'numeric-updated',
+    )
+    expect(numericUpdated.updated).toBeUndefined()
+  })
+
+  it('filters non-string entries from tags', async () => {
+    const post = await parseMarkdown(
+      '---\ntitle: 标签\ndate: 2026-08-01\ntags: [react, 42, true, vite]\n---\n\n正文',
+      'tags',
+    )
+
+    expect(post.tags).toEqual(['react', 'vite'])
+  })
+
+  it('defaults missing or empty description to empty string', async () => {
+    const missing = await parseMarkdown(
+      '---\ntitle: 无描述\ndate: 2026-08-01\n---\n\n正文',
+      'no-desc',
+    )
+    expect(missing.description).toBe('')
+
+    const empty = await parseMarkdown(
+      '---\ntitle: 空描述\ndate: 2026-08-01\ndescription: \n---\n\n正文',
+      'empty-desc',
+    )
+    expect(empty.description).toBe('')
+  })
+})
+
 describe('content manifest', () => {
   it('aggregates fixture posts with newest-first ordering', async () => {
     expect(posts.length).toBeGreaterThan(0)
