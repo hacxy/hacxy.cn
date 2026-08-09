@@ -1,25 +1,11 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router";
-import App from "./App";
-import "./styles/variables.scss";
-import "./styles/reset.scss";
-import "./styles/markdown.scss";
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
 
-const stored = localStorage.getItem("theme");
-const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-const theme =
-  stored === "light" || stored === "dark"
-    ? stored
-    : prefersDark
-      ? "dark"
-      : "light";
-document.documentElement.setAttribute("data-theme", theme);
+import App from './App.tsx'
+import './index.css'
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  </StrictMode>
-);
+    <App />
+  </StrictMode>,
+)

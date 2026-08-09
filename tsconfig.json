@@ -1,23 +1,8 @@
 {
+  "extends": "@hacxy/tsconfig/react.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "isolatedModules": true,
-    "moduleDetection": "force",
+    "outDir": "dist",
     "noEmit": true,
-    "jsx": "react-jsx",
-    "strict": true,
-    "paths": {
-      "virtual:blog-config": ["./virtual.d.ts"],
-      "virtual:blog-posts": ["./virtual.d.ts"],
-      "virtual:github-projects": ["./virtual.d.ts"],
-      "virtual:blog-pages": ["./virtual.d.ts"]
-    }
-  },
-  "include": ["src", "virtual.d.ts", "vite.config.ts", "blog.config.ts"]
+    "allowImportingTsExtensions": true
+  }
 }

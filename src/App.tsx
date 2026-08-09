@@ -1,53 +1,22 @@
-import { useState, useEffect, lazy, Suspense } from "react";
-import { Routes, Route, useLocation } from "react-router";
-import { AnimatePresence } from "motion/react";
-import classNames from "classnames";
-import Header from "./components/Header";
-import Footer from "./components/Footer";
-import CodeStreamBg from "./components/CodeStreamBg";
-import MusicPlayer from "./components/MusicPlayer";
-import PageMetaManager from "./components/PageMetaManager";
-import { getInitialTheme, applyTheme } from "./utils/theme";
-import styles from "./App.module.scss";
+import { useState } from 'react'
 
-const Home = lazy(() => import("./pages/Home"));
-const BlogList = lazy(() => import("./pages/BlogList"));
-const BlogPost = lazy(() => import("./pages/BlogPost"));
-const About = lazy(() => import("./pages/About"));
-const Skills = lazy(() => import("./pages/Skills"));
-
-export default function App() {
-  const location = useLocation();
-
-  const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme);
-
-  useEffect(() => {
-    applyTheme(theme);
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+function App() {
+  const [count, setCount] = useState(0)
 
   return (
-    <div className={classNames("app-wrapper", styles.appWrapper)}>
-      <PageMetaManager />
-      <CodeStreamBg />
-      <Header theme={theme} onToggleTheme={toggleTheme} />
-      <main>
-        <Suspense>
-          <AnimatePresence mode="wait">
-            <Routes location={location} key={location.pathname.split("/")[1] || "/"}>
-              <Route path="/" element={<Home />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/posts" element={<BlogList />} />
-              <Route path="/skills" element={<Skills />} />
-              <Route path="/*" element={<BlogPost />} />
-            </Routes>
-          </AnimatePresence>
-        </Suspense>
-      </main>
-      <Footer />
-      <MusicPlayer />
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">React + Vite + TypeScript</h1>
+        <p className="text-gray-600 mb-8">Powered by @hacxy/kick</p>
+        <button
+          className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          onClick={() => setCount((count) => count + 1)}
+        >
+          Count is {count}
+        </button>
+      </div>
     </div>
-  );
+  )
 }
+
+export default App
