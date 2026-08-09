@@ -34,3 +34,30 @@ test('raw HTML source contains article title without executing JS', async ({ req
   expect(html).toContain('你好，世界')
   expect(html).toContain('Hacxy')
 })
+
+test('direct access to a post returns prerendered HTML containing body text', async ({
+  request,
+}) => {
+  const response = await request.get('/posts/hello-world')
+  expect(response.status()).toBe(200)
+  const html = await response.text()
+
+  // 直达永久链接返回 200，且源码含正文文本（预渲染成立、SEO 成立的核心验收）
+  expect(html).toContain('这是 hacxy.cn 重建后的第一篇文章')
+})
+
+test('post page renders title, date and body content', async ({ page }) => {
+  await page.goto('/posts/hello-world')
+
+  await expect(page.getByRole('heading', { name: '你好，世界' })).toBeVisible()
+  await expect(page.getByText('2026-08-10')).toBeVisible()
+  await expect(page.getByText('这是 hacxy.cn 重建后的第一篇文章')).toBeVisible()
+})
+
+test('clicking a post on the homepage opens the post page', async ({ page }) => {
+  await page.goto('/')
+
+  await page.getByRole('link', { name: '你好，世界' }).click()
+  await expect(page).toHaveURL(/\/posts\/hello-world/)
+  await expect(page.getByRole('heading', { name: '你好，世界' })).toBeVisible()
+})

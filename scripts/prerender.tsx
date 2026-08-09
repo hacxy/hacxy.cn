@@ -4,6 +4,7 @@ import { renderToString } from 'react-dom/server'
 import { StaticRouter } from 'react-router'
 
 import { AppRoutes } from '../src/App.tsx'
+import { posts } from '../src/content/posts.ts'
 
 // 构建期预渲染：对每个路由执行 renderToString（StaticRouter 与客户端
 // BrowserRouter 同为声明式路由，输出可水合），把渲染结果注入 dist/index.html
@@ -11,10 +12,15 @@ import { AppRoutes } from '../src/App.tsx'
 // 输出布局：/<route> 同时产出 <route>.html 与 <route>/index.html，适配
 // vite preview（/<route> → <route>.html）与常规静态服务器（目录 index）。
 
-// 预渲染路由清单：url = 渲染位置，out = 相对 dist 的输出文件
+// 预渲染路由清单：url = 渲染位置，out = 相对 dist 的输出文件。
+// 文章路由来自构建期内容清单（virtual:posts，已过滤 draft），逐篇静态化。
 const routes = [
   { url: '/', out: ['index.html'] },
   { url: '/about', out: ['about.html', 'about/index.html'] },
+  ...posts.map((post) => ({
+    url: `/posts/${post.slug}`,
+    out: [`posts/${post.slug}.html`, `posts/${post.slug}/index.html`],
+  })),
 ]
 
 // 404 兜底：渲染任意未知路径命中 catch-all 路由，产出 404.html
