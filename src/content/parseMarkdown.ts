@@ -1,4 +1,4 @@
-import type { Post } from './types.ts'
+import type { Post, TocItem } from './types.ts'
 import type { Element, ElementContent, Root } from 'hast'
 import type { Highlighter } from 'shiki'
 
@@ -156,16 +156,37 @@ function rehypeHeadingAnchors() {
   }
 }
 
-/** Markdown → HTML（构建期一次性完成：GFM + Shiki 高亮 + 标题锚点） */
-async function renderHtml(content: string, highlighter: Highlighter): Promise<string> {
+/** TOC 提取 rehype 插件：仅收集 h2/h3 及其锚点 id（与标题锚点同树，id 必然一致） */
+function rehypeCollectToc(toc: TocItem[]) {
+  return (tree: Root) => {
+    visit(tree, 'element', (node) => {
+      if (node.tagName === 'h2' || node.tagName === 'h3') {
+        toc.push({
+          id: String(node.properties.id ?? ''),
+          text: elementText(node),
+          level: node.tagName === 'h2' ? 2 : 3,
+        })
+      }
+    })
+  }
+}
+
+/** Markdown → HTML（构建期一次性完成：GFM + Shiki 高亮 + 标题锚点 + TOC 提取） */
+async function renderHtml(
+  content: string,
+  highlighter: Highlighter,
+): Promise<{ html: string; toc: TocItem[] }> {
+  const toc: TocItem[] = []
   const processor = unified()
     .use(remarkParse)
     .use(remarkGfm)
     .use(remarkRehype)
     .use(() => rehypeCodeHighlight(highlighter))
     .use(rehypeHeadingAnchors)
+    .use(() => rehypeCollectToc(toc))
     .use(rehypeStringify)
-  return String(await processor.process(content))
+  const html = String(await processor.process(content))
+  return { html, toc }
 }
 
 /**
@@ -189,7 +210,7 @@ export async function parseMarkdown(raw: string, slug: string): Promise<Post> {
   const updated = normalizeString(data.updated) || undefined
 
   const highlighter = await getHighlighter()
-  const html = await renderHtml(content, highlighter)
+  const { html, toc } = await renderHtml(content, highlighter)
 
-  return { slug, title, date, description, tags, draft, updated, html, toc: [] }
+  return { slug, title, date, description, tags, draft, updated, html, toc }
 }

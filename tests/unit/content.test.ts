@@ -122,6 +122,31 @@ describe('parseMarkdown: heading anchors', () => {
   })
 })
 
+describe('parseMarkdown: toc extraction', () => {
+  it('extracts h2/h3 headings with anchor ids in document order', async () => {
+    const post = await parseMarkdown(
+      `---\ntitle: 目录\ndate: 2026-08-01\n---\n\n## 第一节\n\n### 子节 A\n\n正文\n\n## 第二节\n\n#### 不入目录\n`,
+      'toc',
+    )
+
+    // 仅 h2/h3；id 与标题锚点一致；按文档顺序
+    expect(post.toc).toEqual([
+      { id: '第一节', text: '第一节', level: 2 },
+      { id: '子节-a', text: '子节 A', level: 3 },
+      { id: '第二节', text: '第二节', level: 2 },
+    ])
+  })
+
+  it('returns an empty toc for documents without h2/h3', async () => {
+    const post = await parseMarkdown(
+      '---\ntitle: 无目录\ndate: 2026-08-01\n---\n\n只有一段文字。',
+      'no-toc',
+    )
+
+    expect(post.toc).toEqual([])
+  })
+})
+
 describe('loadPosts', () => {
   it('sorts posts by date descending (newest first)', async () => {
     const sources = [
