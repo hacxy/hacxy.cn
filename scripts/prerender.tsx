@@ -145,3 +145,20 @@ writeFileSync(
   join(distDir, '404.html'),
   template.replace('<div id="root"></div>', `<div id="root">${notFoundHtml}</div>`),
 )
+
+// sitemap.xml：/posts/*（非 draft，来自内容清单）+ /about + /，绝对地址
+const sitemapUrls = ['/', '/about', ...posts.map((post) => `/posts/${post.slug}`)]
+const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapUrls.map((path) => `  <url>\n    <loc>${siteUrl}${path}</loc>\n  </url>`).join('\n')}
+</urlset>
+`
+writeFileSync(join(distDir, 'sitemap.xml'), sitemap)
+
+// robots.txt：允许全站抓取，并声明 sitemap
+const robots = `User-agent: *
+Allow: /
+
+Sitemap: ${siteUrl}/sitemap.xml
+`
+writeFileSync(join(distDir, 'robots.txt'), robots)
