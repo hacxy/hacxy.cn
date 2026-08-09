@@ -300,3 +300,24 @@ test('sitemap.xml and robots.txt exist with correct structure', async ({ request
   expect(robots).toContain('User-agent: *')
   expect(robots).toContain('Sitemap: https://hacxy.cn/sitemap.xml')
 })
+
+test('feed.xml is a valid RSS 2.0 feed with full article content', async ({ request }) => {
+  const feed = await (await request.get('/feed.xml')).text()
+  expect(feed).toContain('<rss version="2.0"')
+  expect(feed).toContain('<channel>')
+  expect(feed).toContain('<language>zh-CN</language>')
+  expect(feed).toContain('<title>Hacxy</title>')
+
+  // 条目含正确标题 / 链接 / 日期（RFC 2822）
+  expect(feed).toContain('<title>用 React + Vite 搭一个构建期预渲染的静态博客</title>')
+  expect(feed).toContain('<link>https://hacxy.cn/posts/prerendered-blog-with-vite</link>')
+  expect(feed).toContain('<pubDate>Tue, 11 Aug 2026 00:00:00 +0000</pubDate>')
+  expect(feed).toContain('<guid isPermaLink="true">https://hacxy.cn/posts/hello-world</guid>')
+
+  // 全文在 content:encoded（CDATA）
+  expect(feed).toContain('<content:encoded>')
+  expect(feed).toContain('构建期一次性完成渲染')
+
+  // draft 文章不在 feed
+  expect(feed).not.toContain('draft-post')
+})
