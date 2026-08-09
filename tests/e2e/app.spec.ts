@@ -143,3 +143,26 @@ test('real article renders full flow: body, code, table and image in raw HTML', 
   // 目录（h2/h3 锚点，github-slugger 会剔除全角冒号）
   expect(html).toContain('href="#渲染策略构建期一次性渲染"')
 })
+
+test('dark mode toggles via button and persists after reload', async ({ page }) => {
+  await page.goto('/')
+  const html = page.locator('html')
+  const initialDark = ((await html.getAttribute('class')) ?? '').includes('dark')
+
+  await page.getByRole('button', { name: '切换暗色模式' }).click()
+  const afterDark = ((await html.getAttribute('class')) ?? '').includes('dark')
+  expect(afterDark).not.toBe(initialDark)
+
+  // 刷新后偏好保持（inline 防闪烁脚本在首帧前读 localStorage 恢复 .dark）
+  await page.reload()
+  const persistedDark = ((await html.getAttribute('class')) ?? '').includes('dark')
+  expect(persistedDark).toBe(afterDark)
+})
+
+test('prerendered HTML ships the inline no-flash theme script', async ({ request }) => {
+  const html = await (await request.get('/')).text()
+
+  // 防闪烁脚本：首帧渲染前按 localStorage 偏好 / 系统偏好设置 .dark
+  expect(html).toContain('localStorage.getItem')
+  expect(html).toContain('prefers-color-scheme')
+})
