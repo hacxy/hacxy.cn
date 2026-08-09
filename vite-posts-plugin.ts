@@ -1,3 +1,4 @@
+import type { Post } from './src/content/types.ts'
 import type { Plugin } from 'vite'
 
 import { readFileSync, readdirSync } from 'node:fs'
@@ -9,7 +10,7 @@ const VIRTUAL_ID = 'virtual:posts'
 const RESOLVED_ID = '\0' + VIRTUAL_ID
 const POSTS_DIR = join(process.cwd(), 'content', 'posts')
 
-function collectPosts() {
+function collectPosts(): Promise<Post[]> {
   const sources = readdirSync(POSTS_DIR)
     .filter((file) => file.endsWith('.md'))
     .map((file) => ({
@@ -30,12 +31,12 @@ export function postsPlugin(): Plugin {
     resolveId(id) {
       if (id === VIRTUAL_ID) return RESOLVED_ID
     },
-    load(id) {
+    async load(id) {
       if (id !== RESOLVED_ID) return
       for (const file of readdirSync(POSTS_DIR)) {
         this.addWatchFile(join(POSTS_DIR, file))
       }
-      return `export default ${JSON.stringify(collectPosts())}`
+      return `export default ${JSON.stringify(await collectPosts())}`
     },
   }
 }

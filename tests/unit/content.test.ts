@@ -18,8 +18,8 @@ draft: false
 `
 
 describe('parseMarkdown', () => {
-  it('parses frontmatter fields and renders markdown to html', () => {
-    const post = parseMarkdown(fixtureRaw, 'hello-world')
+  it('parses frontmatter fields and renders markdown to html', async () => {
+    const post = await parseMarkdown(fixtureRaw, 'hello-world')
 
     expect(post.slug).toBe('hello-world')
     expect(post.title).toBe('你好，世界')
@@ -27,12 +27,12 @@ describe('parseMarkdown', () => {
     expect(post.description).toBe('第一篇测试文章')
     expect(post.tags).toEqual(['hello', 'world'])
     expect(post.draft).toBe(false)
-    expect(post.html).toContain('<h1>标题</h1>')
+    expect(post.html).toContain('<h1 id="标题">标题</h1>')
     expect(post.html).toContain('<p>一段正文。</p>')
   })
 
-  it('defaults missing title to slug and other fields to empty values', () => {
-    const post = parseMarkdown('---\ndate: 2026-08-01\n---\n\n正文', 'no-title')
+  it('defaults missing title to slug and other fields to empty values', async () => {
+    const post = await parseMarkdown('---\ndate: 2026-08-01\n---\n\n正文', 'no-title')
 
     expect(post.title).toBe('no-title')
     expect(post.description).toBe('')
@@ -41,26 +41,31 @@ describe('parseMarkdown', () => {
     expect(post.updated).toBeUndefined()
   })
 
-  it('normalizes date parsed as a Date object to YYYY-MM-DD', () => {
-    const post = parseMarkdown('---\ntitle: 日期\ndate: 2026-08-05\n---\n\n正文', 'date-object')
+  it('normalizes date parsed as a Date object to YYYY-MM-DD', async () => {
+    const post = await parseMarkdown(
+      '---\ntitle: 日期\ndate: 2026-08-05\n---\n\n正文',
+      'date-object',
+    )
 
     expect(post.date).toBe('2026-08-05')
   })
 
-  it('throws when date is missing', () => {
-    expect(() => parseMarkdown('---\ntitle: 无日期\n---\n\n正文', 'no-date')).toThrow(/date/)
-  })
-
-  it('throws when date is invalid', () => {
-    expect(() => parseMarkdown('---\ntitle: 坏日期\ndate: 明天\n---\n\n正文', 'bad-date')).toThrow(
+  it('throws when date is missing', async () => {
+    await expect(() => parseMarkdown('---\ntitle: 无日期\n---\n\n正文', 'no-date')).rejects.toThrow(
       /date/,
     )
   })
 
-  it('renders GFM tables and task lists', () => {
+  it('throws when date is invalid', async () => {
+    await expect(() =>
+      parseMarkdown('---\ntitle: 坏日期\ndate: 明天\n---\n\n正文', 'bad-date'),
+    ).rejects.toThrow(/date/)
+  })
+
+  it('renders GFM tables and task lists', async () => {
     const raw = `---\ntitle: GFM\ndate: 2026-08-02\n---\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\n- [x] 已完成\n- [ ] 未完成`
 
-    const post = parseMarkdown(raw, 'gfm')
+    const post = await parseMarkdown(raw, 'gfm')
 
     expect(post.html).toContain('<table>')
     expect(post.html).toContain('<input type="checkbox" checked disabled>')
@@ -68,32 +73,81 @@ describe('parseMarkdown', () => {
   })
 })
 
+describe('parseMarkdown: code highlighting (shiki dual themes)', () => {
+  it('renders code blocks with shiki dual themes and keeps the language marker', async () => {
+    const post = await parseMarkdown(
+      '---\ntitle: 代码\ndate: 2026-08-01\n---\n\n```ts\nconst x: number = 1\n```',
+      'code',
+    )
+
+    expect(post.html).toContain('<pre class="shiki')
+    expect(post.html).toContain('shiki-themes')
+    // 双主题：亮色内联 + 暗色 CSS 变量，暗色模式无需重新生成 HTML
+    expect(post.html).toContain('--shiki-dark')
+    expect(post.html).toContain('language-ts')
+  })
+
+  it('leaves code blocks without a language untouched', async () => {
+    const post = await parseMarkdown(
+      '---\ntitle: 代码\ndate: 2026-08-01\n---\n\n```\nplain text\n```',
+      'plain',
+    )
+
+    expect(post.html).not.toContain('shiki')
+    expect(post.html).toContain('<pre><code>plain text')
+  })
+
+  it('falls back to plain text for unknown languages without failing the build', async () => {
+    const post = await parseMarkdown(
+      '---\ntitle: 代码\ndate: 2026-08-01\n---\n\n```foobar\nwhatever\n```',
+      'unknown-lang',
+    )
+
+    expect(post.html).not.toContain('shiki')
+    expect(post.html).toContain('whatever')
+  })
+})
+
+describe('parseMarkdown: heading anchors', () => {
+  it('adds github-style anchor ids to headings', async () => {
+    const post = await parseMarkdown(
+      '---\ntitle: 锚点\ndate: 2026-08-01\n---\n\n## 小节 One\n\n### 子节 two!\n\n## 小节 One\n',
+      'anchors',
+    )
+
+    expect(post.html).toContain('<h2 id="小节-one">')
+    expect(post.html).toContain('<h3 id="子节-two">')
+    // 重复标题自动去重，保证锚点 id 唯一
+    expect(post.html).toContain('<h2 id="小节-one-1">')
+  })
+})
+
 describe('loadPosts', () => {
-  it('sorts posts by date descending (newest first)', () => {
+  it('sorts posts by date descending (newest first)', async () => {
     const sources = [
       { slug: 'old', raw: '---\ndate: 2026-01-01\n---\n\n旧' },
       { slug: 'new', raw: '---\ndate: 2026-08-10\n---\n\n新' },
       { slug: 'mid', raw: '---\ndate: 2026-05-05\n---\n\n中' },
     ]
 
-    const posts = loadPosts(sources)
+    const posts = await loadPosts(sources)
 
     expect(posts.map((post) => post.slug)).toEqual(['new', 'mid', 'old'])
   })
 
-  it('filters out draft posts', () => {
+  it('filters out draft posts', async () => {
     const sources = [
       { slug: 'published', raw: '---\ndate: 2026-08-10\n---\n\n已发布' },
       { slug: 'draft', raw: '---\ndate: 2026-08-09\ndraft: true\n---\n\n草稿' },
     ]
 
-    const posts = loadPosts(sources)
+    const posts = await loadPosts(sources)
 
     expect(posts.map((post) => post.slug)).toEqual(['published'])
   })
 
-  it('returns an empty array for empty sources', () => {
-    expect(loadPosts([])).toEqual([])
+  it('returns an empty array for empty sources', async () => {
+    expect(await loadPosts([])).toEqual([])
   })
 })
 

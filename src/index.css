@@ -1,1 +1,13 @@
 @import 'tailwindcss';
+
+/*
+ * Shiki 双主题代码高亮：亮色为内联 style，暗色通过 --shiki-dark 变量切换。
+ * 站点暗色模式（html.dark class）在阶段 4 落地时，将本选择器改为 html.dark。
+ */
+@media (prefers-color-scheme: dark) {
+  .shiki,
+  .shiki span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+  }
+}
