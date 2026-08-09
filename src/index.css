@@ -3,6 +3,44 @@
 /* 暗色模式为 class 策略：<html> 上的 .dark 由 inline 防闪烁脚本/切换按钮控制 */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* JetBrains Mono 自托管（latin 子集，约 21KB/字重）：站点名/日期/元数据/代码 */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('/fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('/fonts/jetbrains-mono-latin-700-normal.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* 设计基调：正文 = 系统无衬线栈（PingFang SC / Microsoft YaHei / Noto Sans SC）；
+   代码与元数据 = JetBrains Mono；灰阶主色 + 紫色强调色（链接/当前导航） */
+@theme {
+  --font-sans:
+    system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --color-accent: #8250df;
+  --color-muted: #59636e;
+}
+
+html.dark {
+  --color-accent: #a371f7;
+  --color-muted: #8b949e;
+}
+
 @layer base {
   html {
     background-color: #fff;
@@ -11,6 +49,14 @@
   html.dark {
     background-color: #0d1117;
     color: #e6edf3;
+  }
+  body {
+    font-family: var(--font-sans);
+  }
+  /* 代码块与行内代码统一使用 JetBrains Mono（shiki 输出为原始 HTML） */
+  pre,
+  code {
+    font-family: var(--font-mono);
   }
 }
 

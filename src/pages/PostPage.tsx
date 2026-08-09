@@ -24,7 +24,9 @@ export default function PostPage() {
   return (
     <article>
       <h1>{post.title}</h1>
-      <time dateTime={post.date}>{post.date}</time>
+      <time dateTime={post.date} className="font-mono text-muted">
+        {post.date}
+      </time>
 
       {post.toc.length > 0 && (
         <nav aria-label="文章目录">

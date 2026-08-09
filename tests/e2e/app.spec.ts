@@ -166,3 +166,60 @@ test('prerendered HTML ships the inline no-flash theme script', async ({ request
   expect(html).toContain('localStorage.getItem')
   expect(html).toContain('prefers-color-scheme')
 })
+
+test('geek-style design: mono fonts for name/date, purple accent for links and active nav', async ({
+  page,
+}) => {
+  await page.goto('/')
+
+  // 站点名与日期元数据使用等宽字体（JetBrains Mono 自托管）
+  const nameFont = await page
+    .getByRole('heading', { name: 'Hacxy' })
+    .evaluate((el) => getComputedStyle(el).fontFamily)
+  expect(nameFont).toContain('JetBrains Mono')
+
+  const dateFont = await page
+    .getByText('2026-08-11')
+    .first()
+    .evaluate((el) => getComputedStyle(el).fontFamily)
+  expect(dateFont).toContain('JetBrains Mono')
+
+  // 链接为紫色强调色（#8250df）
+  const linkColor = await page
+    .getByRole('link', { name: '你好，世界' })
+    .evaluate((el) => getComputedStyle(el).color)
+  expect(linkColor).toBe('rgb(130, 80, 223)')
+
+  // 当前导航高亮为紫色（SPA 导航下 className 更新晚于 URL，用自动重试断言等待）
+  await page.getByRole('link', { name: '关于' }).click()
+  await expect(page).toHaveURL(/\/about/)
+  const aboutNav = page.getByRole('link', { name: '关于' })
+  await expect(aboutNav).toHaveClass(/text-accent/)
+  const activeNavColor = await aboutNav.evaluate((el) => getComputedStyle(el).color)
+  expect(activeNavColor).toBe('rgb(130, 80, 223)')
+})
+
+test('fonts are self-hosted: woff2 on same origin, no external font requests', async ({
+  page,
+  request,
+}) => {
+  // @font-face 在样式表里：从页面 HTML 找到 CSS 入口，断言其引用自托管字体
+  const html = await (await request.get('/')).text()
+  const cssHref = html.match(/href="([^"]+\.css)"/)?.[1]
+  expect(cssHref).toBeTruthy()
+  const css = await (await request.get(cssHref as string)).text()
+  expect(css).toContain('/fonts/jetbrains-mono-latin-400-normal.woff2')
+  expect(css).not.toContain('fonts.googleapis.com')
+
+  // 页面加载不发起任何外部字体请求
+  const external: string[] = []
+  page.on('request', (req) => {
+    if (/fonts\.(googleapis|gstatic)\.com/.test(req.url())) external.push(req.url())
+  })
+  await page.goto('/')
+  expect(external).toHaveLength(0)
+
+  // 字体文件真实可访问
+  const font = await request.get('/fonts/jetbrains-mono-latin-400-normal.woff2')
+  expect(font.status()).toBe(200)
+})
