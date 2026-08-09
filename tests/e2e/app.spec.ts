@@ -1,22 +1,27 @@
 import { expect, test } from '@playwright/test'
 
-test('renders the landing page', async ({ page }) => {
+test('homepage shows site name and the fixture post', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { name: 'React + Vite + TypeScript' })).toBeVisible()
-  await expect(page.getByText('Powered by @hacxy/kick')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Hacxy' })).toBeVisible()
+  await expect(page.getByText('你好，世界')).toBeVisible()
+  await expect(page.getByText('2026-08-10')).toBeVisible()
 })
 
-test('counter increments on click', async ({ page }) => {
+test('nav switches between posts list and about page', async ({ page }) => {
   await page.goto('/')
 
-  const counterButton = page.getByRole('button', { name: /^Count is \d+$/ })
-  await expect(counterButton).toHaveText('Count is 0')
+  await page.getByRole('link', { name: '关于' }).click()
+  await expect(page).toHaveURL(/\/about/)
+  await expect(page.getByRole('heading', { name: '关于' })).toBeVisible()
 
-  await counterButton.click()
-  await expect(counterButton).toHaveText('Count is 1')
+  await page.getByRole('link', { name: '文章' }).click()
+  await expect(page).toHaveURL('/')
+  await expect(page.getByRole('heading', { name: 'Hacxy' })).toBeVisible()
+})
 
-  await counterButton.click()
-  await counterButton.click()
-  await expect(counterButton).toHaveText('Count is 3')
+test('unknown path renders 404', async ({ page }) => {
+  await page.goto('/definitely-not-a-page')
+
+  await expect(page.getByRole('heading', { name: '404' })).toBeVisible()
 })
