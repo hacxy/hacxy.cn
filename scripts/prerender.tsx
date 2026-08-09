@@ -31,6 +31,8 @@ interface HeadMeta {
   /** 站点相对路径，如 /posts/hello-world */
   canonical: string
   ogType: 'website' | 'article'
+  /** OG 图相对路径（构建期生成，见 renderOgImage） */
+  ogImage?: string
   jsonLd?: string
 }
 
@@ -44,9 +46,52 @@ function renderHead(meta: HeadMeta): string {
     `<meta property="og:title" content="${escapeHtml(meta.title)}" />`,
     `<meta property="og:description" content="${escapeHtml(meta.description)}" />`,
     `<meta property="og:url" content="${url}" />`,
+    ...(meta.ogImage ? [`<meta property="og:image" content="${siteUrl}${meta.ogImage}" />`] : []),
     `<meta name="twitter:card" content="summary" />`,
     ...(meta.jsonLd ? [`<script type="application/ld+json">${meta.jsonLd}</script>`] : []),
   ].join('\n    ')
+}
+
+/** 把标题按字符数折成最多 3 行（模板图排版用） */
+function wrapTitle(title: string, maxChars = 20): string[] {
+  const chars = [...title]
+  const lines: string[] = []
+  let current = ''
+  for (const ch of chars) {
+    if (current.length >= maxChars) {
+      lines.push(current)
+      current = ch
+    } else {
+      current += ch
+    }
+  }
+  if (current) lines.push(current)
+  return lines.slice(0, 3)
+}
+
+/**
+ * 极客风 OG 图模板（PRD：紫底 + 等宽字体 + 文章标题）：
+ * 深色底 + 紫色强调竖条 + mono 站点名/标题，1200x630，构建期生成 SVG。
+ * 注：SVG 文本由爬虫端按字体栈渲染，PNG 栅格化留作后续优化。
+ */
+function renderOgImage(siteLabel: string, title: string): string {
+  const titleLines = wrapTitle(title)
+  const lineHeight = 60
+  const startY = 330 - ((titleLines.length - 1) * lineHeight) / 2
+  const titleText = titleLines
+    .map(
+      (line, i) =>
+        `    <text x="96" y="${startY + i * lineHeight}" font-family="JetBrains Mono, monospace" font-size="52" fill="#e6edf3">${escapeXml(line)}</text>`,
+    )
+    .join('\n')
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0d1117"/>
+  <rect x="64" y="0" width="4" height="630" fill="#a371f7"/>
+  <text x="96" y="120" font-family="JetBrains Mono, monospace" font-size="32" fill="#a371f7">${escapeXml(siteLabel)}</text>
+${titleText}
+  <text x="96" y="560" font-family="JetBrains Mono, monospace" font-size="24" fill="#8b949e">${escapeXml(siteUrl)}</text>
+</svg>
+`
 }
 
 /** JSON-LD Article 结构化数据（仅文章页） */
@@ -81,7 +126,13 @@ const routes: Route[] = [
     url: '/',
     title: siteName,
     out: ['index.html'],
-    head: renderHead({ title: siteName, description: tagline, canonical: '/', ogType: 'website' }),
+    head: renderHead({
+      title: siteName,
+      description: tagline,
+      canonical: '/',
+      ogType: 'website',
+      ogImage: '/og/home.svg',
+    }),
   },
   {
     url: '/about',
@@ -103,6 +154,7 @@ const routes: Route[] = [
       description: post.description || tagline,
       canonical: `/posts/${post.slug}`,
       ogType: 'article',
+      ogImage: `/og/posts/${post.slug}.svg`,
       jsonLd: renderArticleJsonLd(post),
     }),
   })),
@@ -206,3 +258,11 @@ ${feedItems}
 </rss>
 `
 writeFileSync(join(distDir, 'feed.xml'), feed)
+
+// 极客风 OG 图模板：首页 + 每篇非 draft 文章各生成一张（紫底 + mono + 标题）
+const ogDir = join(distDir, 'og', 'posts')
+mkdirSync(ogDir, { recursive: true })
+writeFileSync(join(distDir, 'og', 'home.svg'), renderOgImage(siteName, tagline))
+for (const post of posts) {
+  writeFileSync(join(ogDir, `${post.slug}.svg`), renderOgImage(siteName, post.title))
+}
