@@ -162,3 +162,47 @@ Allow: /
 Sitemap: ${siteUrl}/sitemap.xml
 `
 writeFileSync(join(distDir, 'robots.txt'), robots)
+
+// feed.xml：RSS 2.0，条目含全文（content:encoded）+ 正确标题/日期/链接；
+// draft 已由内容清单过滤，不进入 feed（PRD 用户故事 24/25）
+function escapeXml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+}
+
+/** YYYY-MM-DD → RFC 2822（RSS pubDate，UTC） */
+function toRfc2822(date: string): string {
+  const [year, month, day] = date.split('-').map(Number)
+  return new Date(Date.UTC(year as number, (month as number) - 1, day as number))
+    .toUTCString()
+    .replace('GMT', '+0000')
+}
+
+const feedItems = posts
+  .map(
+    (post) => `  <item>
+    <title>${escapeXml(post.title)}</title>
+    <link>${siteUrl}/posts/${post.slug}</link>
+    <guid isPermaLink="true">${siteUrl}/posts/${post.slug}</guid>
+    <pubDate>${toRfc2822(post.date)}</pubDate>
+    <description>${escapeXml(post.description)}</description>
+    <content:encoded><![CDATA[${post.html}]]></content:encoded>
+  </item>`,
+  )
+  .join('\n')
+
+const feed = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>${escapeXml(siteName)}</title>
+    <link>${siteUrl}/</link>
+    <description>${escapeXml(tagline)}</description>
+    <language>zh-CN</language>
+${feedItems}
+  </channel>
+</rss>
+`
+writeFileSync(join(distDir, 'feed.xml'), feed)
