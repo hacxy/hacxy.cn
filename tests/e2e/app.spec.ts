@@ -285,3 +285,18 @@ test('every page ships OG/meta/canonical; posts ship JSON-LD Article', async ({ 
   expect(post).toContain('"dateModified": "2026-08-12"')
   expect(post).toContain('"headline": "用 React + Vite 搭一个构建期预渲染的静态博客"')
 })
+
+test('sitemap.xml and robots.txt exist with correct structure', async ({ request }) => {
+  const sitemap = await (await request.get('/sitemap.xml')).text()
+  expect(sitemap).toContain('<urlset')
+  expect(sitemap).toContain('<loc>https://hacxy.cn/</loc>')
+  expect(sitemap).toContain('<loc>https://hacxy.cn/about</loc>')
+  expect(sitemap).toContain('<loc>https://hacxy.cn/posts/hello-world</loc>')
+  expect(sitemap).toContain('<loc>https://hacxy.cn/posts/prerendered-blog-with-vite</loc>')
+  // draft 文章不在 sitemap
+  expect(sitemap).not.toContain('draft-post')
+
+  const robots = await (await request.get('/robots.txt')).text()
+  expect(robots).toContain('User-agent: *')
+  expect(robots).toContain('Sitemap: https://hacxy.cn/sitemap.xml')
+})
