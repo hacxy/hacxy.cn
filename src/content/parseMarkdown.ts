@@ -156,6 +156,26 @@ function rehypeHeadingAnchors() {
   }
 }
 
+/**
+ * 图片引用重写 rehype 插件：文章同目录 assets/ 的相对引用（assets/ 或 ./assets/）
+ * 重写为站点绝对路径 /assets/，与页面 URL（/posts/:slug 或 /posts/:slug/）解耦；
+ * 绝对路径与外链原样保留。
+ */
+function rehypeRewriteImageSrc() {
+  return (tree: Root) => {
+    visit(tree, 'element', (node) => {
+      if (node.tagName !== 'img') return
+      const src = node.properties.src
+      if (typeof src !== 'string') return
+      if (src.startsWith('assets/')) {
+        node.properties.src = `/assets/${src.slice('assets/'.length)}`
+      } else if (src.startsWith('./assets/')) {
+        node.properties.src = `/assets/${src.slice('./assets/'.length)}`
+      }
+    })
+  }
+}
+
 /** TOC 提取 rehype 插件：仅收集 h2/h3 及其锚点 id（与标题锚点同树，id 必然一致） */
 function rehypeCollectToc(toc: TocItem[]) {
   return (tree: Root) => {
@@ -183,6 +203,7 @@ async function renderHtml(
     .use(remarkRehype)
     .use(() => rehypeCodeHighlight(highlighter))
     .use(rehypeHeadingAnchors)
+    .use(rehypeRewriteImageSrc)
     .use(() => rehypeCollectToc(toc))
     .use(rehypeStringify)
   const html = String(await processor.process(content))

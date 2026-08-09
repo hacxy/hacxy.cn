@@ -15,3 +15,7 @@ tags: [随笔]
 ```ts
 console.log('hello, world')
 ```
+
+## 图片
+
+![一张示意图](assets/fixture.png)

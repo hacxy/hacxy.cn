@@ -122,6 +122,22 @@ describe('parseMarkdown: heading anchors', () => {
   })
 })
 
+describe('parseMarkdown: image references', () => {
+  it('rewrites relative assets/ img srcs to absolute /assets/ paths', async () => {
+    const post = await parseMarkdown(
+      `---\ntitle: 图片\ndate: 2026-08-01\n---\n\n![示意图](assets/diagram.png)\n\n![点前缀](./assets/icon.svg)\n\n![绝对路径](/images/x.png)\n\n![外链](https://example.com/a.png)\n`,
+      'images',
+    )
+
+    // 文章同目录 assets/ 引用重写为站点绝对路径（构建期完成，与页面 URL 解耦）
+    expect(post.html).toContain('src="/assets/diagram.png"')
+    expect(post.html).toContain('src="/assets/icon.svg"')
+    // 绝对路径与外链原样保留
+    expect(post.html).toContain('src="/images/x.png"')
+    expect(post.html).toContain('src="https://example.com/a.png"')
+  })
+})
+
 describe('parseMarkdown: toc extraction', () => {
   it('extracts h2/h3 headings with anchor ids in document order', async () => {
     const post = await parseMarkdown(

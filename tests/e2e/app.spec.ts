@@ -112,3 +112,13 @@ test('draft posts are excluded from the build output', async ({ request }) => {
   const draftHtml = await (await request.get('/posts/draft-post')).text()
   expect(draftHtml).not.toContain('草稿正文')
 })
+
+test('post images in assets/ are copied to the build and accessible', async ({ request }) => {
+  // 文章 HTML 中 assets/ 引用被重写为站点绝对路径
+  const html = await (await request.get('/posts/hello-world')).text()
+  expect(html).toContain('/assets/fixture.png')
+
+  // 图片文件在构建产物中真实存在且可访问
+  const image = await request.get('/assets/fixture.png')
+  expect(image.status()).toBe(200)
+})
