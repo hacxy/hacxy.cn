@@ -321,3 +321,28 @@ test('feed.xml is a valid RSS 2.0 feed with full article content', async ({ requ
   // draft 文章不在 feed
   expect(feed).not.toContain('draft-post')
 })
+
+test('geek-style OG images are generated and referenced', async ({ request }) => {
+  // 文章页 og:image 指向构建期生成的模板图
+  const post = await (await request.get('/posts/prerendered-blog-with-vite')).text()
+  expect(post).toContain(
+    'property="og:image" content="https://hacxy.cn/og/posts/prerendered-blog-with-vite.svg"',
+  )
+
+  const og = await (await request.get('/og/posts/prerendered-blog-with-vite.svg')).text()
+  expect(og).toContain('<svg')
+  expect(og).toContain('width="1200" height="630"')
+  // 模板要素：紫底 + 等宽字体 + 文章标题（标题可能折行，剥离标签后断言全文）
+  expect(og).toContain('a371f7')
+  expect(og).toContain('JetBrains Mono')
+  const ogText = og
+    .replace(/<\/text>\s*<text[^>]*>/g, '') // 折行标题的相邻 <text> 合并
+    .replace(/<[^>]+>/g, '')
+  expect(ogText).toContain('用 React + Vite 搭一个构建期预渲染的静态博客')
+
+  // 首页 og:image 同样存在
+  const home = await (await request.get('/')).text()
+  expect(home).toContain('property="og:image" content="https://hacxy.cn/og/home.svg"')
+  const homeOg = await (await request.get('/og/home.svg')).text()
+  expect(homeOg).toContain('Hacxy')
+})
