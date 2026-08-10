@@ -314,7 +314,7 @@ html.dark .bg-texture {
 }
 
 /* 底部 caption：● live 红点 + 弱化 mono 文字（与正文以细线分隔）；
-   live 点脉冲有限次（4 次）后停在常亮，不循环 */
+   可见文本精简为「live」——去掉演出说明（issue #24） */
 .hero-terminal-caption {
   display: flex;
   align-items: center;
@@ -330,8 +330,8 @@ html.dark .bg-texture {
   height: 0.5rem;
   border-radius: 9999px;
   background: #ef4444;
-  animation: live-pulse 0.9s ease-in-out 4 both;
-  animation-delay: 0.2s;
+  /* 软脉冲无限循环（0.9s，opacity 1↔0.35，红色不变）：live 状态持续闪烁指示 */
+  animation: live-pulse 0.9s ease-in-out infinite;
 }
 @keyframes live-pulse {
   0%,
@@ -472,7 +472,8 @@ html.dark .terminal-dot--green {
 }
 
 /* 无障碍：prefers-reduced-motion 下禁用打字机 / 入场 / 工具脉冲 / live 点 / 光标闪烁
-   动画，全文直接可见（无动画报错；演出编排为纯 CSS，无 JS 参与） */
+   动画，全文直接可见（live 红点静止、演出全文直接可见；无动画报错；演出编排为纯
+   CSS，无 JS 参与） */
 @media (prefers-reduced-motion: reduce) {
   .hero-enter,
   .hero-turn,
