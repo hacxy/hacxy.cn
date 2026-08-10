@@ -120,6 +120,13 @@ html.dark {
   }
 }
 
+/* 全站平滑滚动（issue #30）：目录锚点点击 = 原生 hash 跳转 + CSS 平滑滚动
+   （标题 scroll-margin-top 保证定位偏移，见 .post-body h2/h3/h4）；
+   prefers-reduced-motion 下回退瞬时跳转（见底部 reduce 块） */
+html {
+  scroll-behavior: smooth;
+}
+
 /* 高分屏根字号阶梯缩放（issue #26）：视口 ≥1920px 根字号升至 18px（1.125rem），
    ≥2560px 升至 20px（1.25rem）——正文/终端/文章行/导航全部随根字号等比放大，
    内容列宽随 rem 自然变宽（max-w-2xl = 42rem：672→756→840px，中文行宽仍在舒适区）；
@@ -552,16 +559,25 @@ html.dark .terminal-dot--green {
   color: var(--color-muted);
 }
 
-/* ===== 文章页两栏布局（issue #29）：左栏文章索引 + 中栏正文 ===== */
+/* ===== 文章页布局（issue #29 两栏 + issue #30 三栏）：左栏文章索引 + 中栏正文 + 右栏目录 ===== */
 
-/* 两栏网格（≥768px）：左栏 15rem 常驻文章索引 + 中栏正文（minmax 收窄），
-   右缘空位为未来右栏（目录）预留（issue #28 三栏地基） */
+/* 两栏网格（≥768px）：左栏 15rem 常驻文章索引 + 中栏正文（minmax 收窄）；
+   三栏（issue #30）仅 ≥1024px 且文章有目录时启用（见下），
+   目录为空（.post-layout--no-toc）维持两栏 */
 .post-layout {
   display: grid;
   grid-template-columns: 15rem minmax(0, 1fr);
   gap: 2.5rem;
   /* 子项各自撑高（不拉伸）：sticky 才有所在轨道内的滚动余量 */
   align-items: start;
+}
+
+/* 三栏（issue #30）：≥1024px 且文章有目录时，右栏 11.5rem 锚点目录常驻
+   （左 15rem 索引 + 中正文收窄至 ~600px + 右目录；无目录时右栏整栏隐藏、退化为两栏） */
+@media (min-width: 1024px) {
+  .post-layout:not(.post-layout--no-toc) {
+    grid-template-columns: 15rem minmax(0, 1fr) 11.5rem;
+  }
 }
 
 /* 左栏：sticky 常驻，跟随滚动至正文末尾（top 2rem 与页内间距同节奏）；
@@ -585,6 +601,78 @@ html.dark .terminal-dot--green {
 /* 中栏正文：自然收窄至 ~600px（37.5rem，中文 ~35 字/行）阅读宽度 */
 .post-main {
   max-width: 37.5rem;
+}
+
+/* ===== 右栏锚点目录（issue #30）：h2/h3 两级 + scroll-spy ===== */
+
+/* 右栏：sticky 常驻（top 2rem 与左栏/页内间距同节奏）；<1024px 整栏隐藏
+   （仅渲染于有目录的文章；目录为空时组件不渲染，无空栏） */
+.post-toc {
+  display: none;
+  position: sticky;
+  top: 2rem;
+}
+@media (min-width: 1024px) {
+  .post-toc {
+    display: block;
+  }
+}
+
+/* 「目录」标签：mono 弱化小标（与头部元数据同层级）+ 细线分隔 */
+.post-toc-title {
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-prose-border);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+/* 列表：h2/h3 两级、行距紧凑；长标题折行不撑破右栏 */
+.post-toc-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* 目录链接：普通文本外观（不加粗、无下划线，与顶部导航同机制），
+   hover 弱化下划线；active（当前章节，scroll-spy）加粗 + 下划线——
+   全站导航高亮同一机制（.site-nav a.nav-active） */
+.post-toc a {
+  font-weight: 400;
+  text-decoration: none;
+  color: var(--color-muted);
+}
+.post-toc a:hover {
+  background-color: transparent;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.post-toc a.post-toc-active {
+  font-weight: 700;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* h3 子节缩进（两级目录层级） */
+.post-toc-item--h3 {
+  padding-left: 1rem;
+}
+
+/* 标题锚点定位偏移（issue #30）：原生 hash 跳转落到标题时预留 2rem
+   （与左右 sticky 栏 top 同节奏），配合 html { scroll-behavior: smooth } */
+.post-body h2,
+.post-body h3,
+.post-body h4 {
+  scroll-margin-top: 2rem;
 }
 
 /* <768px：退回单栏——左栏索引隐藏（抽屉交互由后续工单接入），
@@ -732,6 +820,10 @@ html.dark .terminal-dot--green {
   .terminal-cursor,
   .post-row-enter {
     animation: none;
+  }
+  /* 平滑滚动回退瞬时跳转（issue #30） */
+  html {
+    scroll-behavior: auto;
   }
   /* 行提示符淡入过渡同为动画：reduce 下禁用（提示符/标题反馈本身保留，瞬时切换） */
   .post-row-prompt {
