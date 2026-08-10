@@ -1504,3 +1504,205 @@ test('post page left index: full list date desc, current highlighted, sticky, cl
   )
   expect(overflow).toBe(false)
 })
+
+/* ===== 移动端抽屉（issue #31）：窄屏侧栏收进覆盖式抽屉 ===== */
+
+test('mobile drawer: <1024px 目录 button opens right TOC drawer with working scroll-spy; overlay/Esc/close dismiss (issue #31)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1000, height: 800 })
+  await page.goto('/posts/prerendered-blog-with-vite')
+
+  // <1024px：「目录」按钮可见，「文章」按钮隐藏（768–1023px 左栏仍为两栏常驻侧栏）
+  const tocTrigger = page.getByRole('button', { name: '目录' })
+  await expect(tocTrigger).toBeVisible()
+  await expect(page.getByRole('button', { name: '文章', exact: true })).toHaveCount(0)
+  // 桌面右栏整栏隐藏（功能收进抽屉）
+  await expect(page.locator('.post-toc')).toBeHidden()
+
+  // 点击「目录」→ 右侧抽屉滑出；内容复用桌面目录组件（同一导航语义）
+  await tocTrigger.click()
+  const dialog = page.getByRole('dialog', { name: '文章目录' })
+  await expect(dialog).toBeVisible()
+  const drawerToc = dialog.getByRole('navigation', { name: '文章目录' })
+  await expect(drawerToc).toBeVisible()
+  await expect(drawerToc.getByRole('link', { name: '渲染策略：构建期一次性渲染' })).toBeVisible()
+
+  // 打开时锁定正文滚动；焦点移入抽屉（关闭按钮）；触发按钮标记打开状态
+  expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe('hidden')
+  await expect(page.getByRole('button', { name: '关闭' })).toBeFocused()
+  await expect(tocTrigger).toHaveAttribute('aria-expanded', 'true')
+
+  // Esc 收起：抽屉卸载、滚动还原、焦点归还触发按钮
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe('')
+  await expect(tocTrigger).toBeFocused()
+
+  // 抽屉内 scroll-spy 与桌面一致：先滚动到「踩过的坑」位于观察带，再打开抽屉 → 该项高亮
+  // （用 el.click() 打开避免 Playwright 自动滚动回触发按钮、破坏滚动位置）
+  await page.evaluate(() => {
+    const heading = document.getElementById('踩过的坑') as HTMLElement
+    const y = heading.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.35
+    window.scrollTo({ top: y, behavior: 'instant' })
+  })
+  await tocTrigger.evaluate((el) => (el as HTMLElement).click())
+  await expect(dialog).toBeVisible()
+  await expect(drawerToc.getByRole('link', { name: '踩过的坑' })).toHaveClass(/post-toc-active/)
+
+  // 遮罩点击收起
+  await page.locator('.drawer-overlay').click({ position: { x: 20, y: 400 } })
+  await expect(dialog).toHaveCount(0)
+
+  // 关闭按钮收起（焦点归还）
+  await tocTrigger.click()
+  await expect(dialog).toBeVisible()
+  await page.getByRole('button', { name: '关闭' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(tocTrigger).toBeFocused()
+})
+
+test('mobile drawer: <768px 文章 button opens left index drawer; current article highlighted; row click navigates (issue #31)', async ({
+  page,
+}) => {
+  // 期望值从内容源计算（与内容清单同一契约：非 draft 文章、日期倒序）
+  const postsDir = new URL('../../content/posts/', import.meta.url)
+  const published = readdirSync(postsDir)
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => matter(readFileSync(new URL(file, postsDir), 'utf8')))
+    .filter((parsed) => !parsed.data.draft)
+    .sort((a, b) => (normalizeDate(a.data.date) < normalizeDate(b.data.date) ? 1 : -1))
+
+  await page.setViewportSize({ width: 600, height: 800 })
+  await page.goto('/posts/prerendered-blog-with-vite')
+
+  // <768px：两个按钮都可见；桌面左栏整栏隐藏（功能收进抽屉）
+  await expect(page.getByRole('button', { name: '目录' })).toBeVisible()
+  const indexTrigger = page.getByRole('button', { name: '文章', exact: true })
+  await expect(indexTrigger).toBeVisible()
+  await expect(page.getByRole('navigation', { name: '文章索引' })).toBeHidden()
+
+  // 点击「文章」→ 左侧抽屉滑出；内容复用桌面左栏组件（当前文章高亮 + aria-current）
+  await indexTrigger.click()
+  const dialog = page.getByRole('dialog', { name: '文章索引' })
+  await expect(dialog).toBeVisible()
+  const drawerIndex = dialog.getByRole('navigation', { name: '文章索引' })
+  await expect(drawerIndex).toBeVisible()
+  const current = drawerIndex.getByRole('link', {
+    name: /用 React \+ Vite 搭一个构建期预渲染的静态博客/,
+  })
+  await expect(current).toHaveClass(/nav-active/)
+  await expect(current).toHaveAttribute('aria-current', 'page')
+
+  // 抽屉内容与桌面侧栏一致：全文章列表（数量/顺序与内容源一致）+ mono 日期
+  await expect(drawerIndex.locator('.post-row')).toHaveCount(published.length)
+  await expect(drawerIndex.locator('.post-row-date').first()).toHaveText(
+    normalizeDate(published[0]?.data.date),
+  )
+
+  // 点击抽屉内文章行 → 跳转对应文章页（抽屉随页面卸载）
+  await drawerIndex.getByRole('link', { name: '第二篇文章' }).click()
+  await expect(page).toHaveURL(/\/posts\/second-post/)
+})
+
+test('desktop ≥1024px: drawer buttons hidden (no Tab insertion), sidebars persistent (issue #31)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/posts/prerendered-blog-with-vite')
+
+  // 按钮整条隐藏：display:none → 不进可访问性树、不占 Tab 序
+  await expect(page.getByRole('button', { name: '目录' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '文章', exact: true })).toHaveCount(0)
+  await expect(page.locator('.post-drawer-bar')).toBeHidden()
+
+  // 侧栏常驻：左索引 + 右目录均可见
+  await expect(page.getByRole('navigation', { name: '文章索引' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: '文章目录' })).toBeVisible()
+
+  // Tab 顺序无变化：文章 → 关于 → 主题 → GitHub → RSS → 左栏第一行（无抽屉按钮插队）
+  const nav = page.locator('.site-nav')
+  for (let i = 0; i < 4; i++) await page.keyboard.press('Tab')
+  await expect(nav.getByRole('link', { name: 'GitHub' })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(nav.getByRole('link', { name: 'RSS' })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(
+    page.getByRole('navigation', { name: '文章索引' }).locator('.post-row').first(),
+  ).toBeFocused()
+})
+
+test('mobile drawer: body scroll locked while open, restored after close (issue #31)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 600, height: 800 })
+  await page.goto('/posts/hello-world')
+
+  // 正文初始可滚动（html 无锁定）
+  expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe('')
+
+  // 打开「目录」抽屉：正文滚动锁定——滚轮 / PageDown 均无法滚动正文
+  await page.getByRole('button', { name: '目录' }).click()
+  await expect(page.getByRole('dialog', { name: '文章目录' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe('hidden')
+  await page.mouse.wheel(0, 500)
+  await page.keyboard.press('PageDown')
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
+
+  // 关闭（Esc）后还原：滚动解锁，滚轮可正常滚动
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: '文章目录' })).toHaveCount(0)
+  expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe('')
+  await page.mouse.wheel(0, 500)
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+
+  // 另一侧抽屉同样锁定/还原
+  await page.getByRole('button', { name: '文章', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: '文章索引' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe('hidden')
+  const lockedAt = await page.evaluate(() => window.scrollY)
+  await page.mouse.wheel(0, 800)
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(lockedAt)
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: '文章索引' })).toHaveCount(0)
+  expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe('')
+})
+
+test('mobile drawer: no slide-in animation under prefers-reduced-motion (issue #31)', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.setViewportSize({ width: 600, height: 800 })
+  await page.goto('/posts/prerendered-blog-with-vite')
+
+  await page.getByRole('button', { name: '目录' }).click()
+  const panel = page.locator('.drawer-panel')
+  await expect(panel).toBeVisible()
+  // 无滑入/淡入动画（瞬时出现）
+  expect(await panel.evaluate((el) => getComputedStyle(el).animationName)).toBe('none')
+  expect(
+    await page.locator('.drawer-overlay').evaluate((el) => getComputedStyle(el).animationName),
+  ).toBe('none')
+})
+
+test('homepage renders no drawer buttons; 375px article drawer works with no horizontal overflow (issue #31)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 667 })
+  await page.goto('/')
+
+  // 首页不渲染抽屉按钮（仅文章页渲染）
+  await expect(page.getByRole('button', { name: '目录' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '文章', exact: true })).toHaveCount(0)
+  await expect(page.locator('.post-drawer-bar')).toHaveCount(0)
+
+  // 文章页 375px：按钮可见、抽屉可开、打开时无横向滚动
+  await page.goto('/posts/prerendered-blog-with-vite')
+  await expect(page.getByRole('button', { name: '目录' })).toBeVisible()
+  await page.getByRole('button', { name: '目录' }).click()
+  await expect(page.getByRole('dialog', { name: '文章目录' })).toBeVisible()
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  )
+  expect(overflow).toBe(false)
+})
