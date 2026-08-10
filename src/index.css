@@ -114,6 +114,22 @@ html.dark {
   }
 }
 
+/* 高分屏根字号阶梯缩放（issue #26）：视口 ≥1920px 根字号升至 18px（1.125rem），
+   ≥2560px 升至 20px（1.25rem）——正文/终端/文章行/导航全部随根字号等比放大，
+   内容列宽随 rem 自然变宽（max-w-2xl = 42rem：672→756→840px，中文行宽仍在舒适区）；
+   1920px 以下保持浏览器默认 16px 基准。纯 CSS 媒体查询：无 JS/组件改动、
+   SSR 与 hydration 不受影响（html 基础样式在 @layer base，此处非层内规则优先）。 */
+@media (min-width: 1920px) {
+  html {
+    font-size: 18px;
+  }
+}
+@media (min-width: 2560px) {
+  html {
+    font-size: 20px;
+  }
+}
+
 /*
  * Shiki 双主题代码高亮：亮色为内联 style，html.dark 时切换 --shiki-dark 变量。
  * （.dark 由防闪烁脚本在首帧前设置，代码块随页面主题即时切换，无闪烁。）

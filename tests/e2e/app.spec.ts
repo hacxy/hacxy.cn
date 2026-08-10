@@ -1020,6 +1020,55 @@ test('nav icon links are keyboard focusable', async ({ page }) => {
   await expect(nav.getByRole('link', { name: 'RSS' })).toBeFocused()
 })
 
+test('high-DPI root font-size scaling: 1920px → 18px, 2560px → 20px, below 1920px stays 16px', async ({
+  browser,
+}) => {
+  // 高分屏根字号阶梯（issue #26）：纯 CSS 媒体查询（min-width），rem 单位全部等比放大。
+  // 期望值表：视口宽 → 根字号 → hero 终端字号（0.875rem）→ 文章行标题字号（1rem）→
+  // 内容列宽（max-w-2xl = 42rem，672→756→840px，中文行宽仍在舒适区）。
+  const cases = [
+    { width: 1440, root: 16, terminal: 14, rowTitle: 16, column: 672 },
+    { width: 1919, root: 16, terminal: 14, rowTitle: 16, column: 672 },
+    { width: 1920, root: 18, terminal: 15.75, rowTitle: 18, column: 756 },
+    { width: 2559, root: 18, terminal: 15.75, rowTitle: 18, column: 756 },
+    { width: 2560, root: 20, terminal: 17.5, rowTitle: 20, column: 840 },
+    { width: 3840, root: 20, terminal: 17.5, rowTitle: 20, column: 840 },
+  ]
+
+  for (const c of cases) {
+    const context = await browser.newContext({ viewport: { width: c.width, height: 900 } })
+    const page = await context.newPage()
+    await page.goto('/')
+
+    // 根字号（html computed font-size）
+    const root = parseFloat(
+      await page.locator('html').evaluate((el) => getComputedStyle(el).fontSize),
+    )
+    expect(root).toBe(c.root)
+
+    // 正文/终端/文章行随根字号等比缩放：hero 终端 0.875rem、文章行标题 1rem
+    const terminalFont = parseFloat(
+      await page.locator('.hero-terminal').evaluate((el) => getComputedStyle(el).fontSize),
+    )
+    expect(terminalFont).toBeCloseTo(c.terminal, 5)
+    const rowFont = parseFloat(
+      await page
+        .locator('.post-row-title')
+        .first()
+        .evaluate((el) => getComputedStyle(el).fontSize),
+    )
+    expect(rowFont).toBeCloseTo(c.rowTitle, 5)
+
+    // 内容列宽随 rem 自然变宽（max-w-2xl = 42rem）
+    const columnWidth = await page
+      .locator('.max-w-2xl')
+      .evaluate((el) => el.getBoundingClientRect().width)
+    expect(columnWidth).toBeCloseTo(c.column, 1)
+
+    await context.close()
+  }
+})
+
 test('homepage renders dots canvas: fixed layer that never blocks interaction, homepage-only', async ({
   page,
   request,
