@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 
 test('homepage shows site name and the fixture post', async ({ page }) => {
   await page.goto('/')
@@ -247,6 +248,8 @@ test('layout has no horizontal overflow on mobile viewport', async ({ page }) =>
   await page.goto('/')
   // 背景纹理图层在移动端同样存在（fixed 垫底，不产生横向滚动）
   await expect(page.locator('.bg-texture')).toHaveCount(1)
+  // 首页点阵 canvas 在移动端同样存在（同一垫底模式，不产生横向滚动）
+  await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
   const homeOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   )
@@ -258,6 +261,103 @@ test('layout has no horizontal overflow on mobile viewport', async ({ page }) =>
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   )
   expect(postOverflow).toBe(false)
+})
+
+test('dots canvas: DPR capped at 2 and no horizontal overflow on mobile', async ({ browser }) => {
+  // 375px 移动端 + 高分屏（deviceScaleFactor 3）：验证 DPR≤2 与无横向溢出
+  const context = await browser.newContext({
+    viewport: { width: 375, height: 667 },
+    deviceScaleFactor: 3,
+  })
+  const page = await context.newPage()
+  await page.goto('/')
+
+  const canvas = page.locator('canvas.bg-dots')
+  await expect(canvas).toHaveCount(1)
+
+  // 高分屏环境下 devicePixelRatio 确为 3（保证 DPR 上限断言有意义）
+  expect(await page.evaluate(() => window.devicePixelRatio)).toBe(3)
+
+  // 背板尺寸受 DPR≤2 约束：canvas.width ≤ clientWidth * 2（+1 容忍取整）
+  const backing = await canvas.evaluate((el) => {
+    const c = el as HTMLCanvasElement
+    return { width: c.width, height: c.height, cssWidth: c.clientWidth, cssHeight: c.clientHeight }
+  })
+  expect(backing.width).toBeLessThanOrEqual(backing.cssWidth * 2 + 1)
+  expect(backing.height).toBeLessThanOrEqual(backing.cssHeight * 2 + 1)
+
+  // 移动端无横向溢出（点阵 canvas 不造成横向滚动）
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  )
+  expect(overflow).toBe(false)
+
+  await context.close()
+})
+
+test('dots animation is skipped under prefers-reduced-motion: page renders, no canvas, no errors', async ({
+  page,
+}) => {
+  const pageErrors: string[] = []
+  page.on('pageerror', (err) => pageErrors.push(err.message))
+
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/')
+
+  // 页面正常渲染（无动画依赖）
+  await expect(page.getByRole('heading', { name: 'Hacxy' })).toBeVisible()
+  await expect(page.getByText('你好，世界')).toBeVisible()
+
+  // prefers-reduced-motion：完全不渲染 canvas（无结构、无报错）
+  await expect(page.locator('canvas.bg-dots')).toHaveCount(0)
+  expect(pageErrors).toHaveLength(0)
+})
+
+test('dots adapt to theme: light dark-gray, dark green-tinted', async ({ page }) => {
+  await page.goto('/')
+  const canvas = page.locator('canvas.bg-dots')
+  await expect(canvas).toHaveCount(1)
+
+  // 归一化到亮色，断言亮色深灰（初始主题由环境决定，先切到已知状态）
+  const html = page.locator('html')
+  if (((await html.getAttribute('class')) ?? '').includes('dark')) {
+    await page.getByRole('button', { name: '切换暗色模式' }).click()
+  }
+  await expect(canvas).toHaveAttribute('data-dots-color', '#1f2328')
+
+  // 切到暗色：点阵颜色变为绿调
+  await page.getByRole('button', { name: '切换暗色模式' }).click()
+  await expect(canvas).toHaveAttribute('data-dots-color', '#3fb950')
+})
+
+test('dots animation pauses when tab hidden and resumes when visible', async ({ page }) => {
+  await page.goto('/')
+  const canvas = page.locator('canvas.bg-dots')
+  await expect(canvas).toHaveCount(1)
+  await expect(canvas).toHaveAttribute('data-animation-state', 'running')
+
+  // 模拟切到后台：visibilityState 置 hidden 并派发 visibilitychange → 动画暂停
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await expect(canvas).toHaveAttribute('data-animation-state', 'paused')
+
+  // 回到前台：恢复动画
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await expect(canvas).toHaveAttribute('data-animation-state', 'running')
+})
+
+test('dots animation is pure canvas 2D: no pixi/simplex-noise runtime dependencies', async () => {
+  // 验收：页面无 PixiJS / simplex-noise 等新运行时依赖（package.json 不新增依赖）
+  const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'))
+  const deps = { ...pkg.dependencies, ...pkg.devDependencies }
+  expect(deps['pixi.js']).toBeUndefined()
+  expect(deps['pixi']).toBeUndefined()
+  expect(deps['simplex-noise']).toBeUndefined()
 })
 
 test('about page shows bio, social links and contact info', async ({ page }) => {
@@ -487,4 +587,34 @@ test('nav icon links are keyboard focusable', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'GitHub' })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(page.getByRole('link', { name: 'RSS' })).toBeFocused()
+})
+
+test('homepage renders dots canvas: fixed layer that never blocks interaction, homepage-only', async ({
+  page,
+  request,
+}) => {
+  const pageErrors: string[] = []
+  page.on('pageerror', (err) => pageErrors.push(err.message))
+
+  // 水合安全：SSR 预渲染 HTML 不输出 canvas 结构（仅客户端挂载，杜绝 hydration mismatch）
+  const html = await (await request.get('/')).text()
+  expect(html).not.toContain('<canvas')
+
+  await page.goto('/')
+  const canvas = page.locator('canvas.bg-dots')
+  await expect(canvas).toHaveCount(1)
+
+  // 垫底契约：fixed 铺满视口 + 不拦截指针事件（同背景纹理图层的模式）
+  expect(await canvas.evaluate((el) => getComputedStyle(el).position)).toBe('fixed')
+  expect(await canvas.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none')
+
+  // 不拦截交互：画布覆盖区域内的链接仍可点击（行为断言）
+  await page.getByRole('link', { name: '你好，世界' }).click()
+  await expect(page).toHaveURL(/\/posts\/hello-world/)
+
+  // 仅首页挂载：SPA 导航到文章页后点阵 canvas 移除
+  await expect(page.locator('canvas.bg-dots')).toHaveCount(0)
+
+  // 动画全程无报错
+  expect(pageErrors).toHaveLength(0)
 })
