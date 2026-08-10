@@ -27,44 +27,76 @@
 }
 
 /* 设计基调：正文 = 系统无衬线栈（PingFang SC / Microsoft YaHei / Noto Sans SC）；
-   代码与元数据 = JetBrains Mono；灰阶主色 + GitHub 绿强调色（链接/当前导航）；
-   终端输出绿 = hero 终端内命令输出/成功行，比强调色更亮形成层次 */
+   代码与元数据 = JetBrains Mono；全站配色为纯黑白灰阶（issue #17）：
+   亮色 = 白底黑字 + 灰阶过渡，暗色 = 黑底白字反色，无任何彩色系残留。
+   链接不再依赖颜色区分（见 @layer base 全站链接样式）：下划线 + 加粗 + hover 反白。 */
 @theme {
   --font-sans:
     system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --color-accent: #1a7f37;
-  --color-terminal: #2ea043;
-  --color-muted: #59636e;
-  /* 背景点阵：亮色深灰（暗色绿调见 html.dark，随主题切换） */
-  --color-dot: #1f2328;
-  /* hero 终端窗口：浅色背景 + 边框（暗色见 html.dark） */
-  --color-terminal-bg: #f6f8fa;
-  --color-terminal-border: #d1d9e0;
+  /* 亮色：白底黑字。强调色 = 近黑（链接与正文同色，靠下划线/加粗区分） */
+  --color-accent: #1a1a1a;
+  /* hover 反白用：强调色底上的反色（亮色 = 黑底白字） */
+  --color-accent-contrast: #ffffff;
+  /* 终端输出：亮色近黑 */
+  --color-terminal: #111111;
+  --color-muted: #666666;
+  /* 背景点阵：亮色深灰（暗色浅灰见 html.dark，随主题切换） */
+  --color-dot: #1a1a1a;
+  /* hero 终端窗口：浅灰背景 + 灰边框（暗色见 html.dark） */
+  --color-terminal-bg: #f5f5f5;
+  --color-terminal-border: #d4d4d4;
 }
 
 html.dark {
-  --color-accent: #3fb950;
-  --color-terminal: #56d364;
-  --color-muted: #8d96a0;
-  /* 背景点阵：暗色绿调 */
-  --color-dot: #3fb950;
-  /* hero 终端窗口：暗色背景 + 边框 */
-  --color-terminal-bg: #161b22;
-  --color-terminal-border: #30363d;
+  /* 暗色：黑底白字反色。强调色 = 近白（hover 反白 = 白底黑字） */
+  --color-accent: #e6e6e6;
+  --color-accent-contrast: #000000;
+  /* 终端输出：暗色浅灰 */
+  --color-terminal: #e6e6e6;
+  --color-muted: #9e9e9e;
+  /* 背景点阵：暗色浅灰 */
+  --color-dot: #e6e6e6;
+  /* hero 终端窗口：深灰背景 + 灰边框 */
+  --color-terminal-bg: #171717;
+  --color-terminal-border: #333333;
 }
 
 @layer base {
   html {
-    background-color: #fff;
-    color: #1f2328;
+    /* 亮色 = 白底黑字（纯灰阶） */
+    background-color: #ffffff;
+    color: #1a1a1a;
   }
   html.dark {
-    background-color: #0d1117;
-    color: #e6edf3;
+    /* 暗色 = 黑底白字反色（纯灰阶） */
+    background-color: #0a0a0a;
+    color: #e6e6e6;
   }
   body {
     font-family: var(--font-sans);
+  }
+  /* 全站链接样式（issue #17）：下划线 + 加粗 + hover 反白，不再依赖颜色区分；
+     导航高亮沿用同一机制：active 导航项 = 加粗 + 下划线（见 .site-nav a.nav-active）。
+     例外：整卡链接（.post-card）为块级卡片，自身以边框/投影作为 hover 反馈。 */
+  a {
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  a:hover {
+    background-color: var(--color-accent);
+    color: var(--color-accent-contrast);
+  }
+  /* 顶部导航：菜单项为普通文本外观（不加粗、无下划线），
+     active 项用链接机制高亮（加粗 + 下划线） */
+  .site-nav a {
+    font-weight: 400;
+    text-decoration: none;
+  }
+  .site-nav a.nav-active {
+    font-weight: 700;
+    text-decoration: underline;
   }
   /* 代码块与行内代码统一使用 JetBrains Mono（shiki 输出为原始 HTML） */
   pre,
@@ -99,12 +131,12 @@ html.dark .shiki span {
   z-index: -1;
   pointer-events: none;
   /* 亮色变体：深灰低干扰（内联 SVG data-URI 平铺：24px 网格 + 代码字符，零外部资源） */
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width='120'%20height='120'%20viewBox='0%200%20120%20120'%3E%0A%20%20%3Cg%20fill='none'%20stroke='%231f2328'%20stroke-width='1'%20opacity='0.06'%3E%0A%20%20%20%20%3Cpath%20d='M24%200v120M48%200v120M72%200v120M96%200v120M0%2024h120M0%2048h120M0%2072h120M0%2096h120'%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill='%231f2328'%20font-family='monospace'%20font-size='11'%20opacity='0.05'%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='18'%3E0x%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='66'%20y='18'%3E%7B%20%7D%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='30'%20y='42'%3E=%3E%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='90'%20y='42'%3Efn%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='66'%3E%2F%2F%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='60'%20y='66'%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='36'%20y='90'%3E0xff%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='96'%20y='90'%3E%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='12'%20y='114'%3E=%26gt%3B%3C%2Ftext%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width='120'%20height='120'%20viewBox='0%200%20120%20120'%3E%0A%20%20%3Cg%20fill='none'%20stroke='%231a1a1a'%20stroke-width='1'%20opacity='0.06'%3E%0A%20%20%20%20%3Cpath%20d='M24%200v120M48%200v120M72%200v120M96%200v120M0%2024h120M0%2048h120M0%2072h120M0%2096h120'%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill='%231a1a1a'%20font-family='monospace'%20font-size='11'%20opacity='0.05'%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='18'%3E0x%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='66'%20y='18'%3E%7B%20%7D%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='30'%20y='42'%3E=%3E%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='90'%20y='42'%3Efn%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='66'%3E%2F%2F%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='60'%20y='66'%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='36'%20y='90'%3E0xff%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='96'%20y='90'%3E%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='12'%20y='114'%3E=%26gt%3B%3C%2Ftext%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
 }
 
-/* 暗色变体：绿调低干扰（#3fb950 低透明度），随 .dark 切换 */
+/* 暗色变体：浅灰低干扰（#e6e6e6 低透明度，黑底白字反色，不再绿调），随 .dark 切换 */
 html.dark .bg-texture {
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width='120'%20height='120'%20viewBox='0%200%20120%20120'%3E%0A%20%20%3Cg%20fill='none'%20stroke='%233fb950'%20stroke-width='1'%20opacity='0.06'%3E%0A%20%20%20%20%3Cpath%20d='M24%200v120M48%200v120M72%200v120M96%200v120M0%2024h120M0%2048h120M0%2072h120M0%2096h120'%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill='%233fb950'%20font-family='monospace'%20font-size='11'%20opacity='0.05'%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='18'%3E0x%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='66'%20y='18'%3E%7B%20%7D%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='30'%20y='42'%3E=%3E%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='90'%20y='42'%3Efn%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='66'%3E%2F%2F%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='60'%20y='66'%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='36'%20y='90'%3E0xff%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='96'%20y='90'%3E%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='12'%20y='114'%3E=%26gt%3B%3C%2Ftext%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width='120'%20height='120'%20viewBox='0%200%20120%20120'%3E%0A%20%20%3Cg%20fill='none'%20stroke='%23e6e6e6'%20stroke-width='1'%20opacity='0.06'%3E%0A%20%20%20%20%3Cpath%20d='M24%200v120M48%200v120M72%200v120M96%200v120M0%2024h120M0%2048h120M0%2072h120M0%2096h120'%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill='%23e6e6e6'%20font-family='monospace'%20font-size='11'%20opacity='0.05'%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='18'%3E0x%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='66'%20y='18'%3E%7B%20%7D%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='30'%20y='42'%3E=%3E%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='90'%20y='42'%3Efn%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='66'%3E%2F%2F%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='60'%20y='66'%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='36'%20y='90'%3E0xff%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='96'%20y='90'%3E%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='12'%20y='114'%3E=%26gt%3B%3C%2Ftext%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
 }
 
 /* 首页背景点阵画布（ArtDots 改编，见 BackgroundDots.tsx）：fixed 铺满视口、
@@ -157,14 +189,24 @@ html.dark .bg-texture {
   height: 0.625rem;
   border-radius: 9999px;
 }
+/* 窗口装饰圆点：黑白灰阶（亮色由浅到深、暗色由深到浅），随主题切换 */
 .terminal-dot--red {
-  background: #f47067;
+  background: #d9d9d9;
 }
 .terminal-dot--yellow {
-  background: #e3b341;
+  background: #b3b3b3;
 }
 .terminal-dot--green {
-  background: var(--color-terminal);
+  background: #8c8c8c;
+}
+html.dark .terminal-dot--red {
+  background: #4a4a4a;
+}
+html.dark .terminal-dot--yellow {
+  background: #5c5c5c;
+}
+html.dark .terminal-dot--green {
+  background: #6e6e6e;
 }
 .hero-terminal-title {
   margin-left: 0.375rem;
@@ -175,7 +217,7 @@ html.dark .bg-texture {
   padding: 0.875rem 1rem;
 }
 
-/* 命令行 / 输出行：$ 提示符灰（muted），命令默认前景色，输出统一终端输出绿 */
+/* 命令行 / 输出行：$ 提示符灰（muted），命令默认前景色，输出统一终端输出色（灰阶令牌） */
 .terminal-line {
   display: flex;
   gap: 0.5rem;
@@ -269,14 +311,17 @@ html.dark .bg-texture {
 }
 
 /* 卡片本体：终端窗口样式（背景/边框与 hero 终端同一令牌，亮暗双变体）
-   overflow hidden 让标题栏裁进圆角；整卡为单个链接（text-accent 继承标题）
-   hover 反馈：边框变强调色 + 轻微上移 + 柔和投影（CSS transition） */
+   overflow hidden 让标题栏裁进圆角；整卡为单个链接
+   hover 反馈：边框变强调色 + 轻微上移 + 柔和投影（CSS transition）；
+   整卡为块级链接，不受全局链接样式影响（无下划线、不加粗） */
 .post-card {
   display: block;
   overflow: hidden;
   border: 1px solid var(--color-terminal-border);
   border-radius: 0.75rem;
   background: var(--color-terminal-bg);
+  font-weight: 400;
+  text-decoration: none;
   transition:
     border-color 0.2s ease,
     transform 0.2s ease,
@@ -286,6 +331,9 @@ html.dark .bg-texture {
   border-color: var(--color-accent);
   transform: translateY(-2px);
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.08);
+  /* 取消全局链接 hover 反白（卡片 hover 反馈为边框 + 投影，非文字反白） */
+  background-color: var(--color-terminal-bg);
+  color: inherit;
 }
 
 /* 标题栏：●●● 装饰圆点（复用 terminal-dot）+ slug 文件名（等宽、弱化） */
@@ -306,7 +354,7 @@ html.dark .bg-texture {
   white-space: nowrap;
 }
 
-/* 正文：标题（继承强调色）+ 摘要 + 日期/标签行 */
+/* 正文：标题 + 摘要 + 日期/标签行 */
 .post-card-body {
   padding: 1rem;
 }
@@ -334,7 +382,7 @@ html.dark .bg-texture {
   color: var(--color-muted);
 }
 
-/* 标签徽章：仅展示、不跳转（当前无标签路由）；绿强调边框 + 强调色文本 */
+/* 标签徽章：仅展示、不跳转（当前无标签路由）；灰阶强调边框 + 强调色文本 */
 .post-card-tags {
   display: flex;
   flex-wrap: wrap;

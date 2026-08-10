@@ -174,7 +174,7 @@ test('clicking a post card opens the post page (whole card is clickable)', async
   await expect(page.getByRole('heading', { name: '你好，世界' })).toBeVisible()
 })
 
-test('post card hover feedback: CSS transition on border/transform, green border on hover', async ({
+test('post card hover feedback: CSS transition on border/transform, grayscale border on hover', async ({
   page,
 }) => {
   await page.goto('/')
@@ -185,16 +185,20 @@ test('post card hover feedback: CSS transition on border/transform, green border
   expect(transition).toContain('border-color')
   expect(transition).toContain('transform')
 
-  // hover 后：边框变为强调色（亮色 #1a7f37）+ 轻微上移（transform 生效）
+  // 归一化亮色：hover 后边框变为亮色强调灰（近黑 #1a1a1a）+ 轻微上移（transform 生效）
+  const html = page.locator('html')
+  if (((await html.getAttribute('class')) ?? '').includes('dark')) {
+    await page.getByRole('button', { name: '切换暗色模式' }).click()
+  }
   await card.hover()
-  await expect(card).toHaveCSS('border-color', 'rgb(26, 127, 55)')
+  await expect(card).toHaveCSS('border-color', 'rgb(26, 26, 26)')
   const transform = await card.evaluate((el) => getComputedStyle(el).transform)
   expect(transform).not.toBe('none')
 
-  // 暗色切换后 hover 边框用暗色强调色（依赖 #9 新强调色令牌）
+  // 暗色切换后 hover 边框用暗色强调灰（近白 #e6e6e6，黑底白字反色）
   await page.getByRole('button', { name: '切换暗色模式' }).click()
   await card.hover()
-  await expect(card).toHaveCSS('border-color', 'rgb(63, 185, 80)')
+  await expect(card).toHaveCSS('border-color', 'rgb(230, 230, 230)')
 })
 
 test('post card entrance animation is CSS and disabled under reduced-motion', async ({ page }) => {
@@ -380,7 +384,7 @@ test('prerendered HTML ships the inline no-flash theme script', async ({ request
   expect(html).toContain('prefers-color-scheme')
 })
 
-test('geek-style design: mono fonts for name/date, green accent for links and active nav', async ({
+test('geek-style design: mono fonts; links are bold+underline with inverted hover, nav active shares mechanism', async ({
   page,
 }) => {
   await page.goto('/')
@@ -397,29 +401,47 @@ test('geek-style design: mono fonts for name/date, green accent for links and ac
     .evaluate((el) => getComputedStyle(el).fontFamily)
   expect(dateFont).toContain('JetBrains Mono')
 
-  // 链接为 GitHub 绿强调色（亮色 #1a7f37）
-  const linkColor = await page
-    .getByRole('link', { name: '你好，世界' })
-    .evaluate((el) => getComputedStyle(el).color)
-  expect(linkColor).toBe('rgb(26, 127, 55)')
+  // 亮色 = 白底黑字（html 背景纯白、文字近黑，均灰阶）
+  await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+  await expect(page.locator('html')).toHaveCSS('color', 'rgb(26, 26, 26)')
 
-  // 当前导航高亮为绿色（SPA 导航下 className 更新晚于 URL，用自动重试断言等待）
+  // 全站链接样式 = 下划线 + 加粗（不再依赖颜色区分：链接与同上下文文本同色）
+  // 页脚链接继承 footer 的 muted 灰（与页脚正文同色），hover 反白用 accent 令牌覆盖
+  const ccLink = page.getByRole('link', { name: 'CC BY-NC-SA 4.0' })
+  expect(await ccLink.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
+  expect(await ccLink.evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain(
+    'underline',
+  )
+  expect(await ccLink.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(102, 102, 102)')
+
+  // hover 反白：亮色 = 黑底白字
+  await ccLink.hover()
+  await expect(ccLink).toHaveCSS('background-color', 'rgb(26, 26, 26)')
+  await expect(ccLink).toHaveCSS('color', 'rgb(255, 255, 255)')
+
+  // 暗色 = 黑底白字反色（背景近黑、文字近白），hover 反白 = 白底黑字
+  await page.getByRole('button', { name: '切换暗色模式' }).click()
+  await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(10, 10, 10)')
+  await expect(page.locator('html')).toHaveCSS('color', 'rgb(230, 230, 230)')
+  await ccLink.hover()
+  await expect(ccLink).toHaveCSS('background-color', 'rgb(230, 230, 230)')
+  await expect(ccLink).toHaveCSS('color', 'rgb(0, 0, 0)')
+
+  // 导航高亮沿用同一机制（加粗 + 下划线，不再依赖颜色区分）
   await page.getByRole('link', { name: '关于' }).click()
   await expect(page).toHaveURL(/\/about/)
   const aboutNav = page.getByRole('link', { name: '关于' })
-  await expect(aboutNav).toHaveClass(/text-accent/)
-  const activeNavColor = await aboutNav.evaluate((el) => getComputedStyle(el).color)
-  expect(activeNavColor).toBe('rgb(26, 127, 55)')
-
-  // 暗色切换后强调色随之更新（暗色 #3fb950，沿用 dark mode toggle 机制）
-  await page.getByRole('button', { name: '切换暗色模式' }).click()
-  const darkNavColor = await aboutNav.evaluate((el) => getComputedStyle(el).color)
-  expect(darkNavColor).toBe('rgb(63, 185, 80)')
-  const darkLinkColor = await page
-    .getByRole('main')
-    .getByRole('link', { name: 'GitHub' })
-    .evaluate((el) => getComputedStyle(el).color)
-  expect(darkLinkColor).toBe('rgb(63, 185, 80)')
+  await expect(aboutNav).toHaveClass(/nav-active/)
+  expect(await aboutNav.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
+  expect(await aboutNav.evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain(
+    'underline',
+  )
+  // 非 active 导航项为普通文本外观（无下划线、不加粗）
+  const postsNav = page.getByRole('link', { name: '文章' })
+  expect(await postsNav.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('400')
+  expect(await postsNav.evaluate((el) => getComputedStyle(el).textDecorationLine)).not.toContain(
+    'underline',
+  )
 })
 
 test('fonts are self-hosted: woff2 on same origin, no external font requests', async ({
@@ -534,7 +556,7 @@ test('dots animation is skipped under prefers-reduced-motion: page renders, no c
   expect(pageErrors).toHaveLength(0)
 })
 
-test('dots adapt to theme: light dark-gray, dark green-tinted', async ({ page }) => {
+test('dots adapt to theme: light dark-gray, dark light-gray (grayscale)', async ({ page }) => {
   await page.goto('/')
   const canvas = page.locator('canvas.bg-dots')
   await expect(canvas).toHaveCount(1)
@@ -544,11 +566,11 @@ test('dots adapt to theme: light dark-gray, dark green-tinted', async ({ page })
   if (((await html.getAttribute('class')) ?? '').includes('dark')) {
     await page.getByRole('button', { name: '切换暗色模式' }).click()
   }
-  await expect(canvas).toHaveAttribute('data-dots-color', '#1f2328')
+  await expect(canvas).toHaveAttribute('data-dots-color', '#1a1a1a')
 
-  // 切到暗色：点阵颜色变为绿调
+  // 切到暗色：点阵颜色变为浅灰（黑底白字反色，不再绿调）
   await page.getByRole('button', { name: '切换暗色模式' }).click()
-  await expect(canvas).toHaveAttribute('data-dots-color', '#3fb950')
+  await expect(canvas).toHaveAttribute('data-dots-color', '#e6e6e6')
 })
 
 test('dots animation pauses when tab hidden and resumes when visible', async ({ page }) => {
@@ -655,10 +677,16 @@ test('feed.xml is a valid RSS 2.0 feed with full article content', async ({ requ
   expect(feed).not.toContain('draft-post')
 })
 
-test('favicon.svg is green-themed and consistent with the site theme', async ({ request }) => {
+test('favicon.svg is monochrome (black/white) and consistent with the site theme', async ({
+  request,
+}) => {
   const favicon = await (await request.get('/favicon.svg')).text()
-  // 主色为 GitHub 绿（暗色强调 #3fb950），无残留紫色系
-  expect(favicon).toContain('#3fb950')
+  // 黑白灰阶：白字形 + 黑底，无任何绿色/紫色残留
+  expect(favicon).toContain('#ffffff')
+  expect(favicon).toContain('#111111')
+  expect(favicon).not.toContain('#3fb950')
+  expect(favicon).not.toContain('#1a7f37')
+  expect(favicon).not.toContain('#56d364')
   expect(favicon).not.toContain('#863bff')
   expect(favicon).not.toContain('#7e14ff')
 })
@@ -716,17 +744,17 @@ test('background texture is an inline SVG data-URI (grid + code chars), zero ext
   expect(external).toHaveLength(0)
 })
 
-test('background texture adapts to theme: light dark-gray, dark green-tinted', async ({
+test('background texture adapts to theme: light dark-gray, dark light-gray (grayscale)', async ({
   page,
   request,
 }) => {
-  // 亮暗两套变体的颜色（data-URI 中 # 编码为 %23）：亮色深灰 #1f2328、暗色绿调 #3fb950
+  // 亮暗两套变体的颜色（data-URI 中 # 编码为 %23）：亮色深灰 #1a1a1a、暗色浅灰 #e6e6e6
   const html = await (await request.get('/')).text()
   const cssHref = html.match(/href="([^"]+\.css)"/)?.[1]
   expect(cssHref).toBeTruthy()
   const css = await (await request.get(cssHref as string)).text()
-  expect(css).toContain('%231f2328')
-  expect(css).toContain('%233fb950')
+  expect(css).toContain('%231a1a1a')
+  expect(css).toContain('%23e6e6e6')
 
   // 切换主题后纹理 background-image 随之更新（沿用 dark mode toggle 模式，不依赖初始主题）
   await page.goto('/')
@@ -747,8 +775,10 @@ test('geek-style OG images are generated and referenced', async ({ request }) =>
   const og = await (await request.get('/og/posts/prerendered-blog-with-vite.svg')).text()
   expect(og).toContain('<svg')
   expect(og).toContain('width="1200" height="630"')
-  // 模板要素：绿色系底（暗色基调 + 绿强调）+ 等宽字体 + 文章标题（标题可能折行，剥离标签后断言全文）
-  expect(og).toContain('3fb950')
+  // 模板要素：黑白灰阶（近黑底 + 白强调竖条/站点名）+ 等宽字体 + 文章标题（标题可能折行，剥离标签后断言全文）
+  expect(og).toContain('111111')
+  expect(og).toContain('ffffff')
+  expect(og).not.toContain('3fb950')
   expect(og).not.toContain('a371f7')
   expect(og).toContain('JetBrains Mono')
   const ogText = og
