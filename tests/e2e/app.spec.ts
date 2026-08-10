@@ -5,7 +5,20 @@ import { createRequire } from 'node:module'
 // gray-matter 无类型声明：E2E 仅用它解析 frontmatter 计算期望值（与构建期内容清单同一契约）
 const require = createRequire(import.meta.url)
 const matter = require('gray-matter') as (input: string) => {
-  data: { draft?: boolean; tags?: string[] }
+  data: {
+    draft?: boolean
+    tags?: string[]
+    title?: string
+    description?: string
+    /** gray-matter/js-yaml 会把 YYYY-MM-DD 解析为 Date 对象 */
+    date?: string | Date
+  }
+}
+
+/** 与内容管线同一日期契约：Date 对象归一化为 YYYY-MM-DD（ISO） */
+function normalizeDate(value: string | Date | undefined): string {
+  if (!value) return ''
+  return typeof value === 'string' ? value : value.toISOString().slice(0, 10)
 }
 
 test('hero: big h1 site name + terminal window with all command outputs', async ({ page }) => {
@@ -91,6 +104,112 @@ test('hero terminal: reduced-motion skips typewriter, full text visible, no anim
     await page.locator('.hero-enter').evaluate((el) => getComputedStyle(el).animationName),
   ).toBe('none')
   // 全程无动画/脚本报错
+  expect(pageErrors).toHaveLength(0)
+})
+
+test('post cards: terminal-style cards show title, description, date and tag badges', async ({
+  page,
+}) => {
+  // 期望值从内容源计算（与构建期内容清单同一契约：非 draft 文章、日期倒序）
+  const postsDir = new URL('../../content/posts/', import.meta.url)
+  const published = readdirSync(postsDir)
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => {
+      const data = matter(readFileSync(new URL(file, postsDir), 'utf8')).data
+      return {
+        slug: file.replace(/\.md$/, ''),
+        title: data.title ?? '',
+        date: normalizeDate(data.date),
+        description: data.description ?? '',
+        tags: data.tags ?? [],
+        draft: data.draft ?? false,
+      }
+    })
+    .filter((post) => !post.draft)
+    .sort((a, b) => (a.date < b.date ? 1 : -1)) // 内容清单按日期倒序（最新在前）
+
+  await page.goto('/')
+  const cards = page.locator('.post-card')
+  // 卡片由内容清单驱动：新增文章自动上首页（数量与内容源一致）
+  await expect(cards).toHaveCount(published.length)
+  // 最新文章在最前（日期倒序）
+  const newestSlug = published[0]?.slug ?? ''
+  await expect(cards.first().locator('.post-card-filename')).toHaveText(`${newestSlug}.md`)
+
+  for (const post of published) {
+    const card = cards.filter({ hasText: post.title })
+    await expect(card).toBeVisible()
+
+    // 终端标题栏：●●● 装饰圆点 + slug 文件名（等宽字体）
+    await expect(card.locator('.post-card-bar .terminal-dot')).toHaveCount(3)
+    await expect(card.locator('.post-card-filename')).toHaveText(`${post.slug}.md`)
+    // 文件名使用等宽字体（与日期一致，极客风 mono 点缀）
+    const filenameFont = await card
+      .locator('.post-card-filename')
+      .evaluate((el) => getComputedStyle(el).fontFamily)
+    expect(filenameFont).toContain('JetBrains Mono')
+
+    // 正文：标题 / 摘要 / 日期
+    await expect(card.getByRole('heading', { level: 2, name: post.title })).toBeVisible()
+    await expect(card.getByText(post.description)).toBeVisible()
+    await expect(card.getByText(post.date)).toBeVisible()
+
+    // 标签徽章：每个标签渲染为徽章且仅展示、不跳转（当前无标签路由）
+    // 用 exact 匹配避免命中正文里的同名子串（如描述中的「架构」）
+    for (const tag of post.tags ?? []) {
+      const badge = card.getByText(tag, { exact: true })
+      await expect(badge).toBeVisible()
+      await expect(badge).not.toHaveAttribute('href')
+    }
+  }
+})
+
+test('clicking a post card opens the post page (whole card is clickable)', async ({ page }) => {
+  await page.goto('/')
+
+  // 整卡可点击：点击标题栏区域（非标题文本本身）同样进入文章页
+  const card = page.locator('.post-card').filter({ hasText: '你好，世界' })
+  await card.locator('.post-card-bar').click()
+  await expect(page).toHaveURL(/\/posts\/hello-world/)
+  await expect(page.getByRole('heading', { name: '你好，世界' })).toBeVisible()
+})
+
+test('post card hover feedback: CSS transition on border/transform, green border on hover', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const card = page.locator('.post-card').first()
+
+  // hover 反馈为 CSS transition（边框 + 位移），非 JS 行为
+  const transition = await card.evaluate((el) => getComputedStyle(el).transitionProperty)
+  expect(transition).toContain('border-color')
+  expect(transition).toContain('transform')
+
+  // hover 后：边框变为强调色（亮色 #1a7f37）+ 轻微上移（transform 生效）
+  await card.hover()
+  await expect(card).toHaveCSS('border-color', 'rgb(26, 127, 55)')
+  const transform = await card.evaluate((el) => getComputedStyle(el).transform)
+  expect(transform).not.toBe('none')
+
+  // 暗色切换后 hover 边框用暗色强调色（依赖 #9 新强调色令牌）
+  await page.getByRole('button', { name: '切换暗色模式' }).click()
+  await card.hover()
+  await expect(card).toHaveCSS('border-color', 'rgb(63, 185, 80)')
+})
+
+test('post card entrance animation is CSS and disabled under reduced-motion', async ({ page }) => {
+  // 正常：卡片有克制的入场动画（淡入 + 轻微上移，CSS）
+  await page.goto('/')
+  const firstCard = page.locator('.post-card-enter').first()
+  await expect(firstCard).toHaveCSS('animation-name', 'card-in')
+
+  // prefers-reduced-motion：动画禁用（animation: none）、卡片直接可见、无报错
+  const pageErrors: string[] = []
+  page.on('pageerror', (err) => pageErrors.push(err.message))
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/')
+  await expect(page.getByText('你好，世界')).toBeVisible()
+  await expect(page.locator('.post-card-enter').first()).toHaveCSS('animation-name', 'none')
   expect(pageErrors).toHaveLength(0)
 })
 
@@ -345,6 +464,13 @@ test('layout has no horizontal overflow on mobile viewport', async ({ page }) =>
   await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
   // hero 终端在移动端可见（375px 视口下无横向滚动）
   await expect(page.locator('.hero-terminal')).toBeVisible()
+  // 文章卡片在移动端同样可见（整卡可点击，标签徽章换行不撑破小屏）
+  await expect(page.locator('.post-card').first()).toBeVisible()
+  const cardNoOverflow = await page
+    .locator('.post-card')
+    .first()
+    .evaluate((el) => el.scrollWidth <= el.clientWidth)
+  expect(cardNoOverflow).toBe(true)
   const homeOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   )
@@ -676,6 +802,10 @@ test('nav structure keeps posts | about + theme toggle + icons', async ({ page }
 
 test('nav icon links are keyboard focusable', async ({ page }) => {
   await page.goto('/')
+
+  // 等待 React 水合完成（点阵 canvas 仅客户端挂载）再按 Tab：
+  // 避免快速 Tab 落在水合期间被吞掉导致焦点整体偏移一位（既有偶发 flake 的根因）
+  await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
 
   // Tab 顺序：文章 → 关于 → 主题切换 → GitHub → RSS（键盘无障碍验收，PRD 用户故事 33）
   // 限定 navigation：避免与 hero 终端内 git clone 链接（名字含 github）歧义（strict mode）
