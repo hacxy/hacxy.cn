@@ -6,13 +6,16 @@ export const siteUrl = 'https://hacxy.cn'
 /** 版权年份：静态常量，避免 SSR/客户端在跨年边界渲染不一致 */
 export const copyrightYear = '2026'
 
+/** 作者 GitHub 地址（导航图标链接与关于页社交链接共用同一来源） */
+export const githubUrl = 'https://github.com/hacxy'
+
 export interface SocialLink {
   label: string
   href: string
 }
 
 /** 社交链接（关于页展示，外链新窗口打开） */
-export const socialLinks: SocialLink[] = [{ label: 'GitHub', href: 'https://github.com/hacxy' }]
+export const socialLinks: SocialLink[] = [{ label: 'GitHub', href: githubUrl }]
 
 /** 联系方式（关于页展示） */
 export const email = 'hello@hacxy.cn'

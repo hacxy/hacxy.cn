@@ -203,6 +203,7 @@ test('geek-style design: mono fonts for name/date, green accent for links and ac
   const darkNavColor = await aboutNav.evaluate((el) => getComputedStyle(el).color)
   expect(darkNavColor).toBe('rgb(63, 185, 80)')
   const darkLinkColor = await page
+    .getByRole('main')
     .getByRole('link', { name: 'GitHub' })
     .evaluate((el) => getComputedStyle(el).color)
   expect(darkLinkColor).toBe('rgb(63, 185, 80)')
@@ -264,8 +265,8 @@ test('about page shows bio, social links and contact info', async ({ page }) => 
 
   // 简介
   await expect(page.getByText(/前端工程师/)).toBeVisible()
-  // 社交链接（外链）
-  const github = page.getByRole('link', { name: 'GitHub' })
+  // 社交链接（外链）——限定 main，避免与导航新增的 GitHub 图标链接混淆
+  const github = page.getByRole('main').getByRole('link', { name: 'GitHub' })
   await expect(github).toBeVisible()
   await expect(github).toHaveAttribute('href', 'https://github.com/hacxy')
   // 联系方式
@@ -439,4 +440,51 @@ test('geek-style OG images are generated and referenced', async ({ request }) =>
   expect(home).toContain('property="og:image" content="https://hacxy.cn/og/home.svg"')
   const homeOg = await (await request.get('/og/home.svg')).text()
   expect(homeOg).toContain('Hacxy')
+})
+
+test('nav shows GitHub and RSS icon links with correct targets', async ({ page, request }) => {
+  await page.goto('/')
+  const nav = page.getByRole('navigation')
+
+  // GitHub 图标链接：外链新窗口打开（可聚焦链接 + aria-label，键盘无障碍）
+  const github = nav.getByRole('link', { name: 'GitHub' })
+  await expect(github).toBeVisible()
+  await expect(github).toHaveAttribute('href', 'https://github.com/hacxy')
+  await expect(github).toHaveAttribute('target', '_blank')
+  await expect(github).toHaveAttribute('rel', /noopener/)
+
+  // RSS 图标链接指向 /feed.xml，且该地址可访问（复用既有 feed 用例的构建产物）
+  const rss = nav.getByRole('link', { name: 'RSS' })
+  await expect(rss).toBeVisible()
+  await expect(rss).toHaveAttribute('href', '/feed.xml')
+  const feed = await request.get('/feed.xml')
+  expect(feed.status()).toBe(200)
+
+  // 预渲染 HTML 同样包含两个图标链接（爬虫不执行 JS 即可见，SEO 不回归）
+  const home = await (await request.get('/')).text()
+  expect(home).toContain('href="https://github.com/hacxy"')
+  expect(home).toContain('icons.svg#github-icon')
+  expect(home).toContain('icons.svg#rss-icon')
+})
+
+test('nav structure keeps posts | about + theme toggle + icons', async ({ page }) => {
+  await page.goto('/')
+  const nav = page.getByRole('navigation')
+
+  // 既有入口不受打扰：文章 | 关于 + 主题切换 + 图标（PRD 用户故事 26）
+  await expect(nav.getByRole('link', { name: '文章' })).toBeVisible()
+  await expect(nav.getByRole('link', { name: '关于' })).toBeVisible()
+  await expect(nav.getByRole('button', { name: '切换暗色模式' })).toBeVisible()
+  await expect(nav.getByRole('link', { name: 'GitHub' })).toBeVisible()
+  await expect(nav.getByRole('link', { name: 'RSS' })).toBeVisible()
+})
+
+test('nav icon links are keyboard focusable', async ({ page }) => {
+  await page.goto('/')
+
+  // Tab 顺序：文章 → 关于 → 主题切换 → GitHub → RSS（键盘无障碍验收，PRD 用户故事 33）
+  for (let i = 0; i < 4; i++) await page.keyboard.press('Tab')
+  await expect(page.getByRole('link', { name: 'GitHub' })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('link', { name: 'RSS' })).toBeFocused()
 })

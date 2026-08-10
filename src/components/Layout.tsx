@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router'
 
-import { copyrightYear, siteName } from '../site.ts'
+import { copyrightYear, githubUrl, siteName } from '../site.ts'
+import Icon from './Icon.tsx'
 import ThemeToggle from './ThemeToggle.tsx'
 
 /** 当前导航高亮：GitHub 绿强调色（PRD「绿色强调色作用于链接与当前导航」） */
@@ -21,8 +22,22 @@ export default function Layout() {
           <NavLink to="/about" className={navLinkClass}>
             关于
           </NavLink>
-          <span className="ml-auto">
+          {/* 右侧：主题切换 + GitHub/RSS 图标链接（PRD 用户故事 24/25/26/33）；
+              GitHub 为外链新窗口打开，RSS 指向 /feed.xml（构建期生成） */}
+          <span className="ml-auto flex items-center gap-4">
             <ThemeToggle />
+            <a
+              href={githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub"
+              className="text-accent"
+            >
+              <Icon name="github-icon" />
+            </a>
+            <a href="/feed.xml" aria-label="RSS 订阅" className="text-accent">
+              <Icon name="rss-icon" />
+            </a>
           </span>
         </nav>
         <main className="flex-1 pb-16">
