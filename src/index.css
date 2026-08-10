@@ -78,7 +78,8 @@ html.dark {
   }
   /* 全站链接样式（issue #17）：下划线 + 加粗 + hover 反白，不再依赖颜色区分；
      导航高亮沿用同一机制：active 导航项 = 加粗 + 下划线（见 .site-nav a.nav-active）。
-     例外：整卡链接（.post-card）为块级卡片，自身以边框/投影作为 hover 反馈。 */
+     例外：文章列表行（.post-row）为终端输出行形态——常规字重、无下划线，
+     hover/键盘焦点反白沿用同一 accent 令牌机制。 */
   a {
     font-weight: 700;
     text-decoration: underline;
@@ -374,36 +375,38 @@ html.dark .terminal-dot--green {
   background: #6e6e6e;
 }
 
-/* ===== 文章卡片（issue #14）：终端窗口样式（标题栏 ●●● + 文件名 + 正文） ===== */
+/* ===== 文章列表（issue #19，父 PRD #16）：连续终端流最后一幕 ===== */
 
-/* 文章卡片列表：卡片间留白，整卡可点击（列表语义保留） */
-.post-card-list {
+/* 连续终端流容器：--turn-gap / --turn-in 与 hero 终端演出同一节奏参数
+   （.hero-terminal 内同名变量同值，这里作为文章行时序的公共来源）；
+   --row-gap / --row-in 为文章行逐行错开的节奏 */
+.home-stream {
+  --turn-gap: 0.5s;
+  --turn-in: 0.45s;
+  --row-gap: 0.14s;
+  --row-in: 0.3s;
+}
+
+/* 文章行列表：行间紧凑（终端逐行输出），列表语义保留 */
+.post-row-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
   margin-top: 1.25rem;
 }
 
-/* 入场动画：克制（淡入 + 轻微上移 8px，与 hero 同节奏），每卡 60ms 错开 */
-.post-card-enter {
-  animation: card-in 0.45s ease-out both;
+/* 行入场：最后一幕。延迟 = 会话演出总时长（轮次数 × 错开 + 末轮入场时长）
+   之后再开始——演出停驻最终态后文章行才逐行错开入场（终端逐行输出感） */
+.post-row-enter {
+  animation: row-in var(--row-in, 0.3s) ease-out both;
+  animation-delay: calc(
+    var(--turn-count, 0) * var(--turn-gap, 0.5s) + var(--turn-in, 0.45s) + 0.45s + var(--i, 0) *
+      var(--row-gap, 0.14s)
+  );
 }
-.post-card-enter:nth-child(2) {
-  animation-delay: 60ms;
-}
-.post-card-enter:nth-child(3) {
-  animation-delay: 120ms;
-}
-.post-card-enter:nth-child(4) {
-  animation-delay: 180ms;
-}
-.post-card-enter:nth-child(5) {
-  animation-delay: 240ms;
-}
-@keyframes card-in {
+@keyframes row-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -411,91 +414,61 @@ html.dark .terminal-dot--green {
   }
 }
 
-/* 卡片本体：终端窗口样式（背景/边框与 hero 终端同一令牌，亮暗双变体）
-   overflow hidden 让标题栏裁进圆角；整卡为单个链接
-   hover 反馈：边框变强调色 + 轻微上移 + 柔和投影（CSS transition）；
-   整卡为块级链接，不受全局链接样式影响（无下划线、不加粗） */
-.post-card {
-  display: block;
-  overflow: hidden;
-  border: 1px solid var(--color-terminal-border);
-  border-radius: 0.75rem;
-  background: var(--color-terminal-bg);
+/* 整行为单个链接：mono 日期 + 标题 + #标签（终端 ls 输出行形态）；
+   hover / 键盘 focus-visible 反白反馈（复用全站 accent 令牌：亮色黑底白字、
+   暗色白底黑字反色）；行内不渲染摘要（内容管线保留 description，文章页/SEO 继续使用） */
+.post-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.875rem;
+  padding: 0.5rem 0.375rem;
+  border-radius: 0.25rem;
   font-weight: 400;
   text-decoration: none;
+  overflow-wrap: anywhere;
   transition:
-    border-color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
-.post-card:hover {
-  border-color: var(--color-accent);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgb(0 0 0 / 0.08);
-  /* 取消全局链接 hover 反白（卡片 hover 反馈为边框 + 投影，非文字反白） */
-  background-color: var(--color-terminal-bg);
+.post-row:hover,
+.post-row:focus-visible {
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+/* 日期：mono、弱化（亮色灰 / 暗色浅灰随主题）；YYYY-MM-DD 等宽自然对齐 */
+.post-row-date {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+/* 标题：常规字重（终端输出文本层级），占满剩余宽度、可换行不撑破小屏 */
+.post-row-title {
+  flex: 1 1 auto;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* #标签：仅展示、不跳转（当前无标签路由）；mono 弱化，与日期同一层级 */
+.post-row-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.post-row-tag {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+/* 反白反馈时日期/标签随行文字一起反色（muted 覆盖为 inherit） */
+.post-row:hover .post-row-date,
+.post-row:focus-visible .post-row-date,
+.post-row:hover .post-row-tag,
+.post-row:focus-visible .post-row-tag {
   color: inherit;
-}
-
-/* 标题栏：●●● 装饰圆点（复用 terminal-dot）+ slug 文件名（等宽、弱化） */
-.post-card-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.875rem;
-  border-bottom: 1px solid var(--color-terminal-border);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-muted);
-}
-.post-card-filename {
-  margin-left: 0.375rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 正文：标题 + 摘要 + 日期/标签行 */
-.post-card-body {
-  padding: 1rem;
-}
-.post-card-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  line-height: 1.4;
-}
-.post-card-description {
-  margin-top: 0.375rem;
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: var(--color-muted);
-}
-.post-card-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
-.post-card-date {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-muted);
-}
-
-/* 标签徽章：仅展示、不跳转（当前无标签路由）；灰阶强调边框 + 强调色文本 */
-.post-card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-}
-.post-card-tag {
-  padding: 0.125rem 0.5rem;
-  border: 1px solid var(--color-accent);
-  border-radius: 9999px;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-accent);
 }
 
 /* 无障碍：prefers-reduced-motion 下禁用打字机 / 入场 / 工具脉冲 / live 点 / 光标闪烁
@@ -507,15 +480,11 @@ html.dark .terminal-dot--green {
   .hero-turn--tool .tool-call,
   .live-dot,
   .terminal-cursor,
-  .post-card-enter {
+  .post-row-enter {
     animation: none;
   }
-  /* 卡片 hover 的位移/过渡同为动画：reduce 下禁用，仅保留边框变色反馈 */
-  .post-card {
+  /* 行 hover 反白的过渡同为动画：reduce 下禁用（反白本身保留，瞬时切换） */
+  .post-row {
     transition: none;
-  }
-  .post-card:hover {
-    transform: none;
-    box-shadow: none;
   }
 }
