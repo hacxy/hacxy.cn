@@ -478,7 +478,8 @@ test('post page renders title, date and body content', async ({ page }) => {
   await page.goto('/posts/hello-world')
 
   await expect(page.getByRole('heading', { name: '你好，世界' })).toBeVisible()
-  await expect(page.getByText('2026-08-10')).toBeVisible()
+  // 日期在头部信息区与左栏文章索引重复出现（issue #29）：限定头部，避免 strict-mode 冲突
+  await expect(page.locator('.post-header time').first()).toHaveText('2026-08-10')
   await expect(page.getByText('这是 hacxy.cn 重建后的第一篇文章')).toBeVisible()
 })
 
@@ -1291,9 +1292,92 @@ test('layout foundation: outer container widens to max-w-6xl; homepage/about con
     await page.locator('.max-w-2xl').evaluate((el) => el.getBoundingClientRect().width),
   ).toBeCloseTo(672, 1)
 
-  // 文章页正文列同样为可读宽度（未来三栏布局的中间栏地基）
+  // 文章页：左栏索引 + 中栏正文两栏（issue #29），正文列自然收窄至 ~600px 阅读宽度
   await page.goto('/posts/prerendered-blog-with-vite')
+  await expect(page.getByRole('navigation', { name: '文章索引' })).toBeVisible()
   expect(
     await page.locator('article').evaluate((el) => el.getBoundingClientRect().width),
-  ).toBeCloseTo(672, 1)
+  ).toBeCloseTo(600, 1)
+})
+
+test('post page left index: full list date desc, current highlighted, sticky, clickable; <768px single column (issue #29)', async ({
+  page,
+}) => {
+  // 期望值：从内容源计算（与内容清单同一契约：非 draft、日期倒序）
+  const postsDir = new URL('../../content/posts/', import.meta.url)
+  const published = readdirSync(postsDir)
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => {
+      const data = matter(readFileSync(new URL(file, postsDir), 'utf8')).data
+      return {
+        slug: file.replace(/\.md$/, ''),
+        title: data.title ?? '',
+        date: normalizeDate(data.date),
+        draft: data.draft ?? false,
+      }
+    })
+    .filter((post) => !post.draft)
+    .sort((a, b) => (a.date < b.date ? 1 : -1)) // 日期倒序（最新在前）
+
+  // ≥768px：两栏生效（1280px 视口下断言左栏索引）
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/posts/prerendered-blog-with-vite')
+
+  const index = page.getByRole('navigation', { name: '文章索引' })
+  await expect(index).toBeVisible()
+
+  // 全文章列表：数量与内容源一致
+  const rows = index.locator('.post-row')
+  await expect(rows).toHaveCount(published.length)
+
+  // 日期倒序：最新文章在最前
+  await expect(rows.first().locator('.post-row-date')).toHaveText(published[0]?.date ?? '')
+  await expect(rows.first().locator('.post-row-title')).toHaveText(published[0]?.title ?? '')
+
+  // 每行 = mono 日期 + 标题（与首页终端行同构），指向对应文章页
+  for (const post of published) {
+    const row = rows.filter({ hasText: post.title })
+    await expect(row).toHaveAttribute('href', `/posts/${post.slug}`)
+    await expect(row.locator('.post-row-date')).toHaveText(post.date)
+    expect(
+      await row.locator('.post-row-date').evaluate((el) => getComputedStyle(el).fontFamily),
+    ).toContain('JetBrains Mono')
+    await expect(row.locator('.post-row-title')).toHaveText(post.title)
+  }
+
+  // 当前文章高亮：复用全站导航高亮机制（加粗 + 下划线）+ aria-current="page"
+  const current = rows.filter({ hasText: '用 React + Vite 搭一个构建期预渲染的静态博客' })
+  await expect(current).toHaveClass(/nav-active/)
+  await expect(current).toHaveAttribute('aria-current', 'page')
+  expect(await current.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
+  expect(await current.evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain(
+    'underline',
+  )
+  // 非当前行保持常规字重（不高亮）
+  expect(
+    await rows.filter({ hasText: '第二篇文章' }).evaluate((el) => getComputedStyle(el).fontWeight),
+  ).toBe('400')
+
+  // 左栏 sticky 跟随滚动：滚动到正文底部后索引仍固定在视口内（top = sticky 偏移）
+  expect(await index.evaluate((el) => getComputedStyle(el).position)).toBe('sticky')
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  const stickyBox = await index.evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    return { top: r.top, bottom: r.bottom }
+  })
+  expect(stickyBox.top).toBeGreaterThanOrEqual(0)
+  expect(stickyBox.top).toBeLessThan(200)
+  expect(stickyBox.bottom).toBeLessThanOrEqual(900)
+
+  // 点击任一行跳转对应文章页
+  await rows.filter({ hasText: '第二篇文章' }).click()
+  await expect(page).toHaveURL(/\/posts\/second-post/)
+
+  // <768px：退回单栏——左栏索引隐藏（抽屉交互由后续工单接入），无横向溢出
+  await page.setViewportSize({ width: 600, height: 800 })
+  await expect(index).toBeHidden()
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  )
+  expect(overflow).toBe(false)
 })

@@ -552,6 +552,55 @@ html.dark .terminal-dot--green {
   color: var(--color-muted);
 }
 
+/* ===== 文章页两栏布局（issue #29）：左栏文章索引 + 中栏正文 ===== */
+
+/* 两栏网格（≥768px）：左栏 15rem 常驻文章索引 + 中栏正文（minmax 收窄），
+   右缘空位为未来右栏（目录）预留（issue #28 三栏地基） */
+.post-layout {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: 2.5rem;
+  /* 子项各自撑高（不拉伸）：sticky 才有所在轨道内的滚动余量 */
+  align-items: start;
+}
+
+/* 左栏：sticky 常驻，跟随滚动至正文末尾（top 2rem 与页内间距同节奏）；
+   列表与首页终端行同构（mono 日期 + 标题，复用 .post-row 行形态） */
+.post-index {
+  position: sticky;
+  top: 2rem;
+}
+.post-index .post-row-list {
+  margin-top: 0;
+}
+
+/* 当前文章高亮（复用全站导航高亮机制）：加粗 + 下划线；
+   行基态与 .post-row 一致（常规字重、无下划线），active 时切换。
+   NavLink 同时注入 aria-current="page"（键盘/读屏可达） */
+.post-index a.nav-active {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* 中栏正文：自然收窄至 ~600px（37.5rem，中文 ~35 字/行）阅读宽度 */
+.post-main {
+  max-width: 37.5rem;
+}
+
+/* <768px：退回单栏——左栏索引隐藏（抽屉交互由后续工单接入），
+   正文居中小于 768px 视口仍保持 ~600px 可读宽度（旧 max-w-2xl 居中视觉不回归） */
+@media (max-width: 767px) {
+  .post-layout {
+    display: block;
+  }
+  .post-index {
+    display: none;
+  }
+  .post-main {
+    margin-inline: auto;
+  }
+}
+
 /* 正文：层级 + 留白节奏 + 独立成块——h2/h3、段落、列表、引用、表格、代码块、行内代码
    各有明确层级与间距（不再全部 16px/零 margin） */
 .post-body {
