@@ -297,26 +297,46 @@ test('clicking a post row opens the post page (whole row is clickable)', async (
   await expect(page.getByRole('heading', { name: '你好，世界' })).toBeVisible()
 })
 
-test('post row hover feedback: inverted background (反白) in light and dark themes', async ({
+test('post row hover feedback: terminal prompt fades in + title underline, no background inversion (light & dark)', async ({
   page,
 }) => {
   await page.goto('/')
   const row = page.locator('.post-row').first()
+  const prompt = row.locator('.post-row-prompt')
+  const title = row.locator('.post-row-title')
 
-  // 归一化亮色：hover 反白 = 黑底白字（与全站链接同一 accent 令牌机制）
+  // 归一化亮色（初始主题由环境决定，先切到已知状态）
   const html = page.locator('html')
   if (((await html.getAttribute('class')) ?? '').includes('dark')) {
     await page.getByRole('button', { name: '切换暗色模式' }).click()
   }
-  await row.hover()
-  await expect(row).toHaveCSS('background-color', 'rgb(26, 26, 26)')
-  await expect(row).toHaveCSS('color', 'rgb(255, 255, 255)')
 
-  // 暗色模式：hover 反白 = 白底黑字（黑底白字反色）
+  // 默认态：提示符隐藏（opacity 0）、标题无下划线
+  await expect(prompt).toHaveText('>')
+  await expect(prompt).toHaveCSS('opacity', '0')
+  expect(await title.evaluate((el) => getComputedStyle(el).textDecorationLine)).not.toContain(
+    'underline',
+  )
+
+  // hover 行：行首「>」提示符淡入（opacity 1）、标题 accent 色 + 下划线、
+  // 无背景反白、日期/标签保持 muted 灰
+  await row.hover()
+  await expect(prompt).toHaveCSS('opacity', '1')
+  await expect(title).toHaveCSS('color', 'rgb(26, 26, 26)') // accent = 近黑（亮色）
+  await expect(title).toHaveCSS('text-decoration-line', 'underline')
+  await expect(row).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)') // 无黑白反转
+  await expect(row.locator('.post-row-date')).toHaveCSS('color', 'rgb(102, 102, 102)')
+  await expect(row.locator('.post-row-tag').first()).toHaveCSS('color', 'rgb(102, 102, 102)')
+
+  // 暗色模式：同一反馈（accent = 近白、muted = 浅灰，背景同样不反白）
   await page.getByRole('button', { name: '切换暗色模式' }).click()
   await row.hover()
-  await expect(row).toHaveCSS('background-color', 'rgb(230, 230, 230)')
-  await expect(row).toHaveCSS('color', 'rgb(0, 0, 0)')
+  await expect(prompt).toHaveCSS('opacity', '1')
+  await expect(title).toHaveCSS('color', 'rgb(230, 230, 230)')
+  await expect(title).toHaveCSS('text-decoration-line', 'underline')
+  await expect(row).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(row.locator('.post-row-date')).toHaveCSS('color', 'rgb(158, 158, 158)')
+  await expect(row.locator('.post-row-tag').first()).toHaveCSS('color', 'rgb(158, 158, 158)')
 })
 
 test('post list entrance: last act of the stream, staggered after the conversation ends', async ({
@@ -353,6 +373,8 @@ test('post list entrance: last act of the stream, staggered after the conversati
   await page.goto('/')
   await expect(page.getByText('你好，世界')).toBeVisible()
   await expect(page.locator('.post-row-enter').first()).toHaveCSS('animation-name', 'none')
+  // prefers-reduced-motion：行反馈过渡禁用（提示符瞬时切换，无动画）
+  await expect(page.locator('.post-row-prompt').first()).toHaveCSS('transition-duration', '0s')
   expect(pageErrors).toHaveLength(0)
 })
 
@@ -375,8 +397,13 @@ test('post rows are keyboard reachable: Tab focus, visible focus style, Enter op
   const firstRowLink = page.locator('.post-row').first()
   await expect(firstRowLink).toBeFocused()
 
-  // 键盘焦点有可见反白反馈（与 hover 同一机制）
-  await expect(firstRowLink).toHaveCSS('background-color', 'rgb(26, 26, 26)')
+  // 键盘焦点反馈（与 hover 同一机制）：行首「>」提示符淡入 + 标题下划线，背景不反白
+  await expect(firstRowLink.locator('.post-row-prompt')).toHaveCSS('opacity', '1')
+  await expect(firstRowLink.locator('.post-row-title')).toHaveCSS(
+    'text-decoration-line',
+    'underline',
+  )
+  await expect(firstRowLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
 
   // Enter 打开文章
   await page.keyboard.press('Enter')
