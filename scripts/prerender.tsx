@@ -70,8 +70,8 @@ function wrapTitle(title: string, maxChars = 20): string[] {
 }
 
 /**
- * 极客风 OG 图模板（PRD：紫底 + 等宽字体 + 文章标题）：
- * 深色底 + 紫色强调竖条 + mono 站点名/标题，1200x630，构建期生成 SVG。
+ * 极客风 OG 图模板（PRD：绿色系底 + 等宽字体 + 文章标题）：
+ * 深色底 + 绿色强调竖条 + mono 站点名/标题，1200x630，构建期生成 SVG。
  * 注：SVG 文本由爬虫端按字体栈渲染，PNG 栅格化留作后续优化。
  */
 function renderOgImage(siteLabel: string, title: string): string {
@@ -86,8 +86,8 @@ function renderOgImage(siteLabel: string, title: string): string {
     .join('\n')
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <rect width="1200" height="630" fill="#0d1117"/>
-  <rect x="64" y="0" width="4" height="630" fill="#a371f7"/>
-  <text x="96" y="120" font-family="JetBrains Mono, monospace" font-size="32" fill="#a371f7">${escapeXml(siteLabel)}</text>
+  <rect x="64" y="0" width="4" height="630" fill="#3fb950"/>
+  <text x="96" y="120" font-family="JetBrains Mono, monospace" font-size="32" fill="#3fb950">${escapeXml(siteLabel)}</text>
 ${titleText}
   <text x="96" y="560" font-family="JetBrains Mono, monospace" font-size="24" fill="#8b949e">${escapeXml(siteUrl)}</text>
 </svg>
@@ -259,7 +259,7 @@ ${feedItems}
 `
 writeFileSync(join(distDir, 'feed.xml'), feed)
 
-// 极客风 OG 图模板：首页 + 每篇非 draft 文章各生成一张（紫底 + mono + 标题）
+// 极客风 OG 图模板：首页 + 每篇非 draft 文章各生成一张（绿色系 + mono + 标题）
 const ogDir = join(distDir, 'og', 'posts')
 mkdirSync(ogDir, { recursive: true })
 writeFileSync(join(distDir, 'og', 'home.svg'), renderOgImage(siteName, tagline))
