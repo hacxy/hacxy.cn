@@ -167,7 +167,7 @@ test('prerendered HTML ships the inline no-flash theme script', async ({ request
   expect(html).toContain('prefers-color-scheme')
 })
 
-test('geek-style design: mono fonts for name/date, purple accent for links and active nav', async ({
+test('geek-style design: mono fonts for name/date, green accent for links and active nav', async ({
   page,
 }) => {
   await page.goto('/')
@@ -184,19 +184,28 @@ test('geek-style design: mono fonts for name/date, purple accent for links and a
     .evaluate((el) => getComputedStyle(el).fontFamily)
   expect(dateFont).toContain('JetBrains Mono')
 
-  // 链接为紫色强调色（#8250df）
+  // 链接为 GitHub 绿强调色（亮色 #1a7f37）
   const linkColor = await page
     .getByRole('link', { name: '你好，世界' })
     .evaluate((el) => getComputedStyle(el).color)
-  expect(linkColor).toBe('rgb(130, 80, 223)')
+  expect(linkColor).toBe('rgb(26, 127, 55)')
 
-  // 当前导航高亮为紫色（SPA 导航下 className 更新晚于 URL，用自动重试断言等待）
+  // 当前导航高亮为绿色（SPA 导航下 className 更新晚于 URL，用自动重试断言等待）
   await page.getByRole('link', { name: '关于' }).click()
   await expect(page).toHaveURL(/\/about/)
   const aboutNav = page.getByRole('link', { name: '关于' })
   await expect(aboutNav).toHaveClass(/text-accent/)
   const activeNavColor = await aboutNav.evaluate((el) => getComputedStyle(el).color)
-  expect(activeNavColor).toBe('rgb(130, 80, 223)')
+  expect(activeNavColor).toBe('rgb(26, 127, 55)')
+
+  // 暗色切换后强调色随之更新（暗色 #3fb950，沿用 dark mode toggle 机制）
+  await page.getByRole('button', { name: '切换暗色模式' }).click()
+  const darkNavColor = await aboutNav.evaluate((el) => getComputedStyle(el).color)
+  expect(darkNavColor).toBe('rgb(63, 185, 80)')
+  const darkLinkColor = await page
+    .getByRole('link', { name: 'GitHub' })
+    .evaluate((el) => getComputedStyle(el).color)
+  expect(darkLinkColor).toBe('rgb(63, 185, 80)')
 })
 
 test('fonts are self-hosted: woff2 on same origin, no external font requests', async ({
@@ -322,6 +331,14 @@ test('feed.xml is a valid RSS 2.0 feed with full article content', async ({ requ
   expect(feed).not.toContain('draft-post')
 })
 
+test('favicon.svg is green-themed and consistent with the site theme', async ({ request }) => {
+  const favicon = await (await request.get('/favicon.svg')).text()
+  // 主色为 GitHub 绿（暗色强调 #3fb950），无残留紫色系
+  expect(favicon).toContain('#3fb950')
+  expect(favicon).not.toContain('#863bff')
+  expect(favicon).not.toContain('#7e14ff')
+})
+
 test('geek-style OG images are generated and referenced', async ({ request }) => {
   // 文章页 og:image 指向构建期生成的模板图
   const post = await (await request.get('/posts/prerendered-blog-with-vite')).text()
@@ -332,8 +349,9 @@ test('geek-style OG images are generated and referenced', async ({ request }) =>
   const og = await (await request.get('/og/posts/prerendered-blog-with-vite.svg')).text()
   expect(og).toContain('<svg')
   expect(og).toContain('width="1200" height="630"')
-  // 模板要素：紫底 + 等宽字体 + 文章标题（标题可能折行，剥离标签后断言全文）
-  expect(og).toContain('a371f7')
+  // 模板要素：绿色系底（暗色基调 + 绿强调）+ 等宽字体 + 文章标题（标题可能折行，剥离标签后断言全文）
+  expect(og).toContain('3fb950')
+  expect(og).not.toContain('a371f7')
   expect(og).toContain('JetBrains Mono')
   const ogText = og
     .replace(/<\/text>\s*<text[^>]*>/g, '') // 折行标题的相邻 <text> 合并

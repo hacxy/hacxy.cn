@@ -27,18 +27,21 @@
 }
 
 /* 设计基调：正文 = 系统无衬线栈（PingFang SC / Microsoft YaHei / Noto Sans SC）；
-   代码与元数据 = JetBrains Mono；灰阶主色 + 紫色强调色（链接/当前导航） */
+   代码与元数据 = JetBrains Mono；灰阶主色 + GitHub 绿强调色（链接/当前导航）；
+   终端输出绿 = hero 终端内命令输出/成功行，比强调色更亮形成层次 */
 @theme {
   --font-sans:
     system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --color-accent: #8250df;
+  --color-accent: #1a7f37;
+  --color-terminal: #2ea043;
   --color-muted: #59636e;
 }
 
 html.dark {
-  --color-accent: #a371f7;
-  --color-muted: #8b949e;
+  --color-accent: #3fb950;
+  --color-terminal: #56d364;
+  --color-muted: #8d96a0;
 }
 
 @layer base {
