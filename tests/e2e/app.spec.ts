@@ -1125,3 +1125,175 @@ test('homepage renders dots canvas: fixed layer that never blocks interaction, h
   // 动画全程无报错
   expect(pageErrors).toHaveLength(0)
 })
+
+test('post header: big title + mono date/updated (only when present) + #tags + description', async ({
+  page,
+}) => {
+  await page.goto('/posts/prerendered-blog-with-vite')
+  const header = page.locator('.post-header')
+
+  // 大标题（h1 信息区第一层级）
+  await expect(header.getByRole('heading', { level: 1 })).toHaveText(
+    '用 React + Vite 搭一个构建期预渲染的静态博客',
+  )
+
+  // mono 元数据行：日期 + updated（有才显示）
+  await expect(header.locator('.post-meta time').first()).toHaveText('2026-08-11')
+  expect(
+    await header.locator('.post-meta').evaluate((el) => getComputedStyle(el).fontFamily),
+  ).toContain('JetBrains Mono')
+  await expect(header.locator('.post-updated')).toHaveText('updated 2026-08-12')
+  await expect(header.locator('.post-updated time')).toHaveAttribute('datetime', '2026-08-12')
+
+  // #标签：仅展示、不跳转（当前无标签路由）
+  const tags = header.locator('.post-tag')
+  await expect(tags).toHaveCount(3)
+  await expect(tags.nth(0)).toHaveText('#React')
+  await expect(tags.nth(1)).toHaveText('#Vite')
+  await expect(tags.nth(2)).toHaveText('#架构')
+  for (let i = 0; i < 3; i++) {
+    await expect(tags.nth(i)).not.toHaveAttribute('href')
+  }
+
+  // 描述
+  await expect(header.locator('.post-description')).toContainText(
+    '本文记录 hacxy.cn 重建的技术选型与实现',
+  )
+
+  // 未声明 updated 的文章不渲染 updated（hello-world 无 updated 字段）
+  await page.goto('/posts/hello-world')
+  const helloHeader = page.locator('.post-header')
+  await expect(helloHeader.locator('.post-updated')).toHaveCount(0)
+  await expect(helloHeader.getByText('updated')).toHaveCount(0)
+  // 标签与描述仍在
+  await expect(helloHeader.locator('.post-tag')).toHaveText(['#随笔'])
+  await expect(helloHeader.locator('.post-description')).toContainText('博客重建后的第一篇测试文章')
+})
+
+test('post body typography: headings/paragraphs/lists/code/table/inline code have hierarchy and rhythm', async ({
+  page,
+}) => {
+  await page.goto('/posts/prerendered-blog-with-vite')
+  const body = page.locator('.post-body')
+
+  // 标题层级：h2 > h3 字号；h2 以底部边框分隔章节（h3 无边框）
+  const h2 = body.getByRole('heading', { level: 2, name: '渲染策略：构建期一次性渲染' })
+  const h3 = body.getByRole('heading', { level: 3, name: '代码高亮：Shiki 双主题' })
+  const h2Size = parseFloat(await h2.evaluate((el) => getComputedStyle(el).fontSize))
+  const h3Size = parseFloat(await h3.evaluate((el) => getComputedStyle(el).fontSize))
+  expect(h2Size).toBeGreaterThan(h3Size)
+  expect(
+    parseFloat(await h2.evaluate((el) => getComputedStyle(el).borderBottomWidth)),
+  ).toBeGreaterThan(0)
+  expect(parseFloat(await h3.evaluate((el) => getComputedStyle(el).borderBottomWidth))).toBe(0)
+
+  // 段落：明确行高与底部留白（不再是零 margin 的 16px 墙）
+  const p = body.locator('p').first()
+  expect(await p.evaluate((el) => getComputedStyle(el).lineHeight)).not.toBe('normal')
+  expect(parseFloat(await p.evaluate((el) => getComputedStyle(el).marginBottom))).toBeGreaterThan(0)
+
+  // 列表：左缩进 + 行距
+  expect(
+    await body
+      .locator('ul')
+      .first()
+      .evaluate((el) => getComputedStyle(el).paddingLeft),
+  ).not.toBe('0px')
+  expect(
+    parseFloat(
+      await body
+        .locator('ul li')
+        .first()
+        .evaluate((el) => getComputedStyle(el).marginTop),
+    ),
+  ).toBeGreaterThanOrEqual(0)
+
+  // 代码块独立成块：内边距 + 边框 + 圆角（不再贴地无框）
+  const pre = body.locator('pre').first()
+  expect(parseFloat(await pre.evaluate((el) => getComputedStyle(el).paddingTop))).toBeGreaterThan(0)
+  expect(
+    parseFloat(await pre.evaluate((el) => getComputedStyle(el).borderTopWidth)),
+  ).toBeGreaterThan(0)
+  expect(parseFloat(await pre.evaluate((el) => getComputedStyle(el).borderRadius))).toBeGreaterThan(
+    0,
+  )
+
+  // 行内代码：mono + 独立底色/内边距；pre 内 code 保持无内边距（不误伤代码块）
+  const inlineCode = body.locator('li code').filter({ hasText: 'updated' }).first()
+  expect(await inlineCode.evaluate((el) => getComputedStyle(el).fontFamily)).toContain(
+    'JetBrains Mono',
+  )
+  expect(
+    parseFloat(await inlineCode.evaluate((el) => getComputedStyle(el).paddingLeft)),
+  ).toBeGreaterThan(0)
+  expect(await inlineCode.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(
+    'rgba(0, 0, 0, 0)',
+  )
+  expect(
+    await body
+      .locator('pre code')
+      .first()
+      .evaluate((el) => getComputedStyle(el).paddingTop),
+  ).toBe('0px')
+
+  // 表格：th/td 内边距 + 边框，th 加粗（层级分明）
+  const th = body.locator('table th').first()
+  expect(parseFloat(await th.evaluate((el) => getComputedStyle(el).paddingTop))).toBeGreaterThan(0)
+  expect(
+    parseFloat(await th.evaluate((el) => getComputedStyle(el).borderTopWidth)),
+  ).toBeGreaterThan(0)
+  expect(await th.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
+  const td = body.locator('table td').first()
+  expect(parseFloat(await td.evaluate((el) => getComputedStyle(el).paddingTop))).toBeGreaterThan(0)
+})
+
+test('post body: blockquote is a distinct block (border + padding + background)', async ({
+  page,
+}) => {
+  await page.goto('/posts/hello-world')
+  const quote = page.locator('.post-body blockquote')
+  await expect(quote).toBeVisible()
+  expect(
+    parseFloat(await quote.evaluate((el) => getComputedStyle(el).borderLeftWidth)),
+  ).toBeGreaterThan(0)
+  expect(
+    parseFloat(await quote.evaluate((el) => getComputedStyle(el).paddingLeft)),
+  ).toBeGreaterThan(0)
+  expect(await quote.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(
+    'rgba(0, 0, 0, 0)',
+  )
+})
+
+test('layout foundation: outer container widens to max-w-6xl; homepage/about content stays ~672px centered', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+
+  // 全站容器放宽：布局外壳为 max-w-6xl（72rem = 1152px @16px 基准）
+  const shell = page.locator('.max-w-6xl')
+  await expect(shell).toHaveCount(1)
+  expect(await shell.evaluate((el) => el.getBoundingClientRect().width)).toBeCloseTo(1152, 1)
+
+  // 首页终端流内层收窄居中：内容列仍 ~672px（视觉零回归）
+  const homeContent = page.locator('.max-w-2xl')
+  await expect(homeContent).toHaveCount(1)
+  const rect = await homeContent.evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    return { width: r.width, left: r.left }
+  })
+  expect(rect.width).toBeCloseTo(672, 1)
+  expect(Math.abs(rect.left - (1440 - 672) / 2)).toBeLessThan(1)
+
+  // 关于页同样收窄居中
+  await page.goto('/about')
+  expect(
+    await page.locator('.max-w-2xl').evaluate((el) => el.getBoundingClientRect().width),
+  ).toBeCloseTo(672, 1)
+
+  // 文章页正文列同样为可读宽度（未来三栏布局的中间栏地基）
+  await page.goto('/posts/prerendered-blog-with-vite')
+  expect(
+    await page.locator('article').evaluate((el) => el.getBoundingClientRect().width),
+  ).toBeCloseTo(672, 1)
+})

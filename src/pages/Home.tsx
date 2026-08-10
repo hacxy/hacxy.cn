@@ -51,8 +51,12 @@ export default function Home() {
       {/* 背景点阵动画（ArtDots 改编）：仅首页挂载、仅客户端渲染（SSR 输出 null） */}
       <BackgroundDots />
       {/* 连续终端流容器：--turn-count 供文章行入场延迟计算——
-          会话演出结束后（停驻最终态）文章行作为最后一幕逐行错开入场 */}
-      <div className="home-stream" style={{ '--turn-count': turns.length } as CSSProperties}>
+          会话演出结束后（停驻最终态）文章行作为最后一幕逐行错开入场；
+          内层 max-w-2xl 收窄居中：全站容器放宽为 max-w-6xl 后首页视觉零回归（issue #28） */}
+      <div
+        className="home-stream mx-auto max-w-2xl"
+        style={{ '--turn-count': turns.length } as CSSProperties}
+      >
         {/* hero 区：克制的入场动画（淡入 + 轻微上移，纯 CSS，reduced-motion 禁用） */}
         <section className="hero-enter">
           <h1 className="font-mono text-4xl font-bold tracking-tight">{siteName}</h1>
