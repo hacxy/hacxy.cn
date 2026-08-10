@@ -109,10 +109,13 @@ test('hero terminal: four corner brackets + bottom live caption (red dot, weak m
   await expect(corners).toHaveCount(4)
   expect((await corners.allTextContents()).sort()).toEqual(['┌', '┐', '└', '┘'].sort())
 
-  // 底部 caption：● live 红点 + 弱化 mono 文字（与正文以细线分隔）
+  // 底部 caption：● live 红点 + 弱化 mono 文字（与正文以细线分隔）；
+  // 可见文本精简为「live」（去掉演出说明「AI 会话演出 · 自动播放一遍后停驻」）
   const caption = terminal.locator('.hero-terminal-caption')
   await expect(caption).toBeVisible()
-  await expect(caption.getByText(/live/)).toBeVisible()
+  await expect(caption).toHaveText('live', { useInnerText: true })
+  await expect(caption.getByText('AI 会话演出')).toHaveCount(0)
+  await expect(caption.getByText('自动播放一遍后停驻')).toHaveCount(0)
   expect(await caption.evaluate((el) => getComputedStyle(el).fontFamily)).toContain(
     'JetBrains Mono',
   )
@@ -147,13 +150,14 @@ test('prerendered HTML contains the full conversation text (SEO no regression)',
   expect(html).toContain('live')
 })
 
-test('hero terminal: CSS show plays once and stops at the final state (no loop)', async ({
+test('hero terminal: CSS show plays once and stops; live dot pulses infinitely', async ({
   page,
 }) => {
   await page.goto('/')
   const terminal = page.locator('.hero-terminal')
 
-  // 演出动画均为有限次数（不循环）：逐段入场 1 次、打字机 1 次、工具脉冲 3 次、live 点脉冲 4 次
+  // 演出动画均播放一遍后停驻：逐段入场 1 次、打字机 1 次、工具脉冲 3 次（不循环）；
+  // 仅 live 红点无限循环（软脉冲，0.9s）——持续闪烁的 live 状态指示
   expect(
     await terminal
       .locator('.hero-turn')
@@ -175,7 +179,11 @@ test('hero terminal: CSS show plays once and stops at the final state (no loop)'
     await terminal
       .locator('.live-dot')
       .evaluate((el) => getComputedStyle(el).animationIterationCount),
-  ).toBe('4')
+  ).toBe('infinite')
+  // live 点软脉冲周期 0.9s（opacity 1↔0.35）
+  expect(
+    await terminal.locator('.live-dot').evaluate((el) => getComputedStyle(el).animationDuration),
+  ).toBe('0.9s')
 
   // 等演出播完（9 轮 × 0.5s 错开 + 入场时长 + 打字机/脉冲尾段），停在最终态：
   // 最后一轮完全可见（opacity 1），tagline 全文揭示
