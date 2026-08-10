@@ -1,5 +1,98 @@
 import { expect, test } from '@playwright/test'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+
+// gray-matter 无类型声明：E2E 仅用它解析 frontmatter 计算期望值（与构建期内容清单同一契约）
+const require = createRequire(import.meta.url)
+const matter = require('gray-matter') as (input: string) => {
+  data: { draft?: boolean; tags?: string[] }
+}
+
+test('hero: big h1 site name + terminal window with all command outputs', async ({ page }) => {
+  await page.goto('/')
+
+  // 大号站点名作为 h1（既有 E2E 对 h1 的断言保留）
+  const heading = page.getByRole('heading', { level: 1, name: 'Hacxy' })
+  await expect(heading).toBeVisible()
+
+  // 终端窗口可见
+  const terminal = page.locator('.hero-terminal')
+  await expect(terminal).toBeVisible()
+
+  // 每条命令带 $ 提示符：whoami / cat tagline.txt / ls posts / npm run build / git clone
+  // （5 条命令 + 1 个空闲提示符）
+  await expect(terminal.locator('.terminal-prompt')).toHaveCount(6)
+  for (const command of ['whoami', 'cat tagline.txt', 'ls posts', 'npm run build', 'git clone']) {
+    await expect(terminal.getByText(command)).toBeVisible()
+  }
+
+  // whoami 输出：自我介绍（沿用站点信息）
+  await expect(terminal.getByText(/前端工程师/)).toBeVisible()
+  // tagline 全文最终可见（打字机结束态，不做时序断言）
+  await expect(terminal.getByText('了解真相，才能获得真正的自由')).toBeVisible()
+  // npm run build 成功输出
+  await expect(terminal.getByText(/构建成功/)).toBeVisible()
+  // git clone：真实指向 GitHub 的链接
+  const cloneLink = terminal.getByRole('link', { name: 'https://github.com/hacxy' })
+  await expect(cloneLink).toBeVisible()
+  await expect(cloneLink).toHaveAttribute('href', 'https://github.com/hacxy')
+})
+
+test('hero terminal: ls posts counts match the content manifest', async ({ page }) => {
+  // 期望值从内容源计算（同一契约：非 draft 文章数 + 全站标签并集），
+  // 与构建期内容清单的 draft 过滤 / tags 聚合规则一致——新增文章无需改代码
+  const postsDir = new URL('../../content/posts/', import.meta.url)
+  const published = readdirSync(postsDir)
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => matter(readFileSync(new URL(file, postsDir), 'utf8')))
+    .filter((parsed) => !parsed.data.draft)
+  const postCount = published.length
+  const tagCount = new Set(published.flatMap((parsed) => parsed.data.tags ?? [])).size
+
+  await page.goto('/')
+  const terminal = page.locator('.hero-terminal')
+  // 输出形如「3 篇文章 · 4 个标签」（文章数/标签数自动计算）
+  await expect(terminal.getByText(new RegExp(`${postCount} 篇文章`))).toBeVisible()
+  await expect(terminal.getByText(new RegExp(`${tagCount} 个标签`))).toBeVisible()
+})
+
+test('prerendered HTML contains hero terminal text and site name (SEO no regression)', async ({
+  request,
+}) => {
+  const html = await (await request.get('/')).text()
+
+  // 站点名 h1 + tagline 全文 + 各命令/输出都在预渲染源码中（爬虫不执行 JS 即可见）
+  expect(html).toContain('Hacxy')
+  expect(html).toContain('了解真相，才能获得真正的自由')
+  expect(html).toContain('whoami')
+  expect(html).toContain('cat tagline.txt')
+  expect(html).toContain('ls posts')
+  expect(html).toContain('npm run build')
+  expect(html).toContain('git clone')
+  expect(html).toContain('https://github.com/hacxy')
+  expect(html).toContain('前端工程师')
+})
+
+test('hero terminal: reduced-motion skips typewriter, full text visible, no animation errors', async ({
+  page,
+}) => {
+  const pageErrors: string[] = []
+  page.on('pageerror', (err) => pageErrors.push(err.message))
+
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/')
+
+  // 完整 tagline 直接显示（无需等待打字机）
+  const tagline = page.getByText('了解真相，才能获得真正的自由')
+  await expect(tagline).toBeVisible()
+  // 打字机与 hero 入场动画都被禁用（纯 CSS 动画，reduce 下 animation: none）
+  expect(await tagline.evaluate((el) => getComputedStyle(el).animationName)).toBe('none')
+  expect(
+    await page.locator('.hero-enter').evaluate((el) => getComputedStyle(el).animationName),
+  ).toBe('none')
+  // 全程无动画/脚本报错
+  expect(pageErrors).toHaveLength(0)
+})
 
 test('homepage shows site name and the fixture post', async ({ page }) => {
   await page.goto('/')
@@ -250,6 +343,8 @@ test('layout has no horizontal overflow on mobile viewport', async ({ page }) =>
   await expect(page.locator('.bg-texture')).toHaveCount(1)
   // 首页点阵 canvas 在移动端同样存在（同一垫底模式，不产生横向滚动）
   await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
+  // hero 终端在移动端可见（375px 视口下无横向滚动）
+  await expect(page.locator('.hero-terminal')).toBeVisible()
   const homeOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   )
@@ -583,10 +678,12 @@ test('nav icon links are keyboard focusable', async ({ page }) => {
   await page.goto('/')
 
   // Tab 顺序：文章 → 关于 → 主题切换 → GitHub → RSS（键盘无障碍验收，PRD 用户故事 33）
+  // 限定 navigation：避免与 hero 终端内 git clone 链接（名字含 github）歧义（strict mode）
+  const nav = page.getByRole('navigation')
   for (let i = 0; i < 4; i++) await page.keyboard.press('Tab')
-  await expect(page.getByRole('link', { name: 'GitHub' })).toBeFocused()
+  await expect(nav.getByRole('link', { name: 'GitHub' })).toBeFocused()
   await page.keyboard.press('Tab')
-  await expect(page.getByRole('link', { name: 'RSS' })).toBeFocused()
+  await expect(nav.getByRole('link', { name: 'RSS' })).toBeFocused()
 })
 
 test('homepage renders dots canvas: fixed layer that never blocks interaction, homepage-only', async ({

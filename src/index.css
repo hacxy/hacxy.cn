@@ -38,6 +38,9 @@
   --color-muted: #59636e;
   /* 背景点阵：亮色深灰（暗色绿调见 html.dark，随主题切换） */
   --color-dot: #1f2328;
+  /* hero 终端窗口：浅色背景 + 边框（暗色见 html.dark） */
+  --color-terminal-bg: #f6f8fa;
+  --color-terminal-border: #d1d9e0;
 }
 
 html.dark {
@@ -46,6 +49,9 @@ html.dark {
   --color-muted: #8d96a0;
   /* 背景点阵：暗色绿调 */
   --color-dot: #3fb950;
+  /* hero 终端窗口：暗色背景 + 边框 */
+  --color-terminal-bg: #161b22;
+  --color-terminal-border: #30363d;
 }
 
 @layer base {
@@ -108,4 +114,129 @@ html.dark .bg-texture {
   inset: 0;
   z-index: -1;
   pointer-events: none;
+}
+
+/* ===== hero 终端（issue #13）：大号站点名 + 数据驱动命令窗口 + 打字机 ===== */
+
+/* hero 区入场动画：克制（淡入 + 轻微上移 8px，纯 CSS） */
+.hero-enter {
+  animation: hero-in 0.45s ease-out both;
+}
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 终端窗口：窗口栏（装饰圆点 + 标题）+ mono 命令流；
+   overflow-x auto 保证长行在窗口内滚动，不撑破页面（375px 无横向滚动） */
+.hero-terminal {
+  margin-top: 1.25rem;
+  overflow-x: auto;
+  border: 1px solid var(--color-terminal-border);
+  border-radius: 0.75rem;
+  background: var(--color-terminal-bg);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.75;
+}
+.hero-terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-bottom: 1px solid var(--color-terminal-border);
+}
+.terminal-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+}
+.terminal-dot--red {
+  background: #f47067;
+}
+.terminal-dot--yellow {
+  background: #e3b341;
+}
+.terminal-dot--green {
+  background: var(--color-terminal);
+}
+.hero-terminal-title {
+  margin-left: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+.hero-terminal-body {
+  padding: 0.875rem 1rem;
+}
+
+/* 命令行 / 输出行：$ 提示符灰（muted），命令默认前景色，输出统一终端输出绿 */
+.terminal-line {
+  display: flex;
+  gap: 0.5rem;
+  overflow-wrap: anywhere;
+}
+.terminal-prompt {
+  color: var(--color-muted);
+  user-select: none;
+}
+.terminal-output {
+  color: var(--color-terminal);
+}
+
+/* 打字机文本（纯 CSS）：完整文本始终在 DOM（SEO / reduced-motion / 结束态直接可见），
+   动画用 clip-path 从右向左裁切 + steps(字符数) 逐字符揭示；
+   --type-chars / --type-duration / --type-delay 由组件按文本长度驱动 */
+.typewriter-text {
+  display: inline-block;
+  clip-path: inset(0 0 0 0);
+  animation-name: terminal-typing;
+  animation-duration: var(--type-duration, 1.5s);
+  animation-timing-function: steps(var(--type-chars, 14));
+  animation-delay: var(--type-delay, 0.45s);
+  animation-fill-mode: forwards;
+}
+@keyframes terminal-typing {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* 块状闪烁光标：打字机行尾 + 空闲提示符行尾 */
+.terminal-cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  margin-left: 0.1em;
+  vertical-align: text-bottom;
+  background: var(--color-terminal);
+  animation: terminal-blink 1.1s steps(1) infinite;
+}
+@keyframes terminal-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* 无障碍：prefers-reduced-motion 下禁用打字机 / 入场 / 光标闪烁动画，
+   直接显示完整文本（无动画报错；打字机为纯 CSS，无 JS 参与） */
+@media (prefers-reduced-motion: reduce) {
+  .hero-enter,
+  .typewriter-text,
+  .terminal-cursor {
+    animation: none;
+  }
 }
