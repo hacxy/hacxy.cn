@@ -4,8 +4,8 @@ import { copyrightYear, githubUrl, siteName } from '../site.ts'
 import Icon from './Icon.tsx'
 import ThemeToggle from './ThemeToggle.tsx'
 
-/** 当前导航高亮：GitHub 绿强调色（PRD「绿色强调色作用于链接与当前导航」） */
-const navLinkClass = ({ isActive }: { isActive: boolean }) => (isActive ? 'text-accent' : undefined)
+/** 当前导航高亮（issue #17）：沿用全站链接机制 = 加粗 + 下划线（不再依赖颜色区分） */
+const navLinkClass = ({ isActive }: { isActive: boolean }) => (isActive ? 'nav-active' : undefined)
 
 /** 全局布局：单列居中 + 「文章 | 关于」导航 + CC BY-NC-SA 页脚 */
 export default function Layout() {
@@ -15,7 +15,7 @@ export default function Layout() {
           内容为内联 SVG data-URI 平铺（细网格 + 代码字符，零外部资源），亮暗双变体随 .dark 切换 */}
       <div aria-hidden="true" className="bg-texture" />
       <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-6">
-        <nav className="flex items-center gap-6 py-8">
+        <nav className="site-nav flex items-center gap-6 py-8">
           <NavLink to="/" end className={navLinkClass}>
             文章
           </NavLink>
