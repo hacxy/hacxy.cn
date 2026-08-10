@@ -40,22 +40,22 @@ function noise2(x: number, y: number): number {
   )
 }
 
-/* ---------- 动画参数（比原版更疏、透明度更低，控制 CPU 与视觉克制度） ---------- */
+/* ---------- 动画参数（issue #27 克制度：点阵退为若有若无的底噪；同时控制 CPU 与视觉克制度） ---------- */
 
-/** 点距（CSS px）：稀疏网格，避免高密度点阵的 CPU 高占用（antfu/antfu.me#86 教训） */
-const SPACING = 36
+/** 点距（CSS px）：更疏的稀疏网格，避免高密度点阵的 CPU 高占用（antfu/antfu.me#86 教训） */
+export const SPACING = 44
 /** 噪声空间缩放：越小越平缓 */
 const NOISE_SCALE = 0.005
 /** 时间缩放：漂移速度 */
 const TIME_SCALE = 0.0008
-/** 漂移振幅上限（CSS px） */
-const AMPLITUDE = 32
-/** 点直径范围（CSS px） */
-const MIN_SIZE = 1.5
-const MAX_SIZE = 3
-/** 透明度范围：低透明度闪烁，不抢戏 */
-const MIN_ALPHA = 0.1
-const MAX_ALPHA = 0.5
+/** 漂移振幅上限（CSS px）：32→20，更克制的漂移 */
+export const AMPLITUDE = 20
+/** 点直径范围（CSS px）：1.5–3→1–1.8，更细 */
+export const MIN_SIZE = 1
+export const MAX_SIZE = 1.8
+/** 透明度范围（0.1–0.5→0.06–0.22）：上限显著压低，肉眼为暗点而非光斑 */
+export const MIN_ALPHA = 0.06
+export const MAX_ALPHA = 0.22
 
 /** 每个点：基点（网格交点）+ 直径；动画在基点附近做有界漂移 */
 interface Dot {
