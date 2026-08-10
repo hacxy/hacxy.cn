@@ -244,6 +244,8 @@ test('layout has no horizontal overflow on mobile viewport', async ({ page }) =>
   await page.setViewportSize({ width: 375, height: 667 })
 
   await page.goto('/')
+  // 背景纹理图层在移动端同样存在（fixed 垫底，不产生横向滚动）
+  await expect(page.locator('.bg-texture')).toHaveCount(1)
   const homeOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   )
@@ -337,6 +339,80 @@ test('favicon.svg is green-themed and consistent with the site theme', async ({ 
   expect(favicon).toContain('#3fb950')
   expect(favicon).not.toContain('#863bff')
   expect(favicon).not.toContain('#7e14ff')
+})
+
+test('full-site background texture layer is fixed and never blocks interaction', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const layer = page.locator('.bg-texture')
+  await expect(layer).toHaveCount(1)
+
+  // 垫底图层：固定定位、不拦截指针事件（低干扰背景纹理的基本契约）
+  expect(await layer.evaluate((el) => getComputedStyle(el).position)).toBe('fixed')
+  expect(await layer.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none')
+
+  // 不拦截指针事件：图层覆盖区域内的链接仍可点击（行为断言）
+  await page.getByRole('link', { name: '你好，世界' }).click()
+  await expect(page).toHaveURL(/\/posts\/hello-world/)
+
+  // 文章页同样存在背景图层
+  await expect(page.locator('.bg-texture')).toHaveCount(1)
+  expect(await page.locator('.bg-texture').evaluate((el) => getComputedStyle(el).position)).toBe(
+    'fixed',
+  )
+})
+
+test('background texture is an inline SVG data-URI (grid + code chars), zero external requests', async ({
+  page,
+  request,
+}) => {
+  // 纹理来自样式表内的内联 SVG data-URI（复用自托管断言思路：从 HTML 取 CSS 入口再读内容）
+  const html = await (await request.get('/')).text()
+  const cssHref = html.match(/href="([^"]+\.css)"/)?.[1]
+  expect(cssHref).toBeTruthy()
+  const css = await (await request.get(cssHref as string)).text()
+
+  const uris = css.match(/data:image\/svg\+xml,[^")]+/g) ?? []
+  expect(uris.length).toBeGreaterThanOrEqual(1)
+
+  // 解码后确认是「细网格 + 十六进制/代码字符」纹理，而非纯色占位
+  const decoded = uris.map((uri) => decodeURIComponent(uri)).join('')
+  expect(decoded).toContain('<svg')
+  expect(decoded).toContain('M24 0v120') // 网格线
+  expect(decoded).toContain('0x')
+  expect(decoded).toContain('{ }')
+  expect(decoded).toContain('=>')
+
+  // 页面加载不发任何外部资源请求（纹理为零成本内联，无外部图片）
+  const external: string[] = []
+  page.on('request', (req) => {
+    const url = new URL(req.url())
+    if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') external.push(req.url())
+  })
+  await page.goto('/posts/prerendered-blog-with-vite')
+  expect(external).toHaveLength(0)
+})
+
+test('background texture adapts to theme: light dark-gray, dark green-tinted', async ({
+  page,
+  request,
+}) => {
+  // 亮暗两套变体的颜色（data-URI 中 # 编码为 %23）：亮色深灰 #1f2328、暗色绿调 #3fb950
+  const html = await (await request.get('/')).text()
+  const cssHref = html.match(/href="([^"]+\.css)"/)?.[1]
+  expect(cssHref).toBeTruthy()
+  const css = await (await request.get(cssHref as string)).text()
+  expect(css).toContain('%231f2328')
+  expect(css).toContain('%233fb950')
+
+  // 切换主题后纹理 background-image 随之更新（沿用 dark mode toggle 模式，不依赖初始主题）
+  await page.goto('/')
+  const layer = page.locator('.bg-texture')
+  const lightBg = await layer.evaluate((el) => getComputedStyle(el).backgroundImage)
+  await page.getByRole('button', { name: '切换暗色模式' }).click()
+  const darkBg = await layer.evaluate((el) => getComputedStyle(el).backgroundImage)
+  expect(darkBg).not.toBe(lightBg)
 })
 
 test('geek-style OG images are generated and referenced', async ({ request }) => {

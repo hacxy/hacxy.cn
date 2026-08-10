@@ -80,3 +80,19 @@ html.dark .shiki span {
   color: var(--shiki-dark) !important;
   background-color: var(--shiki-dark-bg) !important;
 }
+
+/* 全站背景纹理垫底图层：fixed 铺满视口、z-index 最低、不拦截指针事件，
+   挂在 Layout 中作用于全部页面；背景为内联 SVG data-URI 平铺（零外部资源） */
+.bg-texture {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* 亮色变体：深灰低干扰（内联 SVG data-URI 平铺：24px 网格 + 代码字符，零外部资源） */
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width='120'%20height='120'%20viewBox='0%200%20120%20120'%3E%0A%20%20%3Cg%20fill='none'%20stroke='%231f2328'%20stroke-width='1'%20opacity='0.06'%3E%0A%20%20%20%20%3Cpath%20d='M24%200v120M48%200v120M72%200v120M96%200v120M0%2024h120M0%2048h120M0%2072h120M0%2096h120'%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill='%231f2328'%20font-family='monospace'%20font-size='11'%20opacity='0.05'%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='18'%3E0x%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='66'%20y='18'%3E%7B%20%7D%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='30'%20y='42'%3E=%3E%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='90'%20y='42'%3Efn%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='66'%3E%2F%2F%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='60'%20y='66'%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='36'%20y='90'%3E0xff%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='96'%20y='90'%3E%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='12'%20y='114'%3E=%26gt%3B%3C%2Ftext%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
+}
+
+/* 暗色变体：绿调低干扰（#3fb950 低透明度），随 .dark 切换 */
+html.dark .bg-texture {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width='120'%20height='120'%20viewBox='0%200%20120%20120'%3E%0A%20%20%3Cg%20fill='none'%20stroke='%233fb950'%20stroke-width='1'%20opacity='0.06'%3E%0A%20%20%20%20%3Cpath%20d='M24%200v120M48%200v120M72%200v120M96%200v120M0%2024h120M0%2048h120M0%2072h120M0%2096h120'%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill='%233fb950'%20font-family='monospace'%20font-size='11'%20opacity='0.05'%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='18'%3E0x%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='66'%20y='18'%3E%7B%20%7D%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='30'%20y='42'%3E=%3E%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='90'%20y='42'%3Efn%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='66'%3E%2F%2F%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='60'%20y='66'%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='36'%20y='90'%3E0xff%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='96'%20y='90'%3E%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='12'%20y='114'%3E=%26gt%3B%3C%2Ftext%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
+}

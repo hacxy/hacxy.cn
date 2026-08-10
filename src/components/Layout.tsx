@@ -9,33 +9,38 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) => (isActive ? 'text-
 /** 全局布局：单列居中 + 「文章 | 关于」导航 + CC BY-NC-SA 页脚 */
 export default function Layout() {
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-6">
-      <nav className="flex items-center gap-6 py-8">
-        <NavLink to="/" end className={navLinkClass}>
-          文章
-        </NavLink>
-        <NavLink to="/about" className={navLinkClass}>
-          关于
-        </NavLink>
-        <span className="ml-auto">
-          <ThemeToggle />
-        </span>
-      </nav>
-      <main className="flex-1 pb-16">
-        <Outlet />
-      </main>
-      <footer className="border-t py-6 text-sm text-muted">
-        <p>
-          © {copyrightYear} {siteName} ·{' '}
-          <a
-            href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            CC BY-NC-SA 4.0
-          </a>
-        </p>
-      </footer>
-    </div>
+    <>
+      {/* 全站背景纹理垫底图层：fixed 铺满视口、z-index 最低、不拦截指针事件；
+          内容为内联 SVG data-URI 平铺（细网格 + 代码字符，零外部资源），亮暗双变体随 .dark 切换 */}
+      <div aria-hidden="true" className="bg-texture" />
+      <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-6">
+        <nav className="flex items-center gap-6 py-8">
+          <NavLink to="/" end className={navLinkClass}>
+            文章
+          </NavLink>
+          <NavLink to="/about" className={navLinkClass}>
+            关于
+          </NavLink>
+          <span className="ml-auto">
+            <ThemeToggle />
+          </span>
+        </nav>
+        <main className="flex-1 pb-16">
+          <Outlet />
+        </main>
+        <footer className="border-t py-6 text-sm text-muted">
+          <p>
+            © {copyrightYear} {siteName} ·{' '}
+            <a
+              href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              CC BY-NC-SA 4.0
+            </a>
+          </p>
+        </footer>
+      </div>
+    </>
   )
 }
