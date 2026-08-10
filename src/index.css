@@ -148,7 +148,7 @@ html.dark .bg-texture {
   pointer-events: none;
 }
 
-/* ===== hero 终端（issue #13）：大号站点名 + 数据驱动命令窗口 + 打字机 ===== */
+/* ===== hero 终端（issue #18）：pi.dev 风格 AI 会话演出 ===== */
 
 /* hero 区入场动画：克制（淡入 + 轻微上移 8px，纯 CSS） */
 .hero-enter {
@@ -165,31 +165,196 @@ html.dark .bg-texture {
   }
 }
 
-/* 终端窗口：窗口栏（装饰圆点 + 标题）+ mono 命令流；
-   overflow-x auto 保证长行在窗口内滚动，不撑破页面（375px 无横向滚动） */
+/* 终端框架（pi.dev 风格）：恒黑底白字，与页面 chrome 主题色解耦——亮暗模式均为
+   黑底白字（不随 .dark 切换）；四角括号装饰（┌┐└┘）；移除 mac 装饰圆点窗口栏。
+   overflow 移到内部 .hero-terminal-scroll（横向滚动不影响四角括号）；
+   --turn-gap / --turn-in 为演出编排参数：轮次入场按 --i * --turn-gap 依次错开 */
 .hero-terminal {
+  position: relative;
   margin-top: 1.25rem;
-  overflow-x: auto;
-  border: 1px solid var(--color-terminal-border);
-  border-radius: 0.75rem;
-  background: var(--color-terminal-bg);
+  border: 1px solid #2b2b2b;
+  background: #000;
+  color: #fff;
   font-family: var(--font-mono);
   font-size: 0.875rem;
   line-height: 1.75;
+  --turn-gap: 0.5s;
+  --turn-in: 0.45s;
 }
-.hero-terminal-bar {
+
+/* 四角括号：┌ ┐ └ ┘ 装饰在终端四角（重叠在边框线上，绝对定位不占文档流） */
+.hero-terminal-corner {
+  position: absolute;
+  z-index: 1;
+  font-size: 0.875rem;
+  line-height: 1;
+  color: #d9d9d9;
+  user-select: none;
+}
+.hero-terminal-corner--tl {
+  top: -1px;
+  left: -1px;
+}
+.hero-terminal-corner--tr {
+  top: -1px;
+  right: -1px;
+}
+.hero-terminal-corner--bl {
+  bottom: -1px;
+  left: -1px;
+}
+.hero-terminal-corner--br {
+  bottom: -1px;
+  right: -1px;
+}
+
+/* 横向滚动容器：长行（如 GitHub 链接）在小屏终端内滚动，不撑破页面 */
+.hero-terminal-scroll {
+  overflow-x: auto;
+}
+.hero-terminal-body {
+  padding: 1rem 1rem 0.75rem;
+}
+
+/* 对话轮次：逐段入场（淡入 + 轻微上移），按轮次序号 --i 依次错开；
+   自动播放一遍（iteration-count 1）后停在最终态，不循环 */
+.hero-turn {
+  animation: turn-in var(--turn-in) ease-out both;
+  animation-delay: calc(var(--i) * var(--turn-gap));
+}
+@keyframes turn-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* user 提问行：❓ 前缀 + 加粗（黑白下的第一视觉层级） */
+.user-question {
+  display: block;
+  font-weight: 700;
+}
+.turn-mark {
+  margin-right: 0.375rem;
+}
+
+/* tool 工具调用块：缩进 + mono + 灰阶脉冲（3 次后停在最终态，不循环）；
+   延迟等所在轮次入场后开始 */
+.hero-turn--tool .tool-call {
+  display: block;
+  margin-left: 1.5rem;
+  color: #d6d6d6;
+  animation: tool-pulse 0.8s ease-in-out 3 both;
+  animation-delay: calc(var(--i) * var(--turn-gap) + 0.35s);
+}
+@keyframes tool-pulse {
+  0%,
+  100% {
+    color: #d6d6d6;
+  }
+  50% {
+    color: #616161;
+  }
+}
+
+/* assistant 回答行：常规文本；多行之间留白 */
+.hero-line {
+  display: block;
+}
+.hero-line + .hero-line {
+  margin-top: 0.25rem;
+}
+
+/* 打字机文本（纯 CSS）：完整文本始终在 DOM（SEO / reduced-motion / 结束态直接可见），
+   动画用 clip-path 从右向左裁切 + steps(字符数) 逐字符揭示；
+   --type-chars / --type-duration 由组件按文本长度驱动；
+   延迟由所在轮次（--i）与演出节奏（--turn-gap）计算：所在轮次入场后开始打字 */
+.typewriter-text {
+  display: inline-block;
+  clip-path: inset(0 0 0 0);
+  animation-name: terminal-typing;
+  animation-duration: var(--type-duration, 1.5s);
+  animation-timing-function: steps(var(--type-chars, 14));
+  animation-delay: calc(var(--i, 0) * var(--turn-gap, 0.5s) + 0.3s);
+  animation-fill-mode: both;
+}
+@keyframes terminal-typing {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* 块状闪烁光标：打字机行尾（终端「正在输出」状态） */
+.terminal-cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  margin-left: 0.1em;
+  vertical-align: text-bottom;
+  background: #fff;
+  animation: terminal-blink 1.1s steps(1) infinite;
+}
+@keyframes terminal-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* 底部 caption：● live 红点 + 弱化 mono 文字（与正文以细线分隔）；
+   live 点脉冲有限次（4 次）后停在常亮，不循环 */
+.hero-terminal-caption {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.875rem;
-  border-bottom: 1px solid var(--color-terminal-border);
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 0.75rem;
+  border-top: 1px solid #2b2b2b;
+  font-size: 0.75rem;
+  color: #8c8c8c;
 }
+.live-dot {
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: #ef4444;
+  animation: live-pulse 0.9s ease-in-out 4 both;
+  animation-delay: 0.2s;
+}
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* 终端内链接 hover：恒黑底终端自闭环（白底黑字反白），与页面 chrome 主题解耦 */
+.hero-terminal a:hover {
+  background-color: #fff;
+  color: #000;
+}
+
+/* 文章卡片（issue #14）：标题栏 ●●● 装饰圆点（亮色由浅到深、暗色由深到浅，
+   随主题切换）——仅文章卡片使用，hero 终端已移除 mac 装饰圆点窗口栏 */
 .terminal-dot {
   width: 0.625rem;
   height: 0.625rem;
   border-radius: 9999px;
 }
-/* 窗口装饰圆点：黑白灰阶（亮色由浅到深、暗色由深到浅），随主题切换 */
 .terminal-dot--red {
   background: #d9d9d9;
 }
@@ -207,70 +372,6 @@ html.dark .terminal-dot--yellow {
 }
 html.dark .terminal-dot--green {
   background: #6e6e6e;
-}
-.hero-terminal-title {
-  margin-left: 0.375rem;
-  font-size: 0.75rem;
-  color: var(--color-muted);
-}
-.hero-terminal-body {
-  padding: 0.875rem 1rem;
-}
-
-/* 命令行 / 输出行：$ 提示符灰（muted），命令默认前景色，输出统一终端输出色（灰阶令牌） */
-.terminal-line {
-  display: flex;
-  gap: 0.5rem;
-  overflow-wrap: anywhere;
-}
-.terminal-prompt {
-  color: var(--color-muted);
-  user-select: none;
-}
-.terminal-output {
-  color: var(--color-terminal);
-}
-
-/* 打字机文本（纯 CSS）：完整文本始终在 DOM（SEO / reduced-motion / 结束态直接可见），
-   动画用 clip-path 从右向左裁切 + steps(字符数) 逐字符揭示；
-   --type-chars / --type-duration / --type-delay 由组件按文本长度驱动 */
-.typewriter-text {
-  display: inline-block;
-  clip-path: inset(0 0 0 0);
-  animation-name: terminal-typing;
-  animation-duration: var(--type-duration, 1.5s);
-  animation-timing-function: steps(var(--type-chars, 14));
-  animation-delay: var(--type-delay, 0.45s);
-  animation-fill-mode: forwards;
-}
-@keyframes terminal-typing {
-  from {
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-  }
-}
-
-/* 块状闪烁光标：打字机行尾 + 空闲提示符行尾 */
-.terminal-cursor {
-  display: inline-block;
-  width: 0.55em;
-  height: 1.05em;
-  margin-left: 0.1em;
-  vertical-align: text-bottom;
-  background: var(--color-terminal);
-  animation: terminal-blink 1.1s steps(1) infinite;
-}
-@keyframes terminal-blink {
-  0%,
-  49% {
-    opacity: 1;
-  }
-  50%,
-  100% {
-    opacity: 0;
-  }
 }
 
 /* ===== 文章卡片（issue #14）：终端窗口样式（标题栏 ●●● + 文件名 + 正文） ===== */
@@ -397,11 +498,14 @@ html.dark .terminal-dot--green {
   color: var(--color-accent);
 }
 
-/* 无障碍：prefers-reduced-motion 下禁用打字机 / 入场 / 光标闪烁动画，
-   直接显示完整文本（无动画报错；打字机为纯 CSS，无 JS 参与） */
+/* 无障碍：prefers-reduced-motion 下禁用打字机 / 入场 / 工具脉冲 / live 点 / 光标闪烁
+   动画，全文直接可见（无动画报错；演出编排为纯 CSS，无 JS 参与） */
 @media (prefers-reduced-motion: reduce) {
   .hero-enter,
+  .hero-turn,
   .typewriter-text,
+  .hero-turn--tool .tool-call,
+  .live-dot,
   .terminal-cursor,
   .post-card-enter {
     animation: none;

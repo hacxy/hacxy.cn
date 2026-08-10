@@ -1,13 +1,14 @@
 import BackgroundDots from '../components/BackgroundDots.tsx'
-import HeroTerminal, { type TerminalCommand } from '../components/HeroTerminal.tsx'
+import HeroTerminal, { type TerminalTurn } from '../components/HeroTerminal.tsx'
 import PostCard from '../components/PostCard.tsx'
 import { posts } from '../content/index.ts'
 import { authorBio, githubUrl, siteName, tagline } from '../site.ts'
 
 /**
- * 首页：hero（大号站点名 h1 + 数据驱动终端窗口）+ 文章卡片列表（终端窗口样式，按日期倒序）。
- * 终端内容由「命令 + 输出 + 是否打字机」的数据结构驱动：文章数/标签数从内容清单自动
- * 计算（新增文章无需改代码），whoami 沿用站点信息，git clone 真实指向 GitHub。
+ * 首页：hero（大号站点名 h1 + pi.dev 风格 AI 会话演出终端）+ 文章卡片列表。
+ * 终端内容由「对话轮次」数据结构驱动（user 提问 / tool 工具调用 / assistant 回答，
+ * issue #18）：文章数/标签数从内容清单自动计算（新增文章无需改代码），
+ * 简介/tagline 沿用站点信息，GitHub 外链真实指向仓库。
  * 文章区为终端样式卡片（标题栏 ●●● + slug 文件名 + 标题/摘要/日期/标签徽章），
  * 内容由内容清单驱动，整卡可点击进入 /posts/:slug（issue #14）。
  */
@@ -16,23 +17,27 @@ export default function Home() {
   const postCount = posts.length
   const tagCount = new Set(posts.flatMap((post) => post.tags)).size
 
-  const commands: TerminalCommand[] = [
-    { command: 'whoami', output: `hacxy · ${authorBio}` },
-    { command: 'cat tagline.txt', output: tagline, typewriter: true },
-    { command: 'ls posts', output: `${postCount} 篇文章 · ${tagCount} 个标签` },
-    { command: 'npm run build', output: '✓ 构建成功 · 0 错误，产物已就绪' },
+  // 三轮问答剧本（issue #18）：你是谁 / 这个站有什么 / 怎么联系
+  const turns: TerminalTurn[] = [
+    { role: 'user', text: '你是谁' },
+    { role: 'tool', call: 'read about.md' },
+    { role: 'assistant', lines: [{ text: authorBio }, { text: tagline, typewriter: true }] },
+    { role: 'user', text: '这个站有什么' },
+    { role: 'tool', call: 'ls posts' },
+    { role: 'assistant', lines: [{ text: `${postCount} 篇文章 · ${tagCount} 个标签` }] },
+    { role: 'user', text: '怎么联系' },
+    { role: 'tool', call: 'open github.com/hacxy' },
     {
-      command: 'git clone',
-      output: (
-        <a
-          href={githubUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-terminal underline underline-offset-2"
-        >
-          {githubUrl}
-        </a>
-      ),
+      role: 'assistant',
+      lines: [
+        {
+          text: (
+            <a href={githubUrl} target="_blank" rel="noopener noreferrer">
+              {githubUrl}
+            </a>
+          ),
+        },
+      ],
     },
   ]
 
@@ -43,7 +48,7 @@ export default function Home() {
       {/* hero 区：克制的入场动画（淡入 + 轻微上移，纯 CSS，reduced-motion 禁用） */}
       <section className="hero-enter">
         <h1 className="font-mono text-4xl font-bold tracking-tight">{siteName}</h1>
-        <HeroTerminal commands={commands} />
+        <HeroTerminal turns={turns} />
       </section>
       <ul className="post-card-list">
         {posts.map((post) => (
