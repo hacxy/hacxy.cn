@@ -1,7 +1,7 @@
 /** 站点基础信息 */
 export const siteName = 'Hacxy'
 export const tagline = '了解真相，才能获得真正的自由'
-/** 作者简介（hero 终端 whoami 输出，单一来源） */
+/** 作者简介（hero 终端「你是谁」助手回答，单一来源） */
 export const authorBio = '前端工程师 · 关注 Web 生态与工程化'
 /** 站点绝对地址（canonical / OG / sitemap / RSS 共用） */
 export const siteUrl = 'https://hacxy.cn'

@@ -21,34 +21,43 @@ function normalizeDate(value: string | Date | undefined): string {
   return typeof value === 'string' ? value : value.toISOString().slice(0, 10)
 }
 
-test('hero: big h1 site name + terminal window with all command outputs', async ({ page }) => {
+test('hero: big h1 site name + AI agent conversation (three Q&A rounds)', async ({ page }) => {
   await page.goto('/')
 
   // 大号站点名作为 h1（既有 E2E 对 h1 的断言保留）
   const heading = page.getByRole('heading', { level: 1, name: 'Hacxy' })
   await expect(heading).toBeVisible()
 
-  // 终端窗口可见
+  // pi.dev 风格会话演出终端可见
   const terminal = page.locator('.hero-terminal')
   await expect(terminal).toBeVisible()
 
-  // 每条命令带 $ 提示符：whoami / cat tagline.txt / ls posts / npm run build / git clone
-  // （5 条命令 + 1 个空闲提示符）
-  await expect(terminal.locator('.terminal-prompt')).toHaveCount(6)
-  for (const command of ['whoami', 'cat tagline.txt', 'ls posts', 'npm run build', 'git clone']) {
-    await expect(terminal.getByText(command)).toBeVisible()
+  // 三轮问答的 ❓ user 提问行（加粗，黑白下的第一视觉层级）
+  for (const question of ['你是谁', '这个站有什么', '怎么联系']) {
+    const q = terminal.locator('.user-question').filter({ hasText: question })
+    await expect(q).toBeVisible()
+    expect(await q.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
   }
 
-  // whoami 输出：自我介绍（沿用站点信息）
+  // ▲ tool 工具调用块（缩进 + mono + 灰阶脉冲）：read about.md / ls posts / open github.com/hacxy
+  for (const call of ['read about.md', 'ls posts', 'open github.com/hacxy']) {
+    const tool = terminal.locator('.tool-call').filter({ hasText: call })
+    await expect(tool).toBeVisible()
+    expect(await tool.evaluate((el) => getComputedStyle(el).fontFamily)).toContain('JetBrains Mono')
+  }
+
+  // assistant 回答：简介 + tagline（打字机结束态全文可见，不做时序断言）
   await expect(terminal.getByText(/前端工程师/)).toBeVisible()
-  // tagline 全文最终可见（打字机结束态，不做时序断言）
   await expect(terminal.getByText('了解真相，才能获得真正的自由')).toBeVisible()
-  // npm run build 成功输出
-  await expect(terminal.getByText(/构建成功/)).toBeVisible()
-  // git clone：真实指向 GitHub 的链接
-  const cloneLink = terminal.getByRole('link', { name: 'https://github.com/hacxy' })
-  await expect(cloneLink).toBeVisible()
-  await expect(cloneLink).toHaveAttribute('href', 'https://github.com/hacxy')
+
+  // 怎么联系 → GitHub 外链：下划线 + 加粗（黑白下区分，与页面 chrome 一致）
+  const githubLink = terminal.getByRole('link', { name: 'https://github.com/hacxy' })
+  await expect(githubLink).toBeVisible()
+  await expect(githubLink).toHaveAttribute('href', 'https://github.com/hacxy')
+  expect(await githubLink.evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain(
+    'underline',
+  )
+  expect(await githubLink.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
 })
 
 test('hero terminal: ls posts counts match the content manifest', async ({ page }) => {
@@ -69,24 +78,119 @@ test('hero terminal: ls posts counts match the content manifest', async ({ page 
   await expect(terminal.getByText(new RegExp(`${tagCount} 个标签`))).toBeVisible()
 })
 
-test('prerendered HTML contains hero terminal text and site name (SEO no regression)', async ({
-  request,
+test('hero terminal: always black background with white text in light and dark themes', async ({
+  page,
 }) => {
-  const html = await (await request.get('/')).text()
+  await page.goto('/')
+  const html = page.locator('html')
+  const terminal = page.locator('.hero-terminal')
 
-  // 站点名 h1 + tagline 全文 + 各命令/输出都在预渲染源码中（爬虫不执行 JS 即可见）
-  expect(html).toContain('Hacxy')
-  expect(html).toContain('了解真相，才能获得真正的自由')
-  expect(html).toContain('whoami')
-  expect(html).toContain('cat tagline.txt')
-  expect(html).toContain('ls posts')
-  expect(html).toContain('npm run build')
-  expect(html).toContain('git clone')
-  expect(html).toContain('https://github.com/hacxy')
-  expect(html).toContain('前端工程师')
+  // 归一化到亮色：恒黑底白字（与页面 chrome 主题色解耦）
+  if (((await html.getAttribute('class')) ?? '').includes('dark')) {
+    await page.getByRole('button', { name: '切换暗色模式' }).click()
+  }
+  await expect(terminal).toHaveCSS('background-color', 'rgb(0, 0, 0)')
+  await expect(terminal).toHaveCSS('color', 'rgb(255, 255, 255)')
+
+  // 暗色模式同样恒黑底白字（不随主题反色）
+  await page.getByRole('button', { name: '切换暗色模式' }).click()
+  await expect(terminal).toHaveCSS('background-color', 'rgb(0, 0, 0)')
+  await expect(terminal).toHaveCSS('color', 'rgb(255, 255, 255)')
 })
 
-test('hero terminal: reduced-motion skips typewriter, full text visible, no animation errors', async ({
+test('hero terminal: four corner brackets + bottom live caption (red dot, weak mono text)', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const terminal = page.locator('.hero-terminal')
+
+  // 四角括号：┌ ┐ └ ┘ 四个角装饰
+  const corners = terminal.locator('.hero-terminal-corner')
+  await expect(corners).toHaveCount(4)
+  expect((await corners.allTextContents()).sort()).toEqual(['┌', '┐', '└', '┘'].sort())
+
+  // 底部 caption：● live 红点 + 弱化 mono 文字（与正文以细线分隔）
+  const caption = terminal.locator('.hero-terminal-caption')
+  await expect(caption).toBeVisible()
+  await expect(caption.getByText(/live/)).toBeVisible()
+  expect(await caption.evaluate((el) => getComputedStyle(el).fontFamily)).toContain(
+    'JetBrains Mono',
+  )
+
+  // live 红点：红色系（灰阶之外的唯一彩色系，live 状态指示）
+  const dot = caption.locator('.live-dot')
+  await expect(dot).toBeVisible()
+  expect(await dot.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(239, 68, 68)')
+
+  // 无 mac 装饰圆点窗口栏（issue #18 移除；文章卡片的 ●●● 标题栏不受影响）
+  await expect(terminal.locator('.hero-terminal-bar')).toHaveCount(0)
+})
+
+test('prerendered HTML contains the full conversation text (SEO no regression)', async ({
+  request,
+}) => {
+  // 站点名 h1 + 三轮问答全文（user 提问 / tool 调用 / assistant 回答 / caption）
+  // 都在预渲染源码中（爬虫不执行 JS 即可读）。注：React SSR 会在混合静态文本与
+  // 表达式的节点间插入 <!-- --> 注释（文本本身连续），故先剥离再断言全文
+  const html = (await (await request.get('/')).text()).replaceAll('<!-- -->', '')
+
+  expect(html).toContain('Hacxy')
+  expect(html).toContain('你是谁')
+  expect(html).toContain('这个站有什么')
+  expect(html).toContain('怎么联系')
+  expect(html).toContain('tool: read about.md')
+  expect(html).toContain('tool: ls posts')
+  expect(html).toContain('tool: open github.com/hacxy')
+  expect(html).toContain('前端工程师')
+  expect(html).toContain('了解真相，才能获得真正的自由')
+  expect(html).toContain('https://github.com/hacxy')
+  expect(html).toContain('live')
+})
+
+test('hero terminal: CSS show plays once and stops at the final state (no loop)', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const terminal = page.locator('.hero-terminal')
+
+  // 演出动画均为有限次数（不循环）：逐段入场 1 次、打字机 1 次、工具脉冲 3 次、live 点脉冲 4 次
+  expect(
+    await terminal
+      .locator('.hero-turn')
+      .first()
+      .evaluate((el) => getComputedStyle(el).animationIterationCount),
+  ).toBe('1')
+  expect(
+    await terminal
+      .locator('.typewriter-text')
+      .evaluate((el) => getComputedStyle(el).animationIterationCount),
+  ).toBe('1')
+  expect(
+    await terminal
+      .locator('.tool-call')
+      .first()
+      .evaluate((el) => getComputedStyle(el).animationIterationCount),
+  ).toBe('3')
+  expect(
+    await terminal
+      .locator('.live-dot')
+      .evaluate((el) => getComputedStyle(el).animationIterationCount),
+  ).toBe('4')
+
+  // 等演出播完（9 轮 × 0.5s 错开 + 入场时长 + 打字机/脉冲尾段），停在最终态：
+  // 最后一轮完全可见（opacity 1），tagline 全文揭示
+  await expect
+    .poll(() =>
+      terminal
+        .locator('.hero-turn')
+        .last()
+        .evaluate((el) => getComputedStyle(el).opacity),
+    )
+    .toBe('1')
+  await expect(terminal.getByText('了解真相，才能获得真正的自由')).toBeVisible()
+})
+
+test('hero terminal: reduced-motion skips all animations, full text visible, no errors', async ({
   page,
 }) => {
   const pageErrors: string[] = []
@@ -95,11 +199,30 @@ test('hero terminal: reduced-motion skips typewriter, full text visible, no anim
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
 
-  // 完整 tagline 直接显示（无需等待打字机）
-  const tagline = page.getByText('了解真相，才能获得真正的自由')
-  await expect(tagline).toBeVisible()
-  // 打字机与 hero 入场动画都被禁用（纯 CSS 动画，reduce 下 animation: none）
-  expect(await tagline.evaluate((el) => getComputedStyle(el).animationName)).toBe('none')
+  // 全文直接可见（无需等待动画）：三轮提问 + tool 调用 + tagline 全文
+  for (const text of ['你是谁', '这个站有什么', '怎么联系', '了解真相，才能获得真正的自由']) {
+    await expect(page.getByText(text).first()).toBeVisible()
+  }
+
+  // 逐段入场 / 打字机 / 工具脉冲 / live 点脉冲 / hero 入场全部禁用（animation: none）
+  expect(
+    await page
+      .locator('.hero-turn')
+      .first()
+      .evaluate((el) => getComputedStyle(el).animationName),
+  ).toBe('none')
+  expect(
+    await page.locator('.typewriter-text').evaluate((el) => getComputedStyle(el).animationName),
+  ).toBe('none')
+  expect(
+    await page
+      .locator('.tool-call')
+      .first()
+      .evaluate((el) => getComputedStyle(el).animationName),
+  ).toBe('none')
+  expect(await page.locator('.live-dot').evaluate((el) => getComputedStyle(el).animationName)).toBe(
+    'none',
+  )
   expect(
     await page.locator('.hero-enter').evaluate((el) => getComputedStyle(el).animationName),
   ).toBe('none')
@@ -838,7 +961,7 @@ test('nav icon links are keyboard focusable', async ({ page }) => {
   await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
 
   // Tab 顺序：文章 → 关于 → 主题切换 → GitHub → RSS（键盘无障碍验收，PRD 用户故事 33）
-  // 限定 navigation：避免与 hero 终端内 git clone 链接（名字含 github）歧义（strict mode）
+  // 限定 navigation：避免与 hero 终端内 GitHub 外链（名字含 github）歧义（strict mode）
   const nav = page.getByRole('navigation')
   for (let i = 0; i < 4; i++) await page.keyboard.press('Tab')
   await expect(nav.getByRole('link', { name: 'GitHub' })).toBeFocused()
