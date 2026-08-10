@@ -11,10 +11,12 @@ import { type CSSProperties, type ReactNode } from 'react'
  *   解耦）、四角括号装饰（┌┐└┘）、底部 caption（● live 红点 + 弱化 mono 文字）；
  *   移除 mac 装饰圆点窗口栏（文章卡片行不沿用窗口栏形态，见 PostRow）
  * - 演出编排为纯 CSS：逐段入场（轮次按 --i * --turn-gap 依次错开）、tagline 打字机
- *   （clip-path + steps）、tool 块灰阶脉冲、live 点脉冲；全部自动播放一遍后停在
- *   最终态、不循环；SSR 与客户端首帧都渲染完整对话文本（预渲染 HTML 含全文、
- *   SEO 不回归、无 hydration mismatch），prefers-reduced-motion 时 media query
- *   整体禁用动画、全文直接可见，无 JS 报错
+ *   （clip-path + steps）、tool 块灰阶脉冲；自动播放一遍后停在最终态、不循环；
+ *   live 红点除外——caption 精简为「● live」（去掉演出说明），红点以软脉冲无限
+ *   循环（0.9s，opacity 1↔0.35，红色不变）；SSR 与客户端首帧都渲染完整对话文本
+ *   （预渲染 HTML 含全文、SEO 不回归、无 hydration mismatch），
+ *   prefers-reduced-motion 时 media query 整体禁用动画（含 live 点静止）、
+ *   全文直接可见，无 JS 报错
  */
 
 /** 打字机参数：每字符耗时（总时长由文本长度驱动） */
@@ -114,10 +116,10 @@ export default function HeroTerminal({ turns }: { turns: TerminalTurn[] }) {
           ))}
         </div>
       </div>
-      {/* 底部 caption：● live 红点 + 弱化 mono 文字（live 状态与演出说明） */}
+      {/* 底部 caption：● live 红点 + 弱化 mono 文字（可见文本精简为「live」） */}
       <div className="hero-terminal-caption">
         <span className="live-dot" aria-hidden="true" />
-        <span>live · AI 会话演出 · 自动播放一遍后停驻</span>
+        <span>live</span>
       </div>
       <span className="hero-terminal-corner hero-terminal-corner--bl" aria-hidden="true">
         └
