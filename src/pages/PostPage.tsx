@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router'
 
 import PostIndex from '../components/PostIndex.tsx'
+import PostToc from '../components/PostToc.tsx'
 import { posts } from '../content/index.ts'
 import NotFound from './NotFound.tsx'
 
@@ -9,12 +10,15 @@ import NotFound from './NotFound.tsx'
  * 客户端经 dangerouslySetInnerHTML 挂载，同一字符串服务端/客户端完全一致，
  * 从根上避免 hydration mismatch（PRD「渲染策略」决策）。
  *
- * 两栏布局（issue #29，≥768px）：左栏 sticky 常驻全文章索引（PostIndex，
+ * 三栏布局（issue #30，≥1024px）：左栏 sticky 常驻全文章索引（PostIndex，
  * 与首页终端行同构、当前文章加粗 + 下划线高亮），中栏正文自然收窄至 ~600px
- * 阅读宽度（37.5rem，中文 ~35 字/行）；<768px 退回单栏（抽屉交互后续接入）。
- * 头部信息区（issue #28）：大标题 + mono 日期/updated（有才显示）+ #标签 + 描述；
- * 正文排版为干净 prose 风格（层级/留白/独立成块，见 index.css .post-body），
- * 终端美学保留在首页与列表。内嵌「目录」块保持不变（后续工单移除）。
+ * 阅读宽度（37.5rem，中文 ~35 字/行），右栏 sticky 锚点目录（PostToc，
+ * h2/h3 两级 + IntersectionObserver scroll-spy 高亮当前章节）；
+ * 文章无标题（toc 为空）时右栏整栏隐藏、退化为两栏；<1024px 右栏隐藏，
+ * <768px 退回单栏（抽屉交互后续接入）。头部信息区（issue #28）：大标题 +
+ * mono 日期/updated（有才显示）+ #标签 + 描述；正文排版为干净 prose 风格
+ * （层级/留白/独立成块，见 index.css .post-body），终端美学保留在首页与列表。
+ * 内嵌「目录」块已移除（issue #30），TOC 语义（aria-label="文章目录"）保留。
  * 上一篇/下一篇保留在正文底部（issue #29）。
  */
 export default function PostPage() {
@@ -31,7 +35,8 @@ export default function PostPage() {
   const older = posts[postIndex + 1]
 
   return (
-    <div className="post-layout">
+    /* toc 为空（文章无 h2/h3 标题）时右栏整栏隐藏、布局退化为两栏（--no-toc） */
+    <div className={post.toc.length > 0 ? 'post-layout' : 'post-layout post-layout--no-toc'}>
       {/* 左栏：sticky 常驻全文章索引（issue #29）；<768px 隐藏（抽屉交互后续接入） */}
       <PostIndex />
       <article className="post-main">
@@ -61,19 +66,6 @@ export default function PostPage() {
           {post.description && <p className="post-description">{post.description}</p>}
         </header>
 
-        {post.toc.length > 0 && (
-          <nav aria-label="文章目录">
-            <h2>目录</h2>
-            <ul>
-              {post.toc.map((item) => (
-                <li key={item.id} className={item.level === 3 ? 'pl-4' : undefined}>
-                  <a href={`#${item.id}`}>{item.text}</a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        )}
-
         <div className="post-body" dangerouslySetInnerHTML={{ __html: post.html }} />
 
         {(newer || older) && (
@@ -91,6 +83,9 @@ export default function PostPage() {
           </nav>
         )}
       </article>
+      {/* 右栏：sticky 锚点目录 + scroll-spy（issue #30）；仅文章有标题时渲染，
+          <1024px 由 CSS 隐藏，toc 为空时整栏不渲染（布局退化为两栏） */}
+      {post.toc.length > 0 && <PostToc toc={post.toc} />}
     </div>
   )
 }
