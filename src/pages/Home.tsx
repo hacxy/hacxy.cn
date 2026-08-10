@@ -1,16 +1,21 @@
+import { type CSSProperties } from 'react'
+
 import BackgroundDots from '../components/BackgroundDots.tsx'
 import HeroTerminal, { type TerminalTurn } from '../components/HeroTerminal.tsx'
-import PostCard from '../components/PostCard.tsx'
+import PostRow from '../components/PostRow.tsx'
 import { posts } from '../content/index.ts'
 import { authorBio, githubUrl, siteName, tagline } from '../site.ts'
 
 /**
- * 首页：hero（大号站点名 h1 + pi.dev 风格 AI 会话演出终端）+ 文章卡片列表。
+ * 首页 = 连续终端流（父 PRD #16「一台恒黑底的连续终端流」收尾）：
+ * hero（大号站点名 h1 + pi.dev 风格 AI 会话演出终端）+ 文章列表（终端输出行）。
  * 终端内容由「对话轮次」数据结构驱动（user 提问 / tool 工具调用 / assistant 回答，
  * issue #18）：文章数/标签数从内容清单自动计算（新增文章无需改代码），
  * 简介/tagline 沿用站点信息，GitHub 外链真实指向仓库。
- * 文章区为终端样式卡片（标题栏 ●●● + slug 文件名 + 标题/摘要/日期/标签徽章），
- * 内容由内容清单驱动，整卡可点击进入 /posts/:slug（issue #14）。
+ * 文章区为终端输出行（mono 日期 + 标题 + #标签，issue #19）：会话演出结束后
+ * （停驻最终态）作为最后一幕逐行错开入场，入场时序由 --turn-count（轮次数）与
+ * hero 终端同一节奏参数（--turn-gap / --turn-in）在 CSS 侧计算——新增文章自动
+ * 增长行数，无需改代码。
  */
 export default function Home() {
   // ls posts 的文章数/标签数：来自构建期内容清单（非 draft），自动计算
@@ -45,16 +50,20 @@ export default function Home() {
     <>
       {/* 背景点阵动画（ArtDots 改编）：仅首页挂载、仅客户端渲染（SSR 输出 null） */}
       <BackgroundDots />
-      {/* hero 区：克制的入场动画（淡入 + 轻微上移，纯 CSS，reduced-motion 禁用） */}
-      <section className="hero-enter">
-        <h1 className="font-mono text-4xl font-bold tracking-tight">{siteName}</h1>
-        <HeroTerminal turns={turns} />
-      </section>
-      <ul className="post-card-list">
-        {posts.map((post) => (
-          <PostCard key={post.slug} post={post} />
-        ))}
-      </ul>
+      {/* 连续终端流容器：--turn-count 供文章行入场延迟计算——
+          会话演出结束后（停驻最终态）文章行作为最后一幕逐行错开入场 */}
+      <div className="home-stream" style={{ '--turn-count': turns.length } as CSSProperties}>
+        {/* hero 区：克制的入场动画（淡入 + 轻微上移，纯 CSS，reduced-motion 禁用） */}
+        <section className="hero-enter">
+          <h1 className="font-mono text-4xl font-bold tracking-tight">{siteName}</h1>
+          <HeroTerminal turns={turns} />
+        </section>
+        <ul className="post-row-list">
+          {posts.map((post, i) => (
+            <PostRow key={post.slug} post={post} index={i} />
+          ))}
+        </ul>
+      </div>
     </>
   )
 }

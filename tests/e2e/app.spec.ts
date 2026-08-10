@@ -230,7 +230,7 @@ test('hero terminal: reduced-motion skips all animations, full text visible, no 
   expect(pageErrors).toHaveLength(0)
 })
 
-test('post cards: terminal-style cards show title, description, date and tag badges', async ({
+test('post list: terminal output lines show mono date, title and #tags (no description)', async ({
   page,
 }) => {
   // 期望值从内容源计算（与构建期内容清单同一契约：非 draft 文章、日期倒序）
@@ -252,92 +252,135 @@ test('post cards: terminal-style cards show title, description, date and tag bad
     .sort((a, b) => (a.date < b.date ? 1 : -1)) // 内容清单按日期倒序（最新在前）
 
   await page.goto('/')
-  const cards = page.locator('.post-card')
-  // 卡片由内容清单驱动：新增文章自动上首页（数量与内容源一致）
-  await expect(cards).toHaveCount(published.length)
+  const rows = page.locator('.post-row')
+  // 终端输出行由内容清单驱动：新增文章自动上首页（数量与内容源一致）
+  await expect(rows).toHaveCount(published.length)
   // 最新文章在最前（日期倒序）
-  const newestSlug = published[0]?.slug ?? ''
-  await expect(cards.first().locator('.post-card-filename')).toHaveText(`${newestSlug}.md`)
+  await expect(rows.first().locator('.post-row-title')).toHaveText(published[0]?.title ?? '')
 
   for (const post of published) {
-    const card = cards.filter({ hasText: post.title })
-    await expect(card).toBeVisible()
+    const row = rows.filter({ hasText: post.title })
+    await expect(row).toBeVisible()
 
-    // 终端标题栏：●●● 装饰圆点 + slug 文件名（等宽字体）
-    await expect(card.locator('.post-card-bar .terminal-dot')).toHaveCount(3)
-    await expect(card.locator('.post-card-filename')).toHaveText(`${post.slug}.md`)
-    // 文件名使用等宽字体（与日期一致，极客风 mono 点缀）
-    const filenameFont = await card
-      .locator('.post-card-filename')
+    // 每行内容 = mono 日期 + 标题 + #标签（终端 ls 输出行形态）
+    await expect(row.locator('.post-row-date')).toHaveText(post.date)
+    const dateFont = await row
+      .locator('.post-row-date')
       .evaluate((el) => getComputedStyle(el).fontFamily)
-    expect(filenameFont).toContain('JetBrains Mono')
+    expect(dateFont).toContain('JetBrains Mono')
+    await expect(row.locator('.post-row-title')).toHaveText(post.title)
 
-    // 正文：标题 / 摘要 / 日期
-    await expect(card.getByRole('heading', { level: 2, name: post.title })).toBeVisible()
-    await expect(card.getByText(post.description)).toBeVisible()
-    await expect(card.getByText(post.date)).toBeVisible()
+    // 摘要不再渲染于列表（内容管线保留 description 字段，文章页/SEO 继续使用）
+    await expect(row.getByText(post.description)).toHaveCount(0)
 
-    // 标签徽章：每个标签渲染为徽章且仅展示、不跳转（当前无标签路由）
-    // 用 exact 匹配避免命中正文里的同名子串（如描述中的「架构」）
+    // #标签：每个标签渲染为 #tag 且仅展示、不跳转（当前无标签路由）
     for (const tag of post.tags ?? []) {
-      const badge = card.getByText(tag, { exact: true })
-      await expect(badge).toBeVisible()
-      await expect(badge).not.toHaveAttribute('href')
+      const tagEl = row.getByText(`#${tag}`, { exact: true })
+      await expect(tagEl).toBeVisible()
+      await expect(tagEl).not.toHaveAttribute('href')
     }
+  }
+
+  // 整行为单个链接（行本身即链接，指向 /posts/:slug，无嵌套链接）
+  for (let i = 0; i < published.length; i++) {
+    await expect(rows.nth(i)).toHaveAttribute('href', `/posts/${published[i]?.slug}`)
   }
 })
 
-test('clicking a post card opens the post page (whole card is clickable)', async ({ page }) => {
+test('clicking a post row opens the post page (whole row is clickable)', async ({ page }) => {
   await page.goto('/')
 
-  // 整卡可点击：点击标题栏区域（非标题文本本身）同样进入文章页
-  const card = page.locator('.post-card').filter({ hasText: '你好，世界' })
-  await card.locator('.post-card-bar').click()
+  // 整行可点击：点击日期区域（非标题文本本身）同样进入文章页
+  const row = page.locator('.post-row').filter({ hasText: '你好，世界' })
+  await row.locator('.post-row-date').click()
   await expect(page).toHaveURL(/\/posts\/hello-world/)
   await expect(page.getByRole('heading', { name: '你好，世界' })).toBeVisible()
 })
 
-test('post card hover feedback: CSS transition on border/transform, grayscale border on hover', async ({
+test('post row hover feedback: inverted background (反白) in light and dark themes', async ({
   page,
 }) => {
   await page.goto('/')
-  const card = page.locator('.post-card').first()
+  const row = page.locator('.post-row').first()
 
-  // hover 反馈为 CSS transition（边框 + 位移），非 JS 行为
-  const transition = await card.evaluate((el) => getComputedStyle(el).transitionProperty)
-  expect(transition).toContain('border-color')
-  expect(transition).toContain('transform')
-
-  // 归一化亮色：hover 后边框变为亮色强调灰（近黑 #1a1a1a）+ 轻微上移（transform 生效）
+  // 归一化亮色：hover 反白 = 黑底白字（与全站链接同一 accent 令牌机制）
   const html = page.locator('html')
   if (((await html.getAttribute('class')) ?? '').includes('dark')) {
     await page.getByRole('button', { name: '切换暗色模式' }).click()
   }
-  await card.hover()
-  await expect(card).toHaveCSS('border-color', 'rgb(26, 26, 26)')
-  const transform = await card.evaluate((el) => getComputedStyle(el).transform)
-  expect(transform).not.toBe('none')
+  await row.hover()
+  await expect(row).toHaveCSS('background-color', 'rgb(26, 26, 26)')
+  await expect(row).toHaveCSS('color', 'rgb(255, 255, 255)')
 
-  // 暗色切换后 hover 边框用暗色强调灰（近白 #e6e6e6，黑底白字反色）
+  // 暗色模式：hover 反白 = 白底黑字（黑底白字反色）
   await page.getByRole('button', { name: '切换暗色模式' }).click()
-  await card.hover()
-  await expect(card).toHaveCSS('border-color', 'rgb(230, 230, 230)')
+  await row.hover()
+  await expect(row).toHaveCSS('background-color', 'rgb(230, 230, 230)')
+  await expect(row).toHaveCSS('color', 'rgb(0, 0, 0)')
 })
 
-test('post card entrance animation is CSS and disabled under reduced-motion', async ({ page }) => {
-  // 正常：卡片有克制的入场动画（淡入 + 轻微上移，CSS）
+test('post list entrance: last act of the stream, staggered after the conversation ends', async ({
+  page,
+}) => {
   await page.goto('/')
-  const firstCard = page.locator('.post-card-enter').first()
-  await expect(firstCard).toHaveCSS('animation-name', 'card-in')
+  const terminal = page.locator('.hero-terminal')
+  const firstRow = page.locator('.post-row-enter').first()
 
-  // prefers-reduced-motion：动画禁用（animation: none）、卡片直接可见、无报错
+  // 行入场为纯 CSS（淡入 + 轻微上移，与 hero 逐段入场同节奏）
+  await expect(firstRow).toHaveCSS('animation-name', 'row-in')
+  // 入场延迟在会话演出结束之后（最后一轮完全可见后才开始入场）
+  const rowDelay = parseFloat(await firstRow.evaluate((el) => getComputedStyle(el).animationDelay))
+  const lastTurnDelay = parseFloat(
+    await terminal
+      .locator('.hero-turn')
+      .last()
+      .evaluate((el) => getComputedStyle(el).animationDelay),
+  )
+  expect(rowDelay).toBeGreaterThan(lastTurnDelay + 0.45)
+  // 行间逐行错开（--i * --row-gap）
+  const secondRowDelay = parseFloat(
+    await page
+      .locator('.post-row-enter')
+      .nth(1)
+      .evaluate((el) => getComputedStyle(el).animationDelay),
+  )
+  expect(secondRowDelay).toBeGreaterThan(rowDelay)
+
+  // prefers-reduced-motion：行入场禁用（animation: none）、行直接可见、无报错
   const pageErrors: string[] = []
   page.on('pageerror', (err) => pageErrors.push(err.message))
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
   await expect(page.getByText('你好，世界')).toBeVisible()
-  await expect(page.locator('.post-card-enter').first()).toHaveCSS('animation-name', 'none')
+  await expect(page.locator('.post-row-enter').first()).toHaveCSS('animation-name', 'none')
   expect(pageErrors).toHaveLength(0)
+})
+
+test('post rows are keyboard reachable: Tab focus, visible focus style, Enter opens the post', async ({
+  page,
+}) => {
+  await page.goto('/')
+
+  // 归一化亮色（focus-visible 反白断言用）
+  const html = page.locator('html')
+  if (((await html.getAttribute('class')) ?? '').includes('dark')) {
+    await page.getByRole('button', { name: '切换暗色模式' }).click()
+  }
+
+  // 等水合完成（点阵 canvas 仅客户端挂载）再按 Tab，避免快速 Tab 落在水合期间被吞
+  await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
+  // Tab 顺序：文章 → 关于 → 切换 → GitHub → RSS → hero GitHub 外链 → 第一条文章行
+  for (let i = 0; i < 7; i++) await page.keyboard.press('Tab')
+  // 行本身即单个链接
+  const firstRowLink = page.locator('.post-row').first()
+  await expect(firstRowLink).toBeFocused()
+
+  // 键盘焦点有可见反白反馈（与 hover 同一机制）
+  await expect(firstRowLink).toHaveCSS('background-color', 'rgb(26, 26, 26)')
+
+  // Enter 打开文章
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(/\/posts\/prerendered-blog-with-vite/)
 })
 
 test('homepage shows site name and the fixture post', async ({ page }) => {
@@ -609,13 +652,13 @@ test('layout has no horizontal overflow on mobile viewport', async ({ page }) =>
   await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
   // hero 终端在移动端可见（375px 视口下无横向滚动）
   await expect(page.locator('.hero-terminal')).toBeVisible()
-  // 文章卡片在移动端同样可见（整卡可点击，标签徽章换行不撑破小屏）
-  await expect(page.locator('.post-card').first()).toBeVisible()
-  const cardNoOverflow = await page
-    .locator('.post-card')
+  // 文章行在移动端同样可见（整行可点，标题/标签换行不撑破小屏）
+  await expect(page.locator('.post-row').first()).toBeVisible()
+  const rowNoOverflow = await page
+    .locator('.post-row')
     .first()
     .evaluate((el) => el.scrollWidth <= el.clientWidth)
-  expect(cardNoOverflow).toBe(true)
+  expect(rowNoOverflow).toBe(true)
   const homeOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   )

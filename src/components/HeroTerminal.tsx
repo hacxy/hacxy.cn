@@ -9,7 +9,7 @@ import { type CSSProperties, type ReactNode } from 'react'
  *   信息与内容清单自动计算，新增文章无需改渲染代码
  * - 终端框架（pi.dev 风格）：恒黑底白字（亮暗模式均如此，与页面 chrome 主题色
  *   解耦）、四角括号装饰（┌┐└┘）、底部 caption（● live 红点 + 弱化 mono 文字）；
- *   移除 mac 装饰圆点窗口栏（PostCard 的 ●●● 标题栏不受影响，复用 terminal-dot）
+ *   移除 mac 装饰圆点窗口栏（文章卡片行不沿用窗口栏形态，见 PostRow）
  * - 演出编排为纯 CSS：逐段入场（轮次按 --i * --turn-gap 依次错开）、tagline 打字机
  *   （clip-path + steps）、tool 块灰阶脉冲、live 点脉冲；全部自动播放一遍后停在
  *   最终态、不循环；SSR 与客户端首帧都渲染完整对话文本（预渲染 HTML 含全文、
