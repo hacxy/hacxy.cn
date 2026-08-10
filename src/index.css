@@ -667,6 +667,154 @@ html.dark .terminal-dot--green {
   padding-left: 1rem;
 }
 
+/* ===== 文章页抽屉导航（issue #31）：窄屏侧栏收进覆盖式抽屉 ===== */
+
+/* 按钮条：仅文章页渲染（PostPage 挂载）；<1024px 可见，≥1024px 整条隐藏
+   （桌面侧栏常驻、按钮 display:none 不占 Tab 序）。768–1023px 无目录文章
+   时整条隐藏：「文章」按钮该区间隐藏、目录按钮不渲染 → 空栏不占位 */
+.post-drawer-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+@media (min-width: 1024px) {
+  .post-drawer-bar {
+    display: none;
+  }
+}
+@media (min-width: 768px) {
+  .post-drawer-bar:not(:has(.drawer-trigger--toc)) {
+    display: none;
+  }
+}
+
+/* 「文章」按钮：仅 <768px 可见（左栏同步收进抽屉；768–1023px 左栏仍为两栏常驻侧栏） */
+.drawer-trigger--index {
+  display: none;
+}
+@media (max-width: 767px) {
+  .drawer-trigger--index {
+    display: inline-flex;
+  }
+}
+
+/* 触发按钮：终端风格（mono + 边框 + 灰底），hover 反白与全站交互一致；
+   打开的抽屉对应按钮加粗 + 下划线（沿用导航高亮机制） */
+.drawer-trigger {
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--color-prose-border);
+  border-radius: 0.25rem;
+  background-color: var(--color-prose-bg);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-accent);
+}
+.drawer-trigger:hover {
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+.drawer-trigger[aria-expanded='true'] {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* 抽屉骨架：fixed 铺满视口（遮罩 + 面板同层，盖住正文） */
+.drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+/* 遮罩：半透明黑、点击收起；淡入（挂载动画，reduced-motion 禁用） */
+.drawer-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  animation: drawer-fade 0.2s ease-out;
+}
+@keyframes drawer-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 面板：从对应侧滑入（挂载动画，reduced-motion 禁用）；内容纵向滚动、
+   滚动不穿透到正文（overscroll-behavior）；宽度不超视口（375px 无横向滚动） */
+.drawer-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(20rem, 100%);
+  padding: 0.875rem;
+  background-color: #ffffff;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: drawer-slide-in 0.25s ease-out;
+}
+html.dark .drawer-panel {
+  background-color: #0a0a0a;
+}
+.drawer-panel--left {
+  left: 0;
+  border-right: 1px solid var(--color-prose-border);
+  animation-name: drawer-slide-left;
+}
+.drawer-panel--right {
+  right: 0;
+  border-left: 1px solid var(--color-prose-border);
+  animation-name: drawer-slide-right;
+}
+@keyframes drawer-slide-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes drawer-slide-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* 关闭按钮：面板右上角（flex 列末尾右对齐）；hover 反白 */
+.drawer-close {
+  align-self: flex-end;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-prose-border);
+  border-radius: 0.25rem;
+  background-color: var(--color-prose-bg);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--color-accent);
+}
+.drawer-close:hover {
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+/* 抽屉内复用桌面侧栏组件：覆盖其 <1024px/<768px 的隐藏与 sticky 定位
+   （面板自身即滚动容器，内容不再 sticky） */
+.drawer-panel .post-index,
+.drawer-panel .post-toc {
+  position: static;
+  display: block;
+}
+
 /* 标题锚点定位偏移（issue #30）：原生 hash 跳转落到标题时预留 2rem
    （与左右 sticky 栏 top 同节奏），配合 html { scroll-behavior: smooth } */
 .post-body h2,
@@ -828,5 +976,10 @@ html.dark .terminal-dot--green {
   /* 行提示符淡入过渡同为动画：reduce 下禁用（提示符/标题反馈本身保留，瞬时切换） */
   .post-row-prompt {
     transition: none;
+  }
+  /* 抽屉：无滑入/淡入动画（瞬时出现收起） */
+  .drawer-overlay,
+  .drawer-panel {
+    animation: none;
   }
 }
