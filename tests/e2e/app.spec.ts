@@ -503,6 +503,129 @@ test('post page shows TOC with working anchors', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => decodeURIComponent(location.hash))).toBe('#接下来')
 })
 
+test('post page right TOC: three-column layout ≥1024, h2/h3 two levels with h3 indented, sticky (issue #30)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/posts/prerendered-blog-with-vite')
+
+  const toc = page.getByRole('navigation', { name: '文章目录' })
+  await expect(toc).toBeVisible()
+
+  // 三栏网格：左索引 + 中正文 + 右目录（≥1024px 右栏常驻）
+  const tracks = await page
+    .locator('.post-layout')
+    .evaluate((el) => getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length)
+  expect(tracks).toBe(3)
+
+  // 右栏 sticky 跟随滚动（top 2rem，与左栏同节奏）
+  expect(await toc.evaluate((el) => getComputedStyle(el).position)).toBe('sticky')
+
+  // 目录项 = 正文 h2/h3 锚点：href 指向标题 id（github-slugger 剔除全角冒号）
+  const h2Link = toc.getByRole('link', { name: '渲染策略：构建期一次性渲染' })
+  await expect(h2Link).toBeVisible()
+  await expect(h2Link).toHaveAttribute('href', '#渲染策略构建期一次性渲染')
+  await expect(toc.getByRole('link', { name: '目录与锚点' })).toBeVisible()
+
+  // h3 子节缩进（两级目录层级）：h3 项左移量大于 h2 项
+  const h2Left = await h2Link.evaluate((el) => el.getBoundingClientRect().left)
+  const h3Left = await toc
+    .getByRole('link', { name: '代码高亮：Shiki 双主题' })
+    .evaluate((el) => el.getBoundingClientRect().left)
+  expect(h3Left).toBeGreaterThan(h2Left)
+
+  // <1024px：右栏整栏隐藏、退化为两栏
+  await page.setViewportSize({ width: 1000, height: 800 })
+  await expect(toc).toBeHidden()
+  const tracksSmall = await page
+    .locator('.post-layout')
+    .evaluate((el) => getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length)
+  expect(tracksSmall).toBe(2)
+})
+
+test('post page TOC scroll-spy: current section highlighted while scrolling (IntersectionObserver)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/posts/prerendered-blog-with-vite')
+
+  const toc = page.getByRole('navigation', { name: '文章目录' })
+  await expect(toc).toBeVisible()
+
+  // 页面顶部：无当前章节高亮
+  await expect(toc.locator('a.post-toc-active')).toHaveCount(0)
+
+  // 滚动到「踩过的坑」位于视口上部 35%（scroll-spy 观察带内）→ 该项高亮
+  await page.evaluate(() => {
+    const heading = document.getElementById('踩过的坑') as HTMLElement
+    const y = heading.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.35
+    window.scrollTo({ top: y, behavior: 'instant' })
+  })
+  const active = toc.getByRole('link', { name: '踩过的坑' })
+  await expect(active).toHaveClass(/post-toc-active/)
+  await expect(active).toHaveAttribute('aria-current', 'true')
+  // 其他章节不高亮
+  await expect(toc.getByRole('link', { name: '下一步' })).not.toHaveClass(/post-toc-active/)
+
+  // 继续滚动到「部署形态」→ 高亮跟随切换
+  await page.evaluate(() => {
+    const heading = document.getElementById('部署形态') as HTMLElement
+    const y = heading.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.35
+    window.scrollTo({ top: y, behavior: 'instant' })
+  })
+  await expect(toc.getByRole('link', { name: '部署形态' })).toHaveClass(/post-toc-active/)
+  await expect(toc.getByRole('link', { name: '踩过的坑' })).not.toHaveClass(/post-toc-active/)
+})
+
+test('post page TOC click: native hash jump, smooth scroll and scroll-margin-top (issue #30)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/posts/hello-world')
+
+  const toc = page.getByRole('navigation', { name: '文章目录' })
+  await expect(toc).toBeVisible()
+
+  // 平滑滚动由 html scroll-behavior: smooth 提供（原生 hash 跳转）
+  expect(await page.locator('html').evaluate((el) => getComputedStyle(el).scrollBehavior)).toBe(
+    'smooth',
+  )
+
+  // 标题预留 scroll-margin-top（锚点定位偏移）
+  const heading = page.getByRole('heading', { level: 2, name: '接下来' })
+  const margin = parseFloat(await heading.evaluate((el) => getComputedStyle(el).scrollMarginTop))
+  expect(margin).toBeGreaterThan(0)
+
+  // 点击目录项：URL hash 更新（CJK 百分号编码）+ 平滑滚动定位到标题
+  await toc.getByRole('link', { name: '接下来' }).click()
+  await expect.poll(() => page.evaluate(() => decodeURIComponent(location.hash))).toBe('#接下来')
+  // 滚动结束后标题位于视口上部（scroll-margin-top 偏移处），且该项成为当前章节
+  await expect
+    .poll(() => heading.evaluate((el) => Math.round(el.getBoundingClientRect().top)))
+    .toBeLessThan(100)
+  await expect(toc.getByRole('link', { name: '接下来' })).toHaveClass(/post-toc-active/)
+})
+
+test('post page without TOC: right column hidden, layout falls back to two columns (issue #30)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  // second-post 正文无 h2/h3 标题 → toc 为空
+  await page.goto('/posts/second-post')
+
+  // 右栏目录整栏隐藏：无「文章目录」导航语义、无 .post-toc 结构
+  await expect(page.getByRole('navigation', { name: '文章目录' })).toHaveCount(0)
+  await expect(page.locator('.post-toc')).toHaveCount(0)
+
+  // 退化为两栏：左索引 + 中正文（右栏不占网格轨道）
+  const tracks = await page
+    .locator('.post-layout')
+    .evaluate((el) => getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length)
+  expect(tracks).toBe(2)
+  await expect(page.getByRole('navigation', { name: '文章索引' })).toBeVisible()
+  await expect(page.locator('.post-main')).toBeVisible()
+})
+
 test('prev/next navigation moves between posts', async ({ page }) => {
   // 最新文章（真实技术文章）无上一篇，下一篇指向 hello-world
   await page.goto('/posts/prerendered-blog-with-vite')
