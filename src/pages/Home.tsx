@@ -1,14 +1,15 @@
-import { Link } from 'react-router'
-
 import BackgroundDots from '../components/BackgroundDots.tsx'
 import HeroTerminal, { type TerminalCommand } from '../components/HeroTerminal.tsx'
+import PostCard from '../components/PostCard.tsx'
 import { posts } from '../content/index.ts'
 import { authorBio, githubUrl, siteName, tagline } from '../site.ts'
 
 /**
- * 首页：hero（大号站点名 h1 + 数据驱动终端窗口）+ 文章列表（标题 + 日期，按日期倒序）。
+ * 首页：hero（大号站点名 h1 + 数据驱动终端窗口）+ 文章卡片列表（终端窗口样式，按日期倒序）。
  * 终端内容由「命令 + 输出 + 是否打字机」的数据结构驱动：文章数/标签数从内容清单自动
  * 计算（新增文章无需改代码），whoami 沿用站点信息，git clone 真实指向 GitHub。
+ * 文章区为终端样式卡片（标题栏 ●●● + slug 文件名 + 标题/摘要/日期/标签徽章），
+ * 内容由内容清单驱动，整卡可点击进入 /posts/:slug（issue #14）。
  */
 export default function Home() {
   // ls posts 的文章数/标签数：来自构建期内容清单（非 draft），自动计算
@@ -44,16 +45,9 @@ export default function Home() {
         <h1 className="font-mono text-4xl font-bold tracking-tight">{siteName}</h1>
         <HeroTerminal commands={commands} />
       </section>
-      <ul>
+      <ul className="post-card-list">
         {posts.map((post) => (
-          <li key={post.slug}>
-            <Link to={`/posts/${post.slug}`} className="text-accent">
-              {post.title}
-            </Link>
-            {/* dev 模式清单含 draft 文章，构建产物不含；此处标记仅 dev 出现 */}
-            {post.draft && <span>（草稿）</span>}
-            <span className="font-mono text-muted">{post.date}</span>
-          </li>
+          <PostCard key={post.slug} post={post} />
         ))}
       </ul>
     </>
