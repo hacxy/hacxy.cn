@@ -415,26 +415,44 @@ html.dark .terminal-dot--green {
 }
 
 /* 整行为单个链接：mono 日期 + 标题 + #标签（终端 ls 输出行形态）；
-   hover / 键盘 focus-visible 反白反馈（复用全站 accent 令牌：亮色黑底白字、
-   暗色白底黑字反色）；行内不渲染摘要（内容管线保留 description，文章页/SEO 继续使用） */
+   hover / 键盘 focus-visible 反馈（issue #25）：行首沟槽淡入「>」终端提示符 +
+   标题 accent 色 + 下划线（字重保持 400），日期/标签保持 muted，
+   整行背景不再黑白反转（全站链接反白机制为文章行特例豁免）；
+   行内不渲染摘要（内容管线保留 description，文章页/SEO 继续使用） */
 .post-row {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
   gap: 0.25rem 0.875rem;
   padding: 0.5rem 0.375rem;
-  border-radius: 0.25rem;
   font-weight: 400;
   text-decoration: none;
   overflow-wrap: anywhere;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
 }
+
+/* 行首提示符「>」：槽始终占位（预留沟槽 → 内容零位移），hover/focus 时淡入；
+   负 margin 抵消容器 column-gap（与 .post-row 的 gap 0.875rem 保持同步），
+   「>」与日期间距由槽内空隙决定（≈0.55rem，终端单空格风格） */
+.post-row-prompt {
+  flex: 0 0 1rem;
+  margin-right: -0.875rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.post-row:hover .post-row-prompt,
+.post-row:focus-visible .post-row-prompt {
+  opacity: 1;
+}
+
+/* hover/focus 时整行豁免全站 a:hover 反白（背景保持透明、文字保持继承色），
+   与页面 chrome 链接的反白机制解耦 */
 .post-row:hover,
 .post-row:focus-visible {
-  background-color: var(--color-accent);
-  color: var(--color-accent-contrast);
+  background-color: transparent;
+  color: inherit;
 }
 
 /* 日期：mono、弱化（亮色灰 / 暗色浅灰随主题）；YYYY-MM-DD 等宽自然对齐 */
@@ -444,11 +462,19 @@ html.dark .terminal-dot--green {
   color: var(--color-muted);
 }
 
-/* 标题：常规字重（终端输出文本层级），占满剩余宽度、可换行不撑破小屏 */
+/* 标题：常规字重（终端输出文本层级），占满剩余宽度、可换行不撑破小屏；
+   hover/focus：accent 色 + 下划线（与全站链接同风格 text-underline-offset），
+   字重保持 400 不变 */
 .post-row-title {
   flex: 1 1 auto;
   font-size: 1rem;
   line-height: 1.5;
+}
+.post-row:hover .post-row-title,
+.post-row:focus-visible .post-row-title {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* #标签：仅展示、不跳转（当前无标签路由）；mono 弱化，与日期同一层级 */
@@ -461,14 +487,6 @@ html.dark .terminal-dot--green {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--color-muted);
-}
-
-/* 反白反馈时日期/标签随行文字一起反色（muted 覆盖为 inherit） */
-.post-row:hover .post-row-date,
-.post-row:focus-visible .post-row-date,
-.post-row:hover .post-row-tag,
-.post-row:focus-visible .post-row-tag {
-  color: inherit;
 }
 
 /* 无障碍：prefers-reduced-motion 下禁用打字机 / 入场 / 工具脉冲 / live 点 / 光标闪烁
@@ -484,8 +502,8 @@ html.dark .terminal-dot--green {
   .post-row-enter {
     animation: none;
   }
-  /* 行 hover 反白的过渡同为动画：reduce 下禁用（反白本身保留，瞬时切换） */
-  .post-row {
+  /* 行提示符淡入过渡同为动画：reduce 下禁用（提示符/标题反馈本身保留，瞬时切换） */
+  .post-row-prompt {
     transition: none;
   }
 }
