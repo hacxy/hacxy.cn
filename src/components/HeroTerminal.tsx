@@ -10,8 +10,8 @@ import { Fragment, type CSSProperties, type ReactNode } from 'react'
  * - 打字机为纯 CSS 行为（clip-path + steps 逐字符揭示）：SSR 与客户端首帧都渲染
  *   完整 tagline 文本（预渲染 HTML 含全文、SEO 不回归、无 hydration mismatch），
  *   prefers-reduced-motion 时 media query 直接禁用动画显示完整文本，无 JS 报错
- * - 每行命令带 `$` 提示符；终端输出统一使用 #9 引入的 --color-terminal 令牌
- *   （更亮的绿，与 UI 强调色形成层次）；行尾闪烁块状光标
+ * - 每行命令带 `$` 提示符；终端输出统一使用 --color-terminal 令牌
+ *   （灰阶值，随亮暗主题切换）；行尾闪烁块状光标
  */
 
 /** 终端命令数据：驱动 hero 终端逐行渲染（命令 + 输出 + 是否打字机） */

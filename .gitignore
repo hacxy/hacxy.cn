@@ -27,3 +27,6 @@ pnpm-debug.log*
 .env
 .env.local
 .env.*.local
+
+# pi-afk 运行时工作区
+.sandcastle/

@@ -5,7 +5,7 @@ import { useEffect, useRef, useSyncExternalStore } from 'react'
  * - 细点随自实现 2D 值噪声流场缓慢漂移、透明度闪烁（点距更疏、透明度更低）
  * - devicePixelRatio 上限 2；visibilitychange 切后台暂停、回前台继续
  * - prefers-reduced-motion 时完全不渲染（无 canvas、无报错）
- * - 颜色随明暗主题切换：读 CSS 令牌 --color-dot（暗色绿调 / 亮色深灰）
+ * - 颜色随明暗主题切换：读 CSS 令牌 --color-dot（暗色浅灰 / 亮色深灰，纯灰阶）
  * - 仅首页挂载、仅客户端执行：SSR 输出 null，避免 hydration mismatch
  * - data-dots-color / data-animation-state 为外部可观察状态（E2E 断言用）
  */
@@ -157,7 +157,7 @@ export default function BackgroundDots() {
       const value = getComputedStyle(document.documentElement)
         .getPropertyValue('--color-dot')
         .trim()
-      return value || (document.documentElement.classList.contains('dark') ? '#3fb950' : '#1f2328')
+      return value || (document.documentElement.classList.contains('dark') ? '#e6e6e6' : '#1a1a1a')
     }
 
     // 主题切换（html.dark class 变化）→ 更新点色（MutationObserver 监听 class 属性）
