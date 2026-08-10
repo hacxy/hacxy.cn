@@ -7,14 +7,17 @@ import ThemeToggle from './ThemeToggle.tsx'
 /** 当前导航高亮（issue #17）：沿用全站链接机制 = 加粗 + 下划线（不再依赖颜色区分） */
 const navLinkClass = ({ isActive }: { isActive: boolean }) => (isActive ? 'nav-active' : undefined)
 
-/** 全局布局：单列居中 + 「文章 | 关于」导航 + CC BY-NC-SA 页脚 */
+/** 全局布局：全站容器 + 「文章 | 关于」导航 + CC BY-NC-SA 页脚
+ *  容器放宽为 max-w-6xl（issue #28 布局地基），各页内容列由内层
+ *  max-w-2xl 收窄居中（首页终端流 / 关于页 / 文章页正文），为后续
+ *  三栏布局（左目录 / 中正文 / 右栏）预留横向空间 */
 export default function Layout() {
   return (
     <>
       {/* 全站背景纹理垫底图层：fixed 铺满视口、z-index 最低、不拦截指针事件；
           内容为内联 SVG data-URI 平铺（细网格 + 代码字符，零外部资源），亮暗双变体随 .dark 切换 */}
       <div aria-hidden="true" className="bg-texture" />
-      <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-6">
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6">
         <nav className="site-nav flex items-center gap-6 py-8">
           <NavLink to="/" end className={navLinkClass}>
             文章
