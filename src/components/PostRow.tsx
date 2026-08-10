@@ -10,9 +10,11 @@ import { Link } from 'react-router'
  *
  * 设计决策：
  * - 整行为单个 <Link>（无嵌套链接）：日期/标题/标签任意位置点击均进入
- *   /posts/:slug；键盘可达（真实链接 + :focus-visible 反白反馈）
- * - hover / focus-visible 反白：复用全站 accent 令牌（亮色黑底白字、
- *   暗色白底黑字反色），与页面 chrome 的链接反馈机制一致
+ *   /posts/:slug；键盘可达（真实链接 + :focus-visible 反馈）
+ * - hover / focus-visible 反馈（issue #25）：行首预留沟槽中淡入 accent 色「>」
+ *   终端提示符（槽始终占位 → 内容零位移），标题变 accent 色 + 下划线（字重
+ *   保持 400），日期/标签保持 muted；整行背景不再黑白反转（全站链接/导航/
+ *   页脚反白机制为文章行特例豁免，其余链接不受影响）
  * - 标签仅展示、不跳转（当前无标签路由）：渲染为 #tag 纯文本 span，非链接
  * - 行内容完全由内容清单驱动（title / date / tags），新增文章自动上首页，
  *   内容管线零改动
@@ -26,6 +28,11 @@ export default function PostRow({ post, index }: { post: Post; index: number }) 
   return (
     <li className="post-row-enter" style={style}>
       <Link to={`/posts/${post.slug}`} className="post-row">
+        {/* 行首终端提示符：装饰性（aria-hidden，不进可访问名），hover/键盘焦点时淡入；
+            槽始终占位 → 内容零位移（issue #25） */}
+        <span className="post-row-prompt" aria-hidden="true">
+          &gt;
+        </span>
         <time dateTime={post.date} className="post-row-date">
           {post.date}
         </time>
