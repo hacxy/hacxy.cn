@@ -4,6 +4,7 @@ import type { Plugin } from 'vite'
 import { join } from 'node:path'
 
 import { collectMarkdownFiles, collectPostSources } from './src/content/collectSources.ts'
+import { collectConfigFiles, loadDirConfigs } from './src/content/loadDirConfigs.ts'
 import { loadPosts } from './src/content/loadPosts.ts'
 
 const VIRTUAL_ID = 'virtual:posts'
@@ -21,6 +22,9 @@ function collectPosts(includeDrafts: boolean): Promise<Post[]> {
  * dev 下监听 content/posts 目录，新增/修改文章无需重启。
  * draft 策略：dev/test 模式包含草稿供本地预览；production 构建排除
  * （草稿不进入清单、RSS 与 sitemap）。
+ * 目录配置（issue #45）：同一构建期在 Node 侧求值各 config.ts（Node 原生
+ * type stripping，零新依赖），随清单注入 dirConfigs（树构建在客户端/SSR
+ * 共享同一份求值结果；dev watch 下 config.ts 变更经 query 参数击穿模块缓存）。
  */
 export function postsPlugin(): Plugin {
   let includeDrafts = false
@@ -38,7 +42,14 @@ export function postsPlugin(): Plugin {
       for (const file of collectMarkdownFiles(POSTS_DIR)) {
         this.addWatchFile(file)
       }
-      const code = `export default ${JSON.stringify(await collectPosts(includeDrafts))}`
+      // 递归监听 config.ts（issue #45）：配置变更触发重新求值，无需重启 dev
+      for (const file of collectConfigFiles(POSTS_DIR)) {
+        this.addWatchFile(file)
+      }
+      const posts = await collectPosts(includeDrafts)
+      // 构建期求值目录配置：上下文 = 目录路径 + 该目录文章清单（日期倒序）
+      const dirConfigs = await loadDirConfigs(POSTS_DIR, posts)
+      const code = `export default ${JSON.stringify({ posts, dirConfigs })}`
       return code
     },
   }

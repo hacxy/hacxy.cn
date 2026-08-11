@@ -3,7 +3,7 @@ import type { TreeNode } from '../content/tree.ts'
 import { useMemo, useState } from 'react'
 import { NavLink, useParams } from 'react-router'
 
-import { posts } from '../content/index.ts'
+import { dirConfigs, posts } from '../content/index.ts'
 import { ancestorPaths, buildPostTree } from '../content/tree.ts'
 
 /**
@@ -19,8 +19,8 @@ import { ancestorPaths, buildPostTree } from '../content/tree.ts'
  *   aria-current="page"）。
  */
 
-/** 构建期一次派生：树 = 清单之上的派生结构（同一来源，纯函数、确定性） */
-const TREE = buildPostTree(posts)
+/** 构建期一次派生：树 = 清单 + 目录配置之上的派生结构（同一来源，纯函数、确定性） */
+const TREE = buildPostTree(posts, dirConfigs)
 
 /** 索引行类名：行形态复用首页终端行（.post-row），当前文章追加 nav-active——
  *  全站导航高亮机制（加粗 + 下划线，见 index.css .post-index a.nav-active，

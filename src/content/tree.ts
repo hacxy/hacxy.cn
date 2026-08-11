@@ -1,3 +1,4 @@
+import type { DirConfigMap } from './dirConfig.ts'
 import type { Post } from './types.ts'
 
 import { directoryOf } from './navigation.ts'
@@ -10,6 +11,11 @@ import { directoryOf } from './navigation.ts'
  * 同层排序规则（递归同规则）：
  * - 文件夹在前，按目录名字母序（code point 序，确定性）；
  * - 文章在后，按日期倒序（date 降序，同日期保持输入清单的相对顺序——稳定排序）。
+ *
+ * 目录配置（issue #45，可选项）：showSubdirs: false 的层只保留该层文章、隐藏
+ * 子文件夹抽屉；配置仅影响该目录所在层（每层按自己的路径查配置表，子目录配置
+ * 互不继承）；被隐藏子目录的文章仍在平铺清单中（URL 与上一篇/下一篇不受影响）。
+ * 无配置或缺省 showSubdirs 时行为不变（showSubdirs 缺省 true，零配置即用）。
  */
 
 /** 树节点：文件夹（可折叠抽屉） */
@@ -36,7 +42,7 @@ export type TreeNode = FolderTreeNode | PostTreeNode
  * （日期倒序在后）；文件夹内递归同规则。目录任意深度嵌套（issue #41 的
  * slug 契约：相对目录路径）。
  */
-export function buildPostTree(posts: Post[]): TreeNode[] {
+export function buildPostTree(posts: Post[], configs: DirConfigMap = {}): TreeNode[] {
   const root: TreeNode[] = []
   // 目录路径 → 文件夹节点：插入时按路径复用，避免同目录文章重复建文件夹
   const folders = new Map<string, FolderTreeNode>()
@@ -76,7 +82,25 @@ export function buildPostTree(posts: Post[]): TreeNode[] {
   }
   sortLevel(root)
 
-  return root
+  // 应用目录配置（递归同层规则）：showSubdirs: false → 该层只保留文章、隐藏
+  // 子文件夹抽屉；隐藏后变空的文件夹一并剪除（避免空抽屉）。配置仅影响该层
+  // 树形态——被隐藏子目录的文章不从这里删除（清单是唯一来源，树只是派生）。
+  // 根层以 '' 为路径（content/posts/config.ts 配置根层形态）。
+  const applyConfigs = (nodes: TreeNode[], layerPath: string): TreeNode[] => {
+    const kept: TreeNode[] = []
+    const hideSubdirs = configs[layerPath]?.showSubdirs === false
+    for (const node of nodes) {
+      if (node.type === 'folder') {
+        if (hideSubdirs) continue // 该层隐藏子文件夹抽屉
+        node.children = applyConfigs(node.children, node.path)
+        if (node.children.length === 0) continue // 剪除空文件夹
+      }
+      kept.push(node)
+    }
+    return kept
+  }
+
+  return applyConfigs(root, '')
 }
 
 /**

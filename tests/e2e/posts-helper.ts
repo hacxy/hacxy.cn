@@ -101,3 +101,39 @@ export function expectedNeighbors(slug: string): ExpectedNeighbors {
   if (index < 0) return {}
   return { newer: sameDir[index - 1], older: sameDir[index + 1] }
 }
+
+/**
+ * 目录配置中 showSubdirs: false 的目录（issue #45）：扫描各目录 config.ts
+ * 文本（与构建期求值同一来源；fixture 均为字面量，无需执行配置）。
+ * 这些目录的层只显示文章、隐藏子文件夹抽屉。
+ */
+export function hiddenSubdirDirs(): string[] {
+  const dirs: string[] = []
+  const walk = (dir: string, prefix: string) => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry)
+      if (statSync(full).isDirectory()) {
+        walk(full, prefix ? `${prefix}/${entry}` : entry)
+      } else if (entry === 'config.ts') {
+        const text = readFileSync(full, 'utf8')
+        if (/showSubdirs\s*:\s*false/.test(text)) dirs.push(prefix)
+      }
+    }
+  }
+  walk(POSTS_DIR, '')
+  return dirs
+}
+
+/**
+ * 侧栏树中可见的文章（issue #45）：被 showSubdirs: false 目录隐藏的子目录
+ * 文章不在树中（内容仍在清单——URL 与上一篇/下一篇不受影响）。期望值从内容源
+ * 计算（与构建期配置契约同一来源），新增/嵌套文章无需改测试代码。
+ */
+export function treeVisiblePosts(): ExpectedPost[] {
+  const hidden = hiddenSubdirDirs()
+  return publishedPosts().filter((post) => {
+    const dir = expectedDirectory(post.slug)
+    // showSubdirs:false 只隐藏子目录抽屉——该层直接文章仍显示；被隐藏的只是子目录内的文章
+    return !hidden.some((hiddenDir) => dir.startsWith(`${hiddenDir}/`))
+  })
+}

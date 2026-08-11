@@ -2,7 +2,12 @@ import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 
 import { currentGitStats } from './git-helper.ts'
-import { expectedNeighbors, expectedDirectory, publishedPosts } from './posts-helper.ts'
+import {
+  expectedNeighbors,
+  expectedDirectory,
+  publishedPosts,
+  treeVisiblePosts,
+} from './posts-helper.ts'
 
 test('hero: big h1 site name + AI agent conversation (three Q&A rounds)', async ({ page }) => {
   await page.goto('/')
@@ -1626,11 +1631,16 @@ test('layout foundation: outer container widens to max-w-6xl; homepage/about con
 test('post page left index: hierarchy tree — folders alpha first then posts date-desc, folders collapsible, current highlighted, sticky (issue #44)', async ({
   page,
 }) => {
-  // 期望值：从内容源计算（与内容清单同一契约：非 draft、日期倒序）
-  const published = publishedPosts()
-  const rootPosts = published.filter((post) => expectedDirectory(post.slug) === '')
-  const nestedPosts = published.filter((post) => expectedDirectory(post.slug) !== '')
-  const dirs = [...new Set(nestedPosts.map((post) => expectedDirectory(post.slug)))].sort()
+  // 期望值：从内容源计算（与内容清单同一契约：非 draft、日期倒序）；
+  // 树中可见文章（issue #45）：被 showSubdirs:false 目录隐藏的子目录文章不在树中
+  const visible = treeVisiblePosts()
+  const rootPosts = visible.filter((post) => expectedDirectory(post.slug) === '')
+  const visibleNested = visible.filter((post) => expectedDirectory(post.slug) !== '')
+  const dirs = [
+    ...new Set(
+      visibleNested.map((post) => expectedDirectory(post.slug)).filter((d) => !d.includes('/')),
+    ),
+  ].sort()
 
   // ≥768px：两栏生效（1280px 视口下断言左栏索引）
   await page.setViewportSize({ width: 1280, height: 900 })
@@ -1682,26 +1692,34 @@ test('post page left index: hierarchy tree — folders alpha first then posts da
     await rows.filter({ hasText: '第二篇文章' }).evaluate((el) => getComputedStyle(el).fontWeight),
   ).toBe('400')
 
-  // 子文件夹为可折叠抽屉：点击展开 → 嵌套文章（日期倒序）出现、aria-expanded 翻转；
-  // 再点收起 → 子级卸载（不进可访问性树、不占 Tab 序）
-  const folder = folders.first()
-  await folder.click()
-  await expect(folder).toHaveAttribute('aria-expanded', 'true')
-  await expect(index.locator('.post-row')).toHaveCount(published.length)
-  for (const post of nestedPosts) {
+  // 子文件夹为可折叠抽屉：全部展开 → 嵌套文章（日期倒序）出现、aria-expanded 翻转；
+  // 树含全部可见文章（同一清单、无丢失；被隐藏子目录文章按设计不在树中）；再点收起 → 子级卸载
+  for (const folder of await folders.all()) {
+    await folder.click()
+    await expect(folder).toHaveAttribute('aria-expanded', 'true')
+  }
+  await expect(index.locator('.post-row')).toHaveCount(visible.length)
+  for (const post of visibleNested) {
     await expect(index.locator('.post-row').filter({ hasText: post.title })).toHaveAttribute(
       'href',
       `/posts/${post.slug}`,
     )
   }
-  // 同层规则递归：文件夹内文章日期倒序（最新在前）
+  // 同层规则递归：第一个文件夹（字母序）内文章日期倒序（最新在前）
+  const firstDir = dirs[0]
+  const firstDirPosts = visible.filter((post) => expectedDirectory(post.slug) === firstDir)
   const nestedRows = index.locator('.post-tree-list .post-tree-list .post-row')
-  await expect(nestedRows.first().locator('.post-row-date')).toHaveText(nestedPosts[0]?.date ?? '')
-  await expect(nestedRows.first().locator('.post-row-title')).toHaveText(
-    nestedPosts[0]?.title ?? '',
+  await expect(nestedRows.first().locator('.post-row-date')).toHaveText(
+    firstDirPosts[0]?.date ?? '',
   )
-  await folder.click()
-  await expect(folder).toHaveAttribute('aria-expanded', 'false')
+  await expect(nestedRows.first().locator('.post-row-title')).toHaveText(
+    firstDirPosts[0]?.title ?? '',
+  )
+  // 全部收起 → 子级卸载（不进可访问性树、不占 Tab 序），根层只余根层文章
+  for (const folder of await folders.all()) {
+    await folder.click()
+    await expect(folder).toHaveAttribute('aria-expanded', 'false')
+  }
   await expect(index.locator('.post-row')).toHaveCount(rootPosts.length)
 
   // 左栏 sticky 跟随滚动：滚动到正文底部后索引仍固定在视口内（top = sticky 偏移）
@@ -1828,9 +1846,11 @@ test('mobile drawer: <1024px 目录 button opens right TOC drawer with working s
 test('mobile drawer: <768px 文章 button opens left index drawer with the same hierarchy tree; current article highlighted (issue #44)', async ({
   page,
 }) => {
-  // 期望值从内容源计算（与内容清单同一契约：非 draft 文章、日期倒序）
+  // 期望值从内容源计算（与内容清单同一契约：非 draft 文章、日期倒序）；
+  // 树中可见文章（issue #45）：被 showSubdirs:false 隐藏的子目录文章不在树中
   const published = publishedPosts()
-  const rootPosts = published.filter((post) => expectedDirectory(post.slug) === '')
+  const visible = treeVisiblePosts()
+  const rootPosts = visible.filter((post) => expectedDirectory(post.slug) === '')
 
   await page.setViewportSize({ width: 600, height: 800 })
   await page.goto('/posts/prerendered-blog-with-vite')
@@ -1848,8 +1868,15 @@ test('mobile drawer: <768px 文章 button opens left index drawer with the same 
   const drawerIndex = dialog.getByRole('navigation', { name: '文章索引' })
   await expect(drawerIndex).toBeVisible()
 
-  // 抽屉内容 = 同一层级树：根层文件夹 + 根层文章（数量/顺序与内容源一致）
-  await expect(drawerIndex.locator('.post-tree-folder')).toHaveCount(1)
+  // 抽屉内容 = 同一层级树：根层文件夹（字母序）+ 根层文章（数量/顺序与内容源一致）
+  const dirs = [
+    ...new Set(
+      published
+        .map((post) => expectedDirectory(post.slug))
+        .filter((d) => d !== '' && !d.includes('/')),
+    ),
+  ].sort()
+  await expect(drawerIndex.locator('.post-tree-folder')).toHaveCount(dirs.length)
   await expect(drawerIndex.locator('.post-row')).toHaveCount(rootPosts.length)
   await expect(drawerIndex.locator('.post-row-date').first()).toHaveText(rootPosts[0]?.date ?? '')
 
@@ -1859,10 +1886,15 @@ test('mobile drawer: <768px 文章 button opens left index drawer with the same 
   await expect(current).toHaveClass(/nav-active/)
   await expect(current).toHaveAttribute('aria-current', 'page')
 
-  // 抽屉内文件夹同样可折叠可展开（行为与桌面一致）：展开后嵌套文章出现、点击可跳转
-  await drawerIndex.locator('.post-tree-folder').click()
-  await expect(drawerIndex.locator('.post-tree-folder')).toHaveAttribute('aria-expanded', 'true')
-  await expect(drawerIndex.locator('.post-row')).toHaveCount(published.length)
+  // 抽屉内文件夹同样可折叠可展开（行为与桌面一致）：全部展开后嵌套文章出现、点击可跳转
+  for (const folder of await drawerIndex.locator('.post-tree-folder').all()) {
+    await folder.click()
+  }
+  await expect(drawerIndex.locator('.post-tree-folder').first()).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  )
+  await expect(drawerIndex.locator('.post-row')).toHaveCount(visible.length)
   await drawerIndex.getByRole('link', { name: '什么是 pi agent' }).click()
   await expect(page).toHaveURL(/\/posts\/pi-agent\/01/)
 })
@@ -1967,4 +1999,67 @@ test('homepage renders no drawer buttons; 375px article drawer works with no hor
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   )
   expect(overflow).toBe(false)
+})
+
+/* ===== 目录配置（issue #45）：defineDirConfig + showSubdirs ===== */
+
+test('dir config: showSubdirs:false 的目录只显示该层文章、不显示子文件夹抽屉（issue #45）', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/posts/archive/notes')
+  const index = page.getByRole('navigation', { name: '文章索引' })
+  await expect(index).toBeVisible()
+
+  // archive/config.ts 配置 showSubdirs: false：当前分支自动展开后，
+  // archive 层只显示该层文章（日期倒序），子文件夹抽屉不出现
+  const archive = index.getByRole('button', { name: /archive\// })
+  await expect(archive).toHaveAttribute('aria-expanded', 'true')
+  await expect(index.getByRole('link', { name: /归档笔记一/ })).toBeVisible()
+  await expect(index.getByRole('link', { name: /归档笔记二/ })).toBeVisible()
+  // 子文件夹抽屉被隐藏：private 不在树中、其文章不可从侧栏到达（内容未被删除）
+  await expect(index.locator('.post-tree-folder').filter({ hasText: 'private' })).toHaveCount(0)
+  await expect(index.getByRole('link', { name: /私密归档/ })).toHaveCount(0)
+
+  // 配置仅影响该层、互不继承：pi-agent 层无配置 → 抽屉照常；根层文件夹不受 archive 影响
+  await expect(index.getByRole('button', { name: /pi-agent\// })).toBeVisible()
+  await expect(index.getByRole('link', { name: /你好，世界/ })).toBeVisible()
+})
+
+test('dir config: 被隐藏子目录的文章仍可经 URL 与上一篇/下一篇访问（issue #45）', async ({
+  page,
+  request,
+}) => {
+  // 直达 URL：预渲染 200 + 正文在源码（内容不被隐藏丢失）
+  const response = await request.get('/posts/archive/private/secret')
+  expect(response.status()).toBe(200)
+  expect(await response.text()).toContain('私密归档正文')
+
+  // 上一篇/下一篇：同目录相邻契约在隐藏目录内同样成立（private 内 2 篇：secret → deep）
+  const secret = expectedNeighbors('archive/private/secret')
+  expect(secret.newer).toBeUndefined()
+  expect(secret.older?.slug).toBe('archive/private/deep')
+  await page.goto('/posts/archive/private/secret')
+  await expect(page.getByRole('link', { name: /上一篇/ })).toHaveCount(0)
+  const next = page.getByRole('link', { name: /下一篇/ })
+  await expect(next).toHaveAttribute('href', '/posts/archive/private/deep')
+  await next.click()
+  await expect(page).toHaveURL(/\/posts\/archive\/private\/deep/)
+  await expect(page.getByRole('link', { name: /上一篇/ })).toHaveAttribute(
+    'href',
+    '/posts/archive/private/secret',
+  )
+  await expect(page.getByRole('link', { name: /下一篇/ })).toHaveCount(0)
+})
+
+test('dir config: 配置文件为非 .md 文件，不进文章清单与 SEO 产物（issue #45）', async ({
+  request,
+}) => {
+  // 首页清单 / sitemap / feed 均不含配置文件的痕迹
+  const home = await (await request.get('/')).text()
+  expect(home).not.toContain('config.ts')
+  const sitemap = await (await request.get('/sitemap.xml')).text()
+  expect(sitemap).not.toContain('config.ts')
+  const feed = await (await request.get('/feed.xml')).text()
+  expect(feed).not.toContain('config.ts')
 })
