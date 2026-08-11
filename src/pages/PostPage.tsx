@@ -23,7 +23,8 @@ import NotFound from './NotFound.tsx'
  * 上一篇/下一篇保留在正文底部（issue #29）。
  */
 export default function PostPage() {
-  const { slug } = useParams()
+  // posts/* splat：嵌套目录 slug（pi-agent/01）原样经通配段捕获
+  const slug = useParams()['*'] ?? ''
   const postIndex = posts.findIndex((item) => item.slug === slug)
   const post = postIndex >= 0 ? posts[postIndex] : undefined
 

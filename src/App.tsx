@@ -13,7 +13,8 @@ export function AppRoutes() {
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
-        <Route path="posts/:slug" element={<PostPage />} />
+        {/* splat：嵌套 slug（如 pi-agent/01）经 posts/* 捕获，:slug 不匹配斜杠 */}
+        <Route path="posts/*" element={<PostPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

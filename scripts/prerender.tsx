@@ -264,5 +264,8 @@ const ogDir = join(distDir, 'og', 'posts')
 mkdirSync(ogDir, { recursive: true })
 writeFileSync(join(distDir, 'og', 'home.svg'), renderOgImage(siteName, tagline))
 for (const post of posts) {
-  writeFileSync(join(ogDir, `${post.slug}.svg`), renderOgImage(siteName, post.title))
+  // 嵌套 slug（如 pi-agent/01）：OG 图路径为 /og/posts/<slug>.svg，需递归建目录
+  const ogFile = join(ogDir, `${post.slug}.svg`)
+  mkdirSync(dirname(ogFile), { recursive: true })
+  writeFileSync(ogFile, renderOgImage(siteName, post.title))
 }
