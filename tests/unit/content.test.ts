@@ -136,6 +136,37 @@ describe('parseMarkdown: image references', () => {
     expect(post.html).toContain('src="/images/x.png"')
     expect(post.html).toContain('src="https://example.com/a.png"')
   })
+
+  it('pathifies nested article assets/ references by their directory (issue #43)', async () => {
+    // 根层文章：零回归（保持 /assets/<文件名>）
+    const root = await parseMarkdown(
+      `---\ntitle: 图片\ndate: 2026-08-01\n---\n\n![图](assets/root.png)`,
+      'root-post',
+    )
+    expect(root.html).toContain('src="/assets/root.png"')
+
+    // 嵌套文章：按所在目录路径化（不同目录同名图片互不撞车）
+    const nested = await parseMarkdown(
+      `---\ntitle: 图片\ndate: 2026-08-01\n---\n\n![图](assets/nested.png)`,
+      'pi-agent/01',
+    )
+    expect(nested.html).toContain('src="/assets/pi-agent/nested.png"')
+
+    // ./assets/ 前缀同样路径化；任意深度目录路径化
+    const dotted = await parseMarkdown(
+      `---\ntitle: 图片\ndate: 2026-08-01\n---\n\n![图](./assets/dotted.png)`,
+      'a/b/post',
+    )
+    expect(dotted.html).toContain('src="/assets/a/b/dotted.png"')
+  })
+
+  it('keeps ../assets/ references untouched (still unsupported)', async () => {
+    const post = await parseMarkdown(
+      `---\ntitle: 图片\ndate: 2026-08-01\n---\n\n![图](../assets/x.png)`,
+      'pi-agent/01',
+    )
+    expect(post.html).toContain('src="../assets/x.png"')
+  })
 })
 
 describe('parseMarkdown: toc extraction', () => {

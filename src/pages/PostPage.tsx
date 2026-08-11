@@ -4,6 +4,7 @@ import PostDrawerNav from '../components/PostDrawerNav.tsx'
 import PostIndex from '../components/PostIndex.tsx'
 import PostToc from '../components/PostToc.tsx'
 import { posts } from '../content/index.ts'
+import { sameDirectoryNeighbors } from '../content/navigation.ts'
 import NotFound from './NotFound.tsx'
 
 /**
@@ -20,10 +21,12 @@ import NotFound from './NotFound.tsx'
  * 头部信息区（issue #28）：大标题 + mono 日期/updated（有才显示）+ #标签 + 描述；正文排版为干净 prose 风格
  * （层级/留白/独立成块，见 index.css .post-body），终端美学保留在首页与列表。
  * 内嵌「目录」块已移除（issue #30），TOC 语义（aria-label="文章目录"）保留。
- * 上一篇/下一篇保留在正文底部（issue #29）。
+ * 上一篇/下一篇保留在正文底部（issue #29）：同目录内按日期倒序相邻、目录边界处
+ * 停止（issue #43，不跨界跳转），根层文章互相相邻、嵌套文章仅限本目录。
  */
 export default function PostPage() {
-  const { slug } = useParams()
+  // posts/* splat：嵌套目录 slug（pi-agent/01）原样经通配段捕获
+  const slug = useParams()['*'] ?? ''
   const postIndex = posts.findIndex((item) => item.slug === slug)
   const post = postIndex >= 0 ? posts[postIndex] : undefined
 
@@ -31,9 +34,9 @@ export default function PostPage() {
     return <NotFound />
   }
 
-  // 内容清单按日期倒序（最新在前）：上一条 = 更新的文章，下一条 = 更旧的
-  const newer = posts[postIndex - 1]
-  const older = posts[postIndex + 1]
+  // 同目录相邻（issue #43）：上一篇/下一篇限定同一目录内按日期倒序相邻、
+  // 目录边界处停止（不跨界跳转到其他目录的文章）；由内容清单按目录过滤后取相邻
+  const { newer, older } = sameDirectoryNeighbors(posts, slug)
 
   return (
     <>

@@ -4,9 +4,10 @@ import { defineConfig } from 'vitest/config'
 
 import { postAssetsPlugin } from './vite-assets-plugin.ts'
 import { postsPlugin } from './vite-posts-plugin.ts'
+import { siteMetaPlugin } from './vite-site-meta-plugin.ts'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), postsPlugin(), postAssetsPlugin()],
+  plugins: [react(), tailwindcss(), postsPlugin(), postAssetsPlugin(), siteMetaPlugin()],
   test: {
     environment: 'jsdom',
     include: ['tests/unit/**/*.test.{ts,tsx}'],

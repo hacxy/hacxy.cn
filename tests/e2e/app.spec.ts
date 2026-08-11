@@ -1,25 +1,13 @@
 import { expect, test } from '@playwright/test'
-import { readdirSync, readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
+import { readFileSync } from 'node:fs'
 
-// gray-matter 无类型声明：E2E 仅用它解析 frontmatter 计算期望值（与构建期内容清单同一契约）
-const require = createRequire(import.meta.url)
-const matter = require('gray-matter') as (input: string) => {
-  data: {
-    draft?: boolean
-    tags?: string[]
-    title?: string
-    description?: string
-    /** gray-matter/js-yaml 会把 YYYY-MM-DD 解析为 Date 对象 */
-    date?: string | Date
-  }
-}
-
-/** 与内容管线同一日期契约：Date 对象归一化为 YYYY-MM-DD（ISO） */
-function normalizeDate(value: string | Date | undefined): string {
-  if (!value) return ''
-  return typeof value === 'string' ? value : value.toISOString().slice(0, 10)
-}
+import { currentGitStats } from './git-helper.ts'
+import {
+  expectedNeighbors,
+  expectedDirectory,
+  publishedPosts,
+  treeVisiblePosts,
+} from './posts-helper.ts'
 
 test('hero: big h1 site name + AI agent conversation (three Q&A rounds)', async ({ page }) => {
   await page.goto('/')
@@ -63,13 +51,9 @@ test('hero: big h1 site name + AI agent conversation (three Q&A rounds)', async 
 test('hero terminal: ls posts counts match the content manifest', async ({ page }) => {
   // 期望值从内容源计算（同一契约：非 draft 文章数 + 全站标签并集），
   // 与构建期内容清单的 draft 过滤 / tags 聚合规则一致——新增文章无需改代码
-  const postsDir = new URL('../../content/posts/', import.meta.url)
-  const published = readdirSync(postsDir)
-    .filter((file) => file.endsWith('.md'))
-    .map((file) => matter(readFileSync(new URL(file, postsDir), 'utf8')))
-    .filter((parsed) => !parsed.data.draft)
+  const published = publishedPosts()
   const postCount = published.length
-  const tagCount = new Set(published.flatMap((parsed) => parsed.data.tags ?? [])).size
+  const tagCount = new Set(published.flatMap((post) => post.tags)).size
 
   await page.goto('/')
   const terminal = page.locator('.hero-terminal')
@@ -98,7 +82,7 @@ test('hero terminal: always black background with white text in light and dark t
   await expect(terminal).toHaveCSS('color', 'rgb(255, 255, 255)')
 })
 
-test('hero terminal: four corner brackets + bottom live caption (red dot, weak mono text)', async ({
+test('hero terminal: four corner brackets + bottom status bar (red live dot, weak mono text) (issue #42)', async ({
   page,
 }) => {
   await page.goto('/')
@@ -109,11 +93,10 @@ test('hero terminal: four corner brackets + bottom live caption (red dot, weak m
   await expect(corners).toHaveCount(4)
   expect((await corners.allTextContents()).sort()).toEqual(['┌', '┐', '└', '┘'].sort())
 
-  // 底部 caption：● live 红点 + 弱化 mono 文字（与正文以细线分隔）；
-  // 可见文本精简为「live」（去掉演出说明「AI 会话演出 · 自动播放一遍后停驻」）
+  // 底部 caption = 终端状态栏（issue #42）：● live · v<版本> · theme · git
   const caption = terminal.locator('.hero-terminal-caption')
   await expect(caption).toBeVisible()
-  await expect(caption).toHaveText('live', { useInnerText: true })
+  await expect(caption.getByText('live', { exact: true })).toBeVisible()
   await expect(caption.getByText('AI 会话演出')).toHaveCount(0)
   await expect(caption.getByText('自动播放一遍后停驻')).toHaveCount(0)
   expect(await caption.evaluate((el) => getComputedStyle(el).fontFamily)).toContain(
@@ -125,8 +108,111 @@ test('hero terminal: four corner brackets + bottom live caption (red dot, weak m
   await expect(dot).toBeVisible()
   expect(await dot.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(239, 68, 68)')
 
+  // 状态段三段真实信息各自存在（内容由专门用例从源计算断言）：版本 / 主题 / git
+  await expect(caption.locator('.status-item').filter({ hasText: /^v\d/ })).toBeVisible()
+  await expect(caption.locator('[data-theme]')).toBeVisible()
+  await expect(caption.locator('[data-git-branch]')).toBeVisible()
+
   // 无 mac 装饰圆点窗口栏（issue #18 移除；文章卡片的 ●●● 标题栏不受影响）
   await expect(terminal.locator('.hero-terminal-bar')).toHaveCount(0)
+})
+
+test('status bar: site version injected from package.json at build time (issue #42)', async ({
+  page,
+  request,
+}) => {
+  // 期望值从内容源计算模式延续：版本号从 package.json 读取（构建期注入的同一来源）
+  const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
+    version: string
+  }
+  const expected = `v${pkg.version}`
+
+  await page.goto('/')
+  const versionItem = page
+    .locator('.hero-terminal-caption .status-item')
+    .filter({ hasText: expected })
+  await expect(versionItem).toBeVisible()
+  await expect(versionItem).toHaveAttribute('data-version', pkg.version)
+
+  // 构建期注入 → 预渲染 HTML 已含版本（爬虫不执行 JS 可读，SEO 不回归）；
+  // 注：React SSR 在混合静态文本与表达式的节点间插入 <!-- -->，先剥离再断言
+  const html = (await (await request.get('/')).text()).replaceAll('<!-- -->', '')
+  expect(html).toContain(expected)
+})
+
+test('status bar: theme segment updates instantly when toggling (issue #42)', async ({ page }) => {
+  await page.goto('/')
+  const themeItem = page.locator('.hero-terminal-caption [data-theme]')
+  await expect(themeItem).toBeVisible()
+
+  // 归一化亮色（初始主题由环境决定，先切到已知状态）
+  if ((await themeItem.getAttribute('data-theme')) === 'dark') {
+    await page.getByRole('button', { name: '切换暗色模式' }).click()
+  }
+  await expect(themeItem).toHaveAttribute('data-theme', 'light')
+  await expect(themeItem).toHaveText('theme: light')
+
+  // 切换主题 → 状态栏即时更新（MutationObserver 监听 html class，无需刷新）
+  await page.getByRole('button', { name: '切换暗色模式' }).click()
+  await expect(themeItem).toHaveAttribute('data-theme', 'dark')
+  await expect(themeItem).toHaveText('theme: dark')
+
+  await page.getByRole('button', { name: '切换暗色模式' }).click()
+  await expect(themeItem).toHaveText('theme: light')
+})
+
+test('status bar: SSR ships deterministic theme value, hydrates to actual theme without mismatch (issue #42)', async ({
+  page,
+  request,
+}) => {
+  const consoleErrors: string[] = []
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') consoleErrors.push(msg.text())
+  })
+  page.on('pageerror', (err) => consoleErrors.push(err.message))
+
+  // SSR 确定性输出 'light'（与 hydration 首帧一致 → 无 mismatch）；
+  // 先剥离 React SSR 的 <!-- --> 注释分隔符再断言
+  const html = (await (await request.get('/')).text()).replaceAll('<!-- -->', '')
+  expect(html).toContain('theme: light')
+
+  // 暗色偏好：首帧前 inline 防闪烁脚本置 .dark → 水合后状态栏更新为实际主题 dark
+  await page.addInitScript(() => localStorage.setItem('theme', 'dark'))
+  await page.goto('/')
+  const themeItem = page.locator('.hero-terminal-caption [data-theme]')
+  await expect(themeItem).toHaveText('theme: dark')
+
+  // 全程无 hydration/mismatch 报错（React 对 useSyncExternalStore 用服务端快照水合）
+  expect(consoleErrors.filter((e) => /hydrat|mismatch/i.test(e))).toHaveLength(0)
+})
+
+test('status bar: git stats computed from the real repository (issue #42)', async ({
+  page,
+  request,
+}) => {
+  // 期望值从真实仓库计算（与构建期注入同一契约：分支 / 短 SHA / 提交数 / 脏标记）
+  const git = currentGitStats()
+  test.skip(!git, '非 git 目录：git 段优雅省略（省略逻辑由单测覆盖）')
+
+  await page.goto('/')
+  const gitItem = page.locator('.hero-terminal-caption [data-git-branch]')
+  await expect(gitItem).toBeVisible()
+  await expect(gitItem).toHaveAttribute('data-git-branch', git?.branch ?? '')
+  await expect(gitItem).toHaveAttribute('data-git-sha', git?.sha ?? '')
+  await expect(gitItem).toHaveAttribute('data-git-count', String(git?.commitCount))
+  await expect(gitItem).toHaveAttribute('data-git-dirty', String(git?.dirty))
+
+  // 展示形态：git: branch[@dirty]@shortsha · N commits（与 formatGitStats 同一契约）
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const branch = esc(git?.branch ?? '')
+  await expect(gitItem).toHaveText(
+    new RegExp(`^git: ${branch}\\*?@${git?.sha} · ${git?.commitCount} commits$`),
+  )
+
+  // 构建期注入 → 预渲染 HTML 已含 git 段（爬虫不执行 JS 可读）；先剥离 SSR 注释分隔符；
+  // 脏工作区分支带 * 后缀（与 formatGitStats 同一契约）
+  const html = (await (await request.get('/')).text()).replaceAll('<!-- -->', '')
+  expect(html).toContain(`git: ${git?.branch}${git?.dirty ? '*' : ''}@${git?.sha}`)
 })
 
 test('prerendered HTML contains the full conversation text (SEO no regression)', async ({
@@ -148,6 +234,12 @@ test('prerendered HTML contains the full conversation text (SEO no regression)',
   expect(html).toContain('了解真相，才能获得真正的自由')
   expect(html).toContain('https://github.com/hacxy')
   expect(html).toContain('live')
+  // 状态栏（issue #42）构建期注入/确定性值同样在预渲染源码中：版本 + theme: light
+  const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
+    version: string
+  }
+  expect(html).toContain(`v${pkg.version}`)
+  expect(html).toContain('theme: light')
 })
 
 test('hero terminal: CSS show plays once and stops; live dot pulses infinitely', async ({
@@ -242,22 +334,7 @@ test('post list: terminal output lines show mono date, title and #tags (no descr
   page,
 }) => {
   // 期望值从内容源计算（与构建期内容清单同一契约：非 draft 文章、日期倒序）
-  const postsDir = new URL('../../content/posts/', import.meta.url)
-  const published = readdirSync(postsDir)
-    .filter((file) => file.endsWith('.md'))
-    .map((file) => {
-      const data = matter(readFileSync(new URL(file, postsDir), 'utf8')).data
-      return {
-        slug: file.replace(/\.md$/, ''),
-        title: data.title ?? '',
-        date: normalizeDate(data.date),
-        description: data.description ?? '',
-        tags: data.tags ?? [],
-        draft: data.draft ?? false,
-      }
-    })
-    .filter((post) => !post.draft)
-    .sort((a, b) => (a.date < b.date ? 1 : -1)) // 内容清单按日期倒序（最新在前）
+  const published = publishedPosts()
 
   await page.goto('/')
   const rows = page.locator('.post-row')
@@ -413,9 +490,9 @@ test('post rows are keyboard reachable: Tab focus, visible focus style, Enter op
   )
   await expect(firstRowLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
 
-  // Enter 打开文章
+  // Enter 打开最新文章（期望值从内容源计算，嵌套文章同样可达）
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/\/posts\/prerendered-blog-with-vite/)
+  await expect(page).toHaveURL(new RegExp(`/posts/${publishedPosts()[0]?.slug}`))
 })
 
 test('homepage shows site name and the fixture post', async ({ page }) => {
@@ -626,20 +703,43 @@ test('post page without TOC: right column hidden, layout falls back to two colum
   await expect(page.locator('.post-main')).toBeVisible()
 })
 
-test('prev/next navigation moves between posts', async ({ page }) => {
-  // 最新文章（真实技术文章）无上一篇，下一篇指向 hello-world
-  await page.goto('/posts/prerendered-blog-with-vite')
+test('prev/next navigation stays within the same directory, stopping at boundaries (issue #43)', async ({
+  page,
+}) => {
+  // 期望链从内容源计算（同一契约：非 draft、日期倒序、同目录相邻、边界停止）
+  const rootPosts = publishedPosts().filter((post) => expectedDirectory(post.slug) === '')
+
+  // 根层目录链：从目录内最新沿日期倒序翻到最旧，两端边界处无越界链接
+  const rootChain = rootPosts.map((post) => post.slug)
+  await page.goto(`/posts/${rootChain[0]}`)
   await expect(page.getByRole('link', { name: /上一篇/ })).toHaveCount(0)
-  await page.getByRole('link', { name: /下一篇/ }).click()
-  await expect(page).toHaveURL(/\/posts\/hello-world/)
-
-  // hello-world 位于中间：上一篇 = 最新文章，下一篇 = second-post
+  for (let i = 0; i < rootChain.length - 1; i++) {
+    await page.getByRole('link', { name: /下一篇/ }).click()
+    // 等待导航完成（React Router 页面切换）后再继续，避免点击落在过渡中的 DOM 上
+    await expect(page).toHaveURL(new RegExp(`/posts/${rootChain[i + 1]}`))
+  }
   await expect(page.getByRole('link', { name: /上一篇/ })).toBeVisible()
-  await page.getByRole('link', { name: /下一篇/ }).click()
-  await expect(page).toHaveURL(/\/posts\/second-post/)
+  await expect(page.getByRole('link', { name: /下一篇/ })).toHaveCount(0)
 
-  // 最旧文章（second-post）只有上一篇，没有下一篇
-  await expect(page.getByRole('link', { name: /上一篇/ })).toBeVisible()
+  // 嵌套目录：01 → 02 同目录相邻——下一篇不指向全局第二新的根层文章（不跨界跳转）
+  const one = expectedNeighbors('pi-agent/01')
+  expect(one.newer).toBeUndefined() // 目录内最新：无上一篇
+  expect(one.older?.slug).toBe('pi-agent/02') // 下一篇 = 同目录内更旧
+  await page.goto('/posts/pi-agent/01')
+  await expect(page.getByRole('link', { name: /上一篇/ })).toHaveCount(0)
+  const nextLink = page.getByRole('link', { name: /下一篇/ })
+  await expect(nextLink).toHaveAttribute('href', `/posts/${one.older?.slug}`)
+
+  // 02：上一篇 = 01（同目录内更新），目录边界处停止（无下一篇）
+  await nextLink.click()
+  await expect(page).toHaveURL(/\/posts\/pi-agent\/02/)
+  const two = expectedNeighbors('pi-agent/02')
+  expect(two.newer?.slug).toBe('pi-agent/01')
+  expect(two.older).toBeUndefined()
+  await expect(page.getByRole('link', { name: /上一篇/ })).toHaveAttribute(
+    'href',
+    `/posts/${two.newer?.slug}`,
+  )
   await expect(page.getByRole('link', { name: /下一篇/ })).toHaveCount(0)
 })
 
@@ -661,6 +761,23 @@ test('post images in assets/ are copied to the build and accessible', async ({ r
   // 图片文件在构建产物中真实存在且可访问
   const image = await request.get('/assets/fixture.png')
   expect(image.status()).toBe(200)
+})
+
+test('nested post images: rewritten to /assets/<目录>/<文件名> and served without collision (issue #43)', async ({
+  request,
+}) => {
+  // 嵌套文章 HTML：assets/ 引用按所在目录路径化为站点绝对路径
+  const html = await (await request.get('/posts/pi-agent/01')).text()
+  expect(html).toContain('src="/assets/pi-agent/fixture.png"')
+
+  // 嵌套资源按目录路径可访问（dev 中间件与构建产物同一契约，此处验证构建产物）
+  const nested = await request.get('/assets/pi-agent/fixture.png')
+  expect(nested.status()).toBe(200)
+
+  // 根层同名图片仍指向根层文件：不同目录同名图片互不撞车（两份文件内容不同）
+  const root = await request.get('/assets/fixture.png')
+  expect(root.status()).toBe(200)
+  expect((await nested.body()).length).not.toBe((await root.body()).length)
 })
 
 test('real article renders full flow: body, code, table and image in raw HTML', async ({
@@ -1000,6 +1117,94 @@ test('feed.xml is a valid RSS 2.0 feed with full article content', async ({ requ
 
   // draft 文章不在 feed
   expect(feed).not.toContain('draft-post')
+})
+
+/* ===== 嵌套目录文章（issue #41）：递归聚合 + 嵌套路由 + SEO 跟随 ===== */
+
+test('nested post: /posts/<dir path> opens; prerendered as .html and index.html (issue #41)', async ({
+  request,
+}) => {
+  // 直达嵌套 URL（slug = 相对目录路径）返回 200，源码含正文（爬虫不执行 JS 即可读）
+  const response = await request.get('/posts/pi-agent/01')
+  expect(response.status()).toBe(200)
+  const html = await response.text()
+  expect(html).toContain('什么是 pi agent')
+  expect(html).toContain('递归聚合')
+
+  // 双形态产物：<slug>.html 与 <slug>/index.html 均可访问（与根层文章同一输出契约）
+  const indexHtml = await request.get('/posts/pi-agent/01/')
+  expect(indexHtml.status()).toBe(200)
+  expect(await indexHtml.text()).toContain('什么是 pi agent')
+})
+
+test('nested post: canonical/OG/JSON-LD/sitemap/RSS derive from slug (issue #41)', async ({
+  request,
+}) => {
+  // canonical + og:url 跟随嵌套 slug
+  const post = await (await request.get('/posts/pi-agent/01')).text()
+  expect(post).toContain('rel="canonical" href="https://hacxy.cn/posts/pi-agent/01"')
+  expect(post).toContain('property="og:url" content="https://hacxy.cn/posts/pi-agent/01"')
+
+  // JSON-LD Article：url / mainEntityOfPage 由 slug 推导
+  expect(post).toContain('"@type": "Article"')
+  expect(post).toContain('"url": "https://hacxy.cn/posts/pi-agent/01"')
+  expect(post).toContain('"mainEntityOfPage": "https://hacxy.cn/posts/pi-agent/01"')
+
+  // OG 图：构建期生成于嵌套路径且可访问
+  expect(post).toContain('property="og:image" content="https://hacxy.cn/og/posts/pi-agent/01.svg"')
+  const og = await (await request.get('/og/posts/pi-agent/01.svg')).text()
+  expect(og).toContain('<svg')
+  expect(og).toContain('什么是 pi agent')
+
+  // sitemap 含嵌套 loc
+  const sitemap = await (await request.get('/sitemap.xml')).text()
+  expect(sitemap).toContain('<loc>https://hacxy.cn/posts/pi-agent/01</loc>')
+
+  // RSS 条目链接/guid 跟随嵌套 slug，全文进 content:encoded
+  const feed = await (await request.get('/feed.xml')).text()
+  expect(feed).toContain('<link>https://hacxy.cn/posts/pi-agent/01</link>')
+  expect(feed).toContain('<guid isPermaLink="true">https://hacxy.cn/posts/pi-agent/01</guid>')
+  expect(feed).toContain('<title>什么是 pi agent</title>')
+})
+
+test('nested post: listed on homepage in global date-desc order (issue #41)', async ({ page }) => {
+  const published = publishedPosts()
+
+  await page.goto('/')
+  // 嵌套文章自动上首页（最新在前），行链接指向嵌套 URL
+  const row = page.locator('.post-row').filter({ hasText: '什么是 pi agent' })
+  await expect(row).toBeVisible()
+  await expect(row).toHaveAttribute('href', '/posts/pi-agent/01')
+
+  // 全局日期倒序平铺：首页首行 = 最新文章（与内容源一致）
+  await expect(page.locator('.post-row').first().locator('.post-row-title')).toHaveText(
+    published[0]?.title ?? '',
+  )
+})
+
+test('nested post: opens via client navigation; prev/next stays inside the directory (issue #43)', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: '什么是 pi agent' }).click()
+  await expect(page).toHaveURL(/\/posts\/pi-agent\/01/)
+  await expect(page.getByRole('heading', { name: '什么是 pi agent' })).toBeVisible()
+
+  // 同目录相邻（issue #43）：目录内最新无上一篇，下一篇 = 同目录的 02
+  //（不跨界跳到全局第二新的根层文章）；02 的上一篇 = 01、无下一篇（目录边界）
+  const one = expectedNeighbors('pi-agent/01')
+  expect(one.newer).toBeUndefined()
+  expect(one.older?.slug).toBe('pi-agent/02')
+  await expect(page.getByRole('link', { name: /上一篇/ })).toHaveCount(0)
+  const next = page.getByRole('link', { name: /下一篇/ })
+  await expect(next).toHaveAttribute('href', `/posts/${one.older?.slug}`)
+  await next.click()
+  await expect(page).toHaveURL(/\/posts\/pi-agent\/02/)
+  await expect(page.getByRole('link', { name: /上一篇/ })).toHaveAttribute(
+    'href',
+    '/posts/pi-agent/01',
+  )
+  await expect(page.getByRole('link', { name: /下一篇/ })).toHaveCount(0)
 })
 
 test('favicon.svg is monochrome (black/white) and consistent with the site theme', async ({
@@ -1423,24 +1628,19 @@ test('layout foundation: outer container widens to max-w-6xl; homepage/about con
   ).toBeCloseTo(600, 1)
 })
 
-test('post page left index: full list date desc, current highlighted, sticky, clickable; <768px single column (issue #29)', async ({
+test('post page left index: hierarchy tree — folders alpha first then posts date-desc, folders collapsible, current highlighted, sticky (issue #44)', async ({
   page,
 }) => {
-  // 期望值：从内容源计算（与内容清单同一契约：非 draft、日期倒序）
-  const postsDir = new URL('../../content/posts/', import.meta.url)
-  const published = readdirSync(postsDir)
-    .filter((file) => file.endsWith('.md'))
-    .map((file) => {
-      const data = matter(readFileSync(new URL(file, postsDir), 'utf8')).data
-      return {
-        slug: file.replace(/\.md$/, ''),
-        title: data.title ?? '',
-        date: normalizeDate(data.date),
-        draft: data.draft ?? false,
-      }
-    })
-    .filter((post) => !post.draft)
-    .sort((a, b) => (a.date < b.date ? 1 : -1)) // 日期倒序（最新在前）
+  // 期望值：从内容源计算（与内容清单同一契约：非 draft、日期倒序）；
+  // 树中可见文章（issue #45）：被 showSubdirs:false 目录隐藏的子目录文章不在树中
+  const visible = treeVisiblePosts()
+  const rootPosts = visible.filter((post) => expectedDirectory(post.slug) === '')
+  const visibleNested = visible.filter((post) => expectedDirectory(post.slug) !== '')
+  const dirs = [
+    ...new Set(
+      visibleNested.map((post) => expectedDirectory(post.slug)).filter((d) => !d.includes('/')),
+    ),
+  ].sort()
 
   // ≥768px：两栏生效（1280px 视口下断言左栏索引）
   await page.setViewportSize({ width: 1280, height: 900 })
@@ -1449,16 +1649,27 @@ test('post page left index: full list date desc, current highlighted, sticky, cl
   const index = page.getByRole('navigation', { name: '文章索引' })
   await expect(index).toBeVisible()
 
-  // 全文章列表：数量与内容源一致
+  // 根层 = 文件夹（字母序）在前 + 根层文章（日期倒序）在后；当前文章为根层 →
+  // 无自动展开的文件夹（全部收起）
+  const folders = index.locator('.post-tree-folder')
+  await expect(folders).toHaveCount(dirs.length)
   const rows = index.locator('.post-row')
-  await expect(rows).toHaveCount(published.length)
+  await expect(rows).toHaveCount(rootPosts.length)
+  for (let i = 0; i < dirs.length; i++) {
+    await expect(folders.nth(i)).toHaveAttribute('aria-expanded', 'false')
+    await expect(folders.nth(i)).toContainText(`${dirs[i]}/`)
+  }
+  // 同层顺序：文件夹全部在文章之前（字母序在前）
+  const lastFolderBottom = await folders.last().evaluate((el) => el.getBoundingClientRect().bottom)
+  const firstRowTop = await rows.first().evaluate((el) => el.getBoundingClientRect().top)
+  expect(lastFolderBottom).toBeLessThanOrEqual(firstRowTop)
 
-  // 日期倒序：最新文章在最前
-  await expect(rows.first().locator('.post-row-date')).toHaveText(published[0]?.date ?? '')
-  await expect(rows.first().locator('.post-row-title')).toHaveText(published[0]?.title ?? '')
+  // 根层文章日期倒序：最新在最前
+  await expect(rows.first().locator('.post-row-date')).toHaveText(rootPosts[0]?.date ?? '')
+  await expect(rows.first().locator('.post-row-title')).toHaveText(rootPosts[0]?.title ?? '')
 
   // 每行 = mono 日期 + 标题（与首页终端行同构），指向对应文章页
-  for (const post of published) {
+  for (const post of rootPosts) {
     const row = rows.filter({ hasText: post.title })
     await expect(row).toHaveAttribute('href', `/posts/${post.slug}`)
     await expect(row.locator('.post-row-date')).toHaveText(post.date)
@@ -1480,6 +1691,36 @@ test('post page left index: full list date desc, current highlighted, sticky, cl
   expect(
     await rows.filter({ hasText: '第二篇文章' }).evaluate((el) => getComputedStyle(el).fontWeight),
   ).toBe('400')
+
+  // 子文件夹为可折叠抽屉：全部展开 → 嵌套文章（日期倒序）出现、aria-expanded 翻转；
+  // 树含全部可见文章（同一清单、无丢失；被隐藏子目录文章按设计不在树中）；再点收起 → 子级卸载
+  for (const folder of await folders.all()) {
+    await folder.click()
+    await expect(folder).toHaveAttribute('aria-expanded', 'true')
+  }
+  await expect(index.locator('.post-row')).toHaveCount(visible.length)
+  for (const post of visibleNested) {
+    await expect(index.locator('.post-row').filter({ hasText: post.title })).toHaveAttribute(
+      'href',
+      `/posts/${post.slug}`,
+    )
+  }
+  // 同层规则递归：第一个文件夹（字母序）内文章日期倒序（最新在前）
+  const firstDir = dirs[0]
+  const firstDirPosts = visible.filter((post) => expectedDirectory(post.slug) === firstDir)
+  const nestedRows = index.locator('.post-tree-list .post-tree-list .post-row')
+  await expect(nestedRows.first().locator('.post-row-date')).toHaveText(
+    firstDirPosts[0]?.date ?? '',
+  )
+  await expect(nestedRows.first().locator('.post-row-title')).toHaveText(
+    firstDirPosts[0]?.title ?? '',
+  )
+  // 全部收起 → 子级卸载（不进可访问性树、不占 Tab 序），根层只余根层文章
+  for (const folder of await folders.all()) {
+    await folder.click()
+    await expect(folder).toHaveAttribute('aria-expanded', 'false')
+  }
+  await expect(index.locator('.post-row')).toHaveCount(rootPosts.length)
 
   // 左栏 sticky 跟随滚动：滚动到正文底部后索引仍固定在视口内（top = sticky 偏移）
   expect(await index.evaluate((el) => getComputedStyle(el).position)).toBe('sticky')
@@ -1503,6 +1744,46 @@ test('post page left index: full list date desc, current highlighted, sticky, cl
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   )
   expect(overflow).toBe(false)
+})
+
+test('post page left index: current branch auto-expands to its level on mount and client navigation (issue #44)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+
+  // 直达嵌套文章（初始挂载）：当前分支自动展开至所在层，同层文章与子文件夹可见
+  await page.goto('/posts/pi-agent/01')
+  const index = page.getByRole('navigation', { name: '文章索引' })
+  await expect(index).toBeVisible()
+  const folder = index.getByRole('button', { name: /pi-agent\// })
+  await expect(folder).toHaveAttribute('aria-expanded', 'true')
+  await expect(folder).toContainText('pi-agent/')
+  // 折叠标记反映可见状态：展开 ▾（收起时为 ▸）
+  await expect(folder.locator('.post-tree-folder-marker')).toHaveText('▾')
+
+  // 当前文章高亮：nav-active（加粗 + 下划线）+ aria-current="page"
+  const current = index.getByRole('link', { name: /什么是 pi agent/ })
+  await expect(current).toHaveClass(/nav-active/)
+  await expect(current).toHaveAttribute('aria-current', 'page')
+  expect(await current.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
+  expect(await current.evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain(
+    'underline',
+  )
+
+  // 同层文章（02）与根层文章同在树中；同层规则递归：文件夹内文章日期倒序（01 在 02 前）
+  await expect(index.getByRole('link', { name: /pi agent 运行原理/ })).toBeVisible()
+  await expect(index.getByRole('link', { name: /你好，世界/ })).toBeVisible()
+  const nestedRows = index.locator('.post-tree-list .post-tree-list .post-row')
+  await expect(nestedRows.first().locator('.post-row-title')).toHaveText('什么是 pi agent')
+  await expect(nestedRows.nth(1).locator('.post-row-title')).toHaveText('pi agent 运行原理')
+
+  // 客户端导航到根层文章：高亮跟随切换（分支保持用户展开状态），当前行在根层
+  await index.getByRole('link', { name: /你好，世界/ }).click()
+  await expect(page).toHaveURL(/\/posts\/hello-world/)
+  const hello = index.getByRole('link', { name: /你好，世界/ })
+  await expect(hello).toHaveClass(/nav-active/)
+  await expect(hello).toHaveAttribute('aria-current', 'page')
+  await expect(current).not.toHaveClass(/nav-active/)
 })
 
 /* ===== 移动端抽屉（issue #31）：窄屏侧栏收进覆盖式抽屉 ===== */
@@ -1562,16 +1843,14 @@ test('mobile drawer: <1024px 目录 button opens right TOC drawer with working s
   await expect(tocTrigger).toBeFocused()
 })
 
-test('mobile drawer: <768px 文章 button opens left index drawer; current article highlighted; row click navigates (issue #31)', async ({
+test('mobile drawer: <768px 文章 button opens left index drawer with the same hierarchy tree; current article highlighted (issue #44)', async ({
   page,
 }) => {
-  // 期望值从内容源计算（与内容清单同一契约：非 draft 文章、日期倒序）
-  const postsDir = new URL('../../content/posts/', import.meta.url)
-  const published = readdirSync(postsDir)
-    .filter((file) => file.endsWith('.md'))
-    .map((file) => matter(readFileSync(new URL(file, postsDir), 'utf8')))
-    .filter((parsed) => !parsed.data.draft)
-    .sort((a, b) => (normalizeDate(a.data.date) < normalizeDate(b.data.date) ? 1 : -1))
+  // 期望值从内容源计算（与内容清单同一契约：非 draft 文章、日期倒序）；
+  // 树中可见文章（issue #45）：被 showSubdirs:false 隐藏的子目录文章不在树中
+  const published = publishedPosts()
+  const visible = treeVisiblePosts()
+  const rootPosts = visible.filter((post) => expectedDirectory(post.slug) === '')
 
   await page.setViewportSize({ width: 600, height: 800 })
   await page.goto('/posts/prerendered-blog-with-vite')
@@ -1582,27 +1861,42 @@ test('mobile drawer: <768px 文章 button opens left index drawer; current artic
   await expect(indexTrigger).toBeVisible()
   await expect(page.getByRole('navigation', { name: '文章索引' })).toBeHidden()
 
-  // 点击「文章」→ 左侧抽屉滑出；内容复用桌面左栏组件（当前文章高亮 + aria-current）
+  // 点击「文章」→ 左侧抽屉滑出；内容复用桌面左栏组件（同一层级树，当前文章高亮 + aria-current）
   await indexTrigger.click()
   const dialog = page.getByRole('dialog', { name: '文章索引' })
   await expect(dialog).toBeVisible()
   const drawerIndex = dialog.getByRole('navigation', { name: '文章索引' })
   await expect(drawerIndex).toBeVisible()
+
+  // 抽屉内容 = 同一层级树：根层文件夹（字母序）+ 根层文章（数量/顺序与内容源一致）
+  const dirs = [
+    ...new Set(
+      published
+        .map((post) => expectedDirectory(post.slug))
+        .filter((d) => d !== '' && !d.includes('/')),
+    ),
+  ].sort()
+  await expect(drawerIndex.locator('.post-tree-folder')).toHaveCount(dirs.length)
+  await expect(drawerIndex.locator('.post-row')).toHaveCount(rootPosts.length)
+  await expect(drawerIndex.locator('.post-row-date').first()).toHaveText(rootPosts[0]?.date ?? '')
+
   const current = drawerIndex.getByRole('link', {
     name: /用 React \+ Vite 搭一个构建期预渲染的静态博客/,
   })
   await expect(current).toHaveClass(/nav-active/)
   await expect(current).toHaveAttribute('aria-current', 'page')
 
-  // 抽屉内容与桌面侧栏一致：全文章列表（数量/顺序与内容源一致）+ mono 日期
-  await expect(drawerIndex.locator('.post-row')).toHaveCount(published.length)
-  await expect(drawerIndex.locator('.post-row-date').first()).toHaveText(
-    normalizeDate(published[0]?.data.date),
+  // 抽屉内文件夹同样可折叠可展开（行为与桌面一致）：全部展开后嵌套文章出现、点击可跳转
+  for (const folder of await drawerIndex.locator('.post-tree-folder').all()) {
+    await folder.click()
+  }
+  await expect(drawerIndex.locator('.post-tree-folder').first()).toHaveAttribute(
+    'aria-expanded',
+    'true',
   )
-
-  // 点击抽屉内文章行 → 跳转对应文章页（抽屉随页面卸载）
-  await drawerIndex.getByRole('link', { name: '第二篇文章' }).click()
-  await expect(page).toHaveURL(/\/posts\/second-post/)
+  await expect(drawerIndex.locator('.post-row')).toHaveCount(visible.length)
+  await drawerIndex.getByRole('link', { name: '什么是 pi agent' }).click()
+  await expect(page).toHaveURL(/\/posts\/pi-agent\/01/)
 })
 
 test('desktop ≥1024px: drawer buttons hidden (no Tab insertion), sidebars persistent (issue #31)', async ({
@@ -1620,7 +1914,7 @@ test('desktop ≥1024px: drawer buttons hidden (no Tab insertion), sidebars pers
   await expect(page.getByRole('navigation', { name: '文章索引' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: '文章目录' })).toBeVisible()
 
-  // Tab 顺序无变化：文章 → 关于 → 主题 → GitHub → RSS → 左栏第一行（无抽屉按钮插队）
+  // Tab 顺序无变化：文章 → 关于 → 主题 → GitHub → RSS → 左栏第一项（文件夹按钮；无抽屉按钮插队）
   const nav = page.locator('.site-nav')
   for (let i = 0; i < 4; i++) await page.keyboard.press('Tab')
   await expect(nav.getByRole('link', { name: 'GitHub' })).toBeFocused()
@@ -1628,7 +1922,7 @@ test('desktop ≥1024px: drawer buttons hidden (no Tab insertion), sidebars pers
   await expect(nav.getByRole('link', { name: 'RSS' })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(
-    page.getByRole('navigation', { name: '文章索引' }).locator('.post-row').first(),
+    page.getByRole('navigation', { name: '文章索引' }).locator('.post-tree-folder').first(),
   ).toBeFocused()
 })
 
@@ -1705,4 +1999,67 @@ test('homepage renders no drawer buttons; 375px article drawer works with no hor
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   )
   expect(overflow).toBe(false)
+})
+
+/* ===== 目录配置（issue #45）：defineDirConfig + showSubdirs ===== */
+
+test('dir config: showSubdirs:false 的目录只显示该层文章、不显示子文件夹抽屉（issue #45）', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/posts/archive/notes')
+  const index = page.getByRole('navigation', { name: '文章索引' })
+  await expect(index).toBeVisible()
+
+  // archive/config.ts 配置 showSubdirs: false：当前分支自动展开后，
+  // archive 层只显示该层文章（日期倒序），子文件夹抽屉不出现
+  const archive = index.getByRole('button', { name: /archive\// })
+  await expect(archive).toHaveAttribute('aria-expanded', 'true')
+  await expect(index.getByRole('link', { name: /归档笔记一/ })).toBeVisible()
+  await expect(index.getByRole('link', { name: /归档笔记二/ })).toBeVisible()
+  // 子文件夹抽屉被隐藏：private 不在树中、其文章不可从侧栏到达（内容未被删除）
+  await expect(index.locator('.post-tree-folder').filter({ hasText: 'private' })).toHaveCount(0)
+  await expect(index.getByRole('link', { name: /私密归档/ })).toHaveCount(0)
+
+  // 配置仅影响该层、互不继承：pi-agent 层无配置 → 抽屉照常；根层文件夹不受 archive 影响
+  await expect(index.getByRole('button', { name: /pi-agent\// })).toBeVisible()
+  await expect(index.getByRole('link', { name: /你好，世界/ })).toBeVisible()
+})
+
+test('dir config: 被隐藏子目录的文章仍可经 URL 与上一篇/下一篇访问（issue #45）', async ({
+  page,
+  request,
+}) => {
+  // 直达 URL：预渲染 200 + 正文在源码（内容不被隐藏丢失）
+  const response = await request.get('/posts/archive/private/secret')
+  expect(response.status()).toBe(200)
+  expect(await response.text()).toContain('私密归档正文')
+
+  // 上一篇/下一篇：同目录相邻契约在隐藏目录内同样成立（private 内 2 篇：secret → deep）
+  const secret = expectedNeighbors('archive/private/secret')
+  expect(secret.newer).toBeUndefined()
+  expect(secret.older?.slug).toBe('archive/private/deep')
+  await page.goto('/posts/archive/private/secret')
+  await expect(page.getByRole('link', { name: /上一篇/ })).toHaveCount(0)
+  const next = page.getByRole('link', { name: /下一篇/ })
+  await expect(next).toHaveAttribute('href', '/posts/archive/private/deep')
+  await next.click()
+  await expect(page).toHaveURL(/\/posts\/archive\/private\/deep/)
+  await expect(page.getByRole('link', { name: /上一篇/ })).toHaveAttribute(
+    'href',
+    '/posts/archive/private/secret',
+  )
+  await expect(page.getByRole('link', { name: /下一篇/ })).toHaveCount(0)
+})
+
+test('dir config: 配置文件为非 .md 文件，不进文章清单与 SEO 产物（issue #45）', async ({
+  request,
+}) => {
+  // 首页清单 / sitemap / feed 均不含配置文件的痕迹
+  const home = await (await request.get('/')).text()
+  expect(home).not.toContain('config.ts')
+  const sitemap = await (await request.get('/sitemap.xml')).text()
+  expect(sitemap).not.toContain('config.ts')
+  const feed = await (await request.get('/feed.xml')).text()
+  expect(feed).not.toContain('config.ts')
 })

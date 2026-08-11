@@ -13,6 +13,8 @@ import { createHighlighter } from 'shiki'
 import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
 
+import { directoryOf } from './navigation.ts'
+
 /** YYYY-MM-DD 严格格式 */
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -169,19 +171,22 @@ function rehypeHeadingAnchors() {
 
 /**
  * 图片引用重写 rehype 插件：文章同目录 assets/ 的相对引用（assets/ 或 ./assets/）
- * 重写为站点绝对路径 /assets/，与页面 URL（/posts/:slug 或 /posts/:slug/）解耦；
- * 绝对路径与外链原样保留。
+ * 重写为站点绝对路径 /assets/<目录路径>/<文件名>，与页面 URL（/posts/:slug 或
+ * /posts/:slug/）解耦；根层文章目录路径为空 → /assets/<文件名>（零回归），嵌套
+ * 文章按所在目录路径化（如 pi-agent/01 → /assets/pi-agent/<文件名>），不同目录
+ * 同名图片互不撞车；绝对路径、外链与 ../ 引用原样保留（../ 仍不支持）。
  */
-function rehypeRewriteImageSrc() {
+function rehypeRewriteImageSrc(slug: string) {
+  const dirPrefix = directoryOf(slug) ? `${directoryOf(slug)}/` : ''
   return (tree: Root) => {
     visit(tree, 'element', (node) => {
       if (node.tagName !== 'img') return
       const src = node.properties.src
       if (typeof src !== 'string') return
       if (src.startsWith('assets/')) {
-        node.properties.src = `/assets/${src.slice('assets/'.length)}`
+        node.properties.src = `/assets/${dirPrefix}${src.slice('assets/'.length)}`
       } else if (src.startsWith('./assets/')) {
-        node.properties.src = `/assets/${src.slice('./assets/'.length)}`
+        node.properties.src = `/assets/${dirPrefix}${src.slice('./assets/'.length)}`
       }
     })
   }
@@ -206,6 +211,7 @@ function rehypeCollectToc(toc: TocItem[]) {
 async function renderHtml(
   content: string,
   highlighter: Highlighter,
+  slug: string,
 ): Promise<{ html: string; toc: TocItem[] }> {
   const toc: TocItem[] = []
   const processor = unified()
@@ -214,7 +220,7 @@ async function renderHtml(
     .use(remarkRehype)
     .use(() => rehypeCodeHighlight(highlighter))
     .use(rehypeHeadingAnchors)
-    .use(rehypeRewriteImageSrc)
+    .use(() => rehypeRewriteImageSrc(slug))
     .use(() => rehypeCollectToc(toc))
     .use(rehypeStringify)
   const html = String(await processor.process(content))
@@ -242,7 +248,7 @@ export async function parseMarkdown(raw: string, slug: string): Promise<Post> {
   const updated = normalizeOptionalDate(data.updated)
 
   const highlighter = await getHighlighter()
-  const { html, toc } = await renderHtml(content, highlighter)
+  const { html, toc } = await renderHtml(content, highlighter, slug)
 
   return { slug, title, date, description, tags, draft, updated, html, toc }
 }
