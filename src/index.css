@@ -342,16 +342,21 @@ html.dark .bg-texture {
   }
 }
 
-/* 底部 caption：● live 红点 + 弱化 mono 文字（与正文以细线分隔）；
-   可见文本精简为「live」——去掉演出说明（issue #24） */
+/* 底部状态栏（issue #42）：● live · v<版本> · theme: <亮/暗> · git: <真实仓库统计>；
+   弱化 mono 文字（与正文以细线分隔）、段间以「·」分隔，多段在窄屏换行不撑破小屏 */
 .hero-terminal-caption {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
   padding: 0.5rem 1rem 0.75rem;
   border-top: 1px solid #2b2b2b;
   font-size: 0.75rem;
   color: #8c8c8c;
+}
+.status-sep {
+  color: #555;
+  user-select: none;
 }
 .live-dot {
   flex-shrink: 0;
