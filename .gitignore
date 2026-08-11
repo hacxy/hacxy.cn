@@ -27,6 +27,7 @@ pnpm-debug.log*
 .env
 .env.local
 .env.*.local
-
-# pi-afk 运行时工作区
-.sandcastle/
+# pi-afk: sandcastle 运行时产物（.sandcastle/prompt.md 模板可提交）
+.sandcastle/.env
+.sandcastle/logs/
+.sandcastle/worktrees/
