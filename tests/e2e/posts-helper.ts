@@ -22,6 +22,12 @@ function normalizeDate(value: string | Date | undefined): string {
   return typeof value === 'string' ? value : value.toISOString().slice(0, 10)
 }
 
+/** slug 的目录路径（与站点 navigation.directoryOf 同一契约）：根层为 ''，嵌套为相对目录路径 */
+export function expectedDirectory(slug: string): string {
+  const slash = slug.lastIndexOf('/')
+  return slash >= 0 ? slug.slice(0, slash) : ''
+}
+
 const POSTS_DIR = fileURLToPath(new URL('../../content/posts/', import.meta.url))
 
 /**
@@ -76,4 +82,22 @@ export function publishedPosts(): ExpectedPost[] {
     })
     .filter((post) => !post.draft)
     .sort((a, b) => (a.date < b.date ? 1 : -1)) // 内容清单按日期倒序（最新在前）
+}
+
+export interface ExpectedNeighbors {
+  newer?: ExpectedPost
+  older?: ExpectedPost
+}
+
+/**
+ * 同目录相邻期望（issue #43）：目录内按日期倒序取相邻项（上一篇 = 更新、下一篇 =
+ * 更旧），目录边界处停止。与站点 navigation.sameDirectoryNeighbors 同一契约——
+ * 期望值从内容源计算，新增/嵌套文章无需改测试代码。
+ */
+export function expectedNeighbors(slug: string): ExpectedNeighbors {
+  const dir = expectedDirectory(slug)
+  const sameDir = publishedPosts().filter((post) => expectedDirectory(post.slug) === dir)
+  const index = sameDir.findIndex((post) => post.slug === slug)
+  if (index < 0) return {}
+  return { newer: sameDir[index - 1], older: sameDir[index + 1] }
 }
