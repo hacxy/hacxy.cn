@@ -603,6 +603,71 @@ html.dark .terminal-dot--green {
   text-decoration: underline;
 }
 
+/* ===== 文章页左栏层级树（issue #44）：根层文章 + 各级文件夹（可折叠抽屉） ===== */
+
+/* 树列表：与首页终端行列表同一布局（行间紧凑）；根列表无顶部留白（sticky 侧栏内） */
+.post-tree-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.post-index .post-tree-list {
+  margin-top: 0;
+}
+
+/* 嵌套子列表：缩进 + 树状参考线（层级视觉，暗色随 --prose-border 反色） */
+.post-tree-list .post-tree-list {
+  margin: 0.25rem 0 0.25rem 0.375rem;
+  padding-left: 0.875rem;
+  border-left: 1px solid var(--color-prose-border);
+}
+
+/* 文件夹行：按钮形态（非链接），行布局与 .post-row 同构（折叠标记 + mono 名）；
+   常规字重、muted 灰（结构层弱于文章标题），hover/键盘焦点 accent + 下划线，
+   背景不反白（与文章行同一豁免） */
+.post-tree-folder {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem 0.875rem;
+  width: 100%;
+  padding: 0.5rem 0.375rem;
+  border: none;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+  text-align: left;
+  cursor: pointer;
+}
+.post-tree-folder:hover,
+.post-tree-folder:focus-visible {
+  background-color: transparent;
+  color: var(--color-accent);
+}
+.post-tree-folder:hover .post-tree-folder-name,
+.post-tree-folder:focus-visible .post-tree-folder-name {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 展开中的文件夹：加粗 + accent（可见状态与当前文章高亮同一节奏） */
+.post-tree-folder[aria-expanded='true'] {
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+/* 折叠标记：与 .post-row-prompt 同一槽位（1rem 宽、负 margin 抵消 gap）——
+   文件夹名与文章标题纵向对齐 */
+.post-tree-folder-marker {
+  flex: 0 0 1rem;
+  margin-right: -0.875rem;
+  font-size: 0.75rem;
+  color: var(--color-accent);
+}
+
 /* 中栏正文：自然收窄至 ~600px（37.5rem，中文 ~35 字/行）阅读宽度 */
 .post-main {
   max-width: 37.5rem;

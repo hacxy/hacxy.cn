@@ -1623,11 +1623,14 @@ test('layout foundation: outer container widens to max-w-6xl; homepage/about con
   ).toBeCloseTo(600, 1)
 })
 
-test('post page left index: full list date desc, current highlighted, sticky, clickable; <768px single column (issue #29)', async ({
+test('post page left index: hierarchy tree — folders alpha first then posts date-desc, folders collapsible, current highlighted, sticky (issue #44)', async ({
   page,
 }) => {
   // 期望值：从内容源计算（与内容清单同一契约：非 draft、日期倒序）
   const published = publishedPosts()
+  const rootPosts = published.filter((post) => expectedDirectory(post.slug) === '')
+  const nestedPosts = published.filter((post) => expectedDirectory(post.slug) !== '')
+  const dirs = [...new Set(nestedPosts.map((post) => expectedDirectory(post.slug)))].sort()
 
   // ≥768px：两栏生效（1280px 视口下断言左栏索引）
   await page.setViewportSize({ width: 1280, height: 900 })
@@ -1636,16 +1639,27 @@ test('post page left index: full list date desc, current highlighted, sticky, cl
   const index = page.getByRole('navigation', { name: '文章索引' })
   await expect(index).toBeVisible()
 
-  // 全文章列表：数量与内容源一致
+  // 根层 = 文件夹（字母序）在前 + 根层文章（日期倒序）在后；当前文章为根层 →
+  // 无自动展开的文件夹（全部收起）
+  const folders = index.locator('.post-tree-folder')
+  await expect(folders).toHaveCount(dirs.length)
   const rows = index.locator('.post-row')
-  await expect(rows).toHaveCount(published.length)
+  await expect(rows).toHaveCount(rootPosts.length)
+  for (let i = 0; i < dirs.length; i++) {
+    await expect(folders.nth(i)).toHaveAttribute('aria-expanded', 'false')
+    await expect(folders.nth(i)).toContainText(`${dirs[i]}/`)
+  }
+  // 同层顺序：文件夹全部在文章之前（字母序在前）
+  const lastFolderBottom = await folders.last().evaluate((el) => el.getBoundingClientRect().bottom)
+  const firstRowTop = await rows.first().evaluate((el) => el.getBoundingClientRect().top)
+  expect(lastFolderBottom).toBeLessThanOrEqual(firstRowTop)
 
-  // 日期倒序：最新文章在最前
-  await expect(rows.first().locator('.post-row-date')).toHaveText(published[0]?.date ?? '')
-  await expect(rows.first().locator('.post-row-title')).toHaveText(published[0]?.title ?? '')
+  // 根层文章日期倒序：最新在最前
+  await expect(rows.first().locator('.post-row-date')).toHaveText(rootPosts[0]?.date ?? '')
+  await expect(rows.first().locator('.post-row-title')).toHaveText(rootPosts[0]?.title ?? '')
 
   // 每行 = mono 日期 + 标题（与首页终端行同构），指向对应文章页
-  for (const post of published) {
+  for (const post of rootPosts) {
     const row = rows.filter({ hasText: post.title })
     await expect(row).toHaveAttribute('href', `/posts/${post.slug}`)
     await expect(row.locator('.post-row-date')).toHaveText(post.date)
@@ -1667,6 +1681,28 @@ test('post page left index: full list date desc, current highlighted, sticky, cl
   expect(
     await rows.filter({ hasText: '第二篇文章' }).evaluate((el) => getComputedStyle(el).fontWeight),
   ).toBe('400')
+
+  // 子文件夹为可折叠抽屉：点击展开 → 嵌套文章（日期倒序）出现、aria-expanded 翻转；
+  // 再点收起 → 子级卸载（不进可访问性树、不占 Tab 序）
+  const folder = folders.first()
+  await folder.click()
+  await expect(folder).toHaveAttribute('aria-expanded', 'true')
+  await expect(index.locator('.post-row')).toHaveCount(published.length)
+  for (const post of nestedPosts) {
+    await expect(index.locator('.post-row').filter({ hasText: post.title })).toHaveAttribute(
+      'href',
+      `/posts/${post.slug}`,
+    )
+  }
+  // 同层规则递归：文件夹内文章日期倒序（最新在前）
+  const nestedRows = index.locator('.post-tree-list .post-tree-list .post-row')
+  await expect(nestedRows.first().locator('.post-row-date')).toHaveText(nestedPosts[0]?.date ?? '')
+  await expect(nestedRows.first().locator('.post-row-title')).toHaveText(
+    nestedPosts[0]?.title ?? '',
+  )
+  await folder.click()
+  await expect(folder).toHaveAttribute('aria-expanded', 'false')
+  await expect(index.locator('.post-row')).toHaveCount(rootPosts.length)
 
   // 左栏 sticky 跟随滚动：滚动到正文底部后索引仍固定在视口内（top = sticky 偏移）
   expect(await index.evaluate((el) => getComputedStyle(el).position)).toBe('sticky')
@@ -1690,6 +1726,46 @@ test('post page left index: full list date desc, current highlighted, sticky, cl
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   )
   expect(overflow).toBe(false)
+})
+
+test('post page left index: current branch auto-expands to its level on mount and client navigation (issue #44)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+
+  // 直达嵌套文章（初始挂载）：当前分支自动展开至所在层，同层文章与子文件夹可见
+  await page.goto('/posts/pi-agent/01')
+  const index = page.getByRole('navigation', { name: '文章索引' })
+  await expect(index).toBeVisible()
+  const folder = index.getByRole('button', { name: /pi-agent\// })
+  await expect(folder).toHaveAttribute('aria-expanded', 'true')
+  await expect(folder).toContainText('pi-agent/')
+  // 折叠标记反映可见状态：展开 ▾（收起时为 ▸）
+  await expect(folder.locator('.post-tree-folder-marker')).toHaveText('▾')
+
+  // 当前文章高亮：nav-active（加粗 + 下划线）+ aria-current="page"
+  const current = index.getByRole('link', { name: /什么是 pi agent/ })
+  await expect(current).toHaveClass(/nav-active/)
+  await expect(current).toHaveAttribute('aria-current', 'page')
+  expect(await current.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
+  expect(await current.evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain(
+    'underline',
+  )
+
+  // 同层文章（02）与根层文章同在树中；同层规则递归：文件夹内文章日期倒序（01 在 02 前）
+  await expect(index.getByRole('link', { name: /pi agent 运行原理/ })).toBeVisible()
+  await expect(index.getByRole('link', { name: /你好，世界/ })).toBeVisible()
+  const nestedRows = index.locator('.post-tree-list .post-tree-list .post-row')
+  await expect(nestedRows.first().locator('.post-row-title')).toHaveText('什么是 pi agent')
+  await expect(nestedRows.nth(1).locator('.post-row-title')).toHaveText('pi agent 运行原理')
+
+  // 客户端导航到根层文章：高亮跟随切换（分支保持用户展开状态），当前行在根层
+  await index.getByRole('link', { name: /你好，世界/ }).click()
+  await expect(page).toHaveURL(/\/posts\/hello-world/)
+  const hello = index.getByRole('link', { name: /你好，世界/ })
+  await expect(hello).toHaveClass(/nav-active/)
+  await expect(hello).toHaveAttribute('aria-current', 'page')
+  await expect(current).not.toHaveClass(/nav-active/)
 })
 
 /* ===== 移动端抽屉（issue #31）：窄屏侧栏收进覆盖式抽屉 ===== */
@@ -1749,11 +1825,12 @@ test('mobile drawer: <1024px 目录 button opens right TOC drawer with working s
   await expect(tocTrigger).toBeFocused()
 })
 
-test('mobile drawer: <768px 文章 button opens left index drawer; current article highlighted; row click navigates (issue #31)', async ({
+test('mobile drawer: <768px 文章 button opens left index drawer with the same hierarchy tree; current article highlighted (issue #44)', async ({
   page,
 }) => {
   // 期望值从内容源计算（与内容清单同一契约：非 draft 文章、日期倒序）
   const published = publishedPosts()
+  const rootPosts = published.filter((post) => expectedDirectory(post.slug) === '')
 
   await page.setViewportSize({ width: 600, height: 800 })
   await page.goto('/posts/prerendered-blog-with-vite')
@@ -1764,25 +1841,30 @@ test('mobile drawer: <768px 文章 button opens left index drawer; current artic
   await expect(indexTrigger).toBeVisible()
   await expect(page.getByRole('navigation', { name: '文章索引' })).toBeHidden()
 
-  // 点击「文章」→ 左侧抽屉滑出；内容复用桌面左栏组件（当前文章高亮 + aria-current）
+  // 点击「文章」→ 左侧抽屉滑出；内容复用桌面左栏组件（同一层级树，当前文章高亮 + aria-current）
   await indexTrigger.click()
   const dialog = page.getByRole('dialog', { name: '文章索引' })
   await expect(dialog).toBeVisible()
   const drawerIndex = dialog.getByRole('navigation', { name: '文章索引' })
   await expect(drawerIndex).toBeVisible()
+
+  // 抽屉内容 = 同一层级树：根层文件夹 + 根层文章（数量/顺序与内容源一致）
+  await expect(drawerIndex.locator('.post-tree-folder')).toHaveCount(1)
+  await expect(drawerIndex.locator('.post-row')).toHaveCount(rootPosts.length)
+  await expect(drawerIndex.locator('.post-row-date').first()).toHaveText(rootPosts[0]?.date ?? '')
+
   const current = drawerIndex.getByRole('link', {
     name: /用 React \+ Vite 搭一个构建期预渲染的静态博客/,
   })
   await expect(current).toHaveClass(/nav-active/)
   await expect(current).toHaveAttribute('aria-current', 'page')
 
-  // 抽屉内容与桌面侧栏一致：全文章列表（数量/顺序与内容源一致）+ mono 日期
+  // 抽屉内文件夹同样可折叠可展开（行为与桌面一致）：展开后嵌套文章出现、点击可跳转
+  await drawerIndex.locator('.post-tree-folder').click()
+  await expect(drawerIndex.locator('.post-tree-folder')).toHaveAttribute('aria-expanded', 'true')
   await expect(drawerIndex.locator('.post-row')).toHaveCount(published.length)
-  await expect(drawerIndex.locator('.post-row-date').first()).toHaveText(published[0]?.date ?? '')
-
-  // 点击抽屉内文章行 → 跳转对应文章页（抽屉随页面卸载）
-  await drawerIndex.getByRole('link', { name: '第二篇文章' }).click()
-  await expect(page).toHaveURL(/\/posts\/second-post/)
+  await drawerIndex.getByRole('link', { name: '什么是 pi agent' }).click()
+  await expect(page).toHaveURL(/\/posts\/pi-agent\/01/)
 })
 
 test('desktop ≥1024px: drawer buttons hidden (no Tab insertion), sidebars persistent (issue #31)', async ({
@@ -1800,7 +1882,7 @@ test('desktop ≥1024px: drawer buttons hidden (no Tab insertion), sidebars pers
   await expect(page.getByRole('navigation', { name: '文章索引' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: '文章目录' })).toBeVisible()
 
-  // Tab 顺序无变化：文章 → 关于 → 主题 → GitHub → RSS → 左栏第一行（无抽屉按钮插队）
+  // Tab 顺序无变化：文章 → 关于 → 主题 → GitHub → RSS → 左栏第一项（文件夹按钮；无抽屉按钮插队）
   const nav = page.locator('.site-nav')
   for (let i = 0; i < 4; i++) await page.keyboard.press('Tab')
   await expect(nav.getByRole('link', { name: 'GitHub' })).toBeFocused()
@@ -1808,7 +1890,7 @@ test('desktop ≥1024px: drawer buttons hidden (no Tab insertion), sidebars pers
   await expect(nav.getByRole('link', { name: 'RSS' })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(
-    page.getByRole('navigation', { name: '文章索引' }).locator('.post-row').first(),
+    page.getByRole('navigation', { name: '文章索引' }).locator('.post-tree-folder').first(),
   ).toBeFocused()
 })
 
