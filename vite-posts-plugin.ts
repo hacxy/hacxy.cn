@@ -1,9 +1,9 @@
 import type { Post } from './src/content/types.ts'
 import type { Plugin } from 'vite'
 
-import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { collectMarkdownFiles, collectPostSources } from './src/content/collectSources.ts'
 import { loadPosts } from './src/content/loadPosts.ts'
 
 const VIRTUAL_ID = 'virtual:posts'
@@ -11,13 +11,8 @@ const RESOLVED_ID = '\0' + VIRTUAL_ID
 const POSTS_DIR = join(process.cwd(), 'content', 'posts')
 
 function collectPosts(includeDrafts: boolean): Promise<Post[]> {
-  const sources = readdirSync(POSTS_DIR)
-    .filter((file) => file.endsWith('.md'))
-    .map((file) => ({
-      slug: file.replace(/\.md$/, ''),
-      raw: readFileSync(join(POSTS_DIR, file), 'utf8'),
-    }))
-  return loadPosts(sources, { includeDrafts })
+  // 递归聚合：嵌套目录文章的 slug = 相对目录路径（如 pi-agent/01）
+  return loadPosts(collectPostSources(POSTS_DIR), { includeDrafts })
 }
 
 /**
@@ -39,11 +34,9 @@ export function postsPlugin(): Plugin {
     },
     async load(id) {
       if (id !== RESOLVED_ID) return
-      // 仅监听 .md 文件（目录本身不参与 import 分析，避免 vitest 误解析）
-      for (const file of readdirSync(POSTS_DIR)) {
-        if (file.endsWith('.md')) {
-          this.addWatchFile(join(POSTS_DIR, file))
-        }
+      // 递归监听全部 .md 文件（含嵌套目录；目录本身不参与 import 分析，避免 vitest 误解析）
+      for (const file of collectMarkdownFiles(POSTS_DIR)) {
+        this.addWatchFile(file)
       }
       const code = `export default ${JSON.stringify(await collectPosts(includeDrafts))}`
       return code
