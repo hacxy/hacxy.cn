@@ -1,25 +1,7 @@
 import { expect, test } from '@playwright/test'
-import { readdirSync, readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
+import { readFileSync } from 'node:fs'
 
-// gray-matter 无类型声明：E2E 仅用它解析 frontmatter 计算期望值（与构建期内容清单同一契约）
-const require = createRequire(import.meta.url)
-const matter = require('gray-matter') as (input: string) => {
-  data: {
-    draft?: boolean
-    tags?: string[]
-    title?: string
-    description?: string
-    /** gray-matter/js-yaml 会把 YYYY-MM-DD 解析为 Date 对象 */
-    date?: string | Date
-  }
-}
-
-/** 与内容管线同一日期契约：Date 对象归一化为 YYYY-MM-DD（ISO） */
-function normalizeDate(value: string | Date | undefined): string {
-  if (!value) return ''
-  return typeof value === 'string' ? value : value.toISOString().slice(0, 10)
-}
+import { publishedPosts } from './posts-helper.ts'
 
 test('hero: big h1 site name + AI agent conversation (three Q&A rounds)', async ({ page }) => {
   await page.goto('/')
@@ -63,13 +45,9 @@ test('hero: big h1 site name + AI agent conversation (three Q&A rounds)', async 
 test('hero terminal: ls posts counts match the content manifest', async ({ page }) => {
   // 期望值从内容源计算（同一契约：非 draft 文章数 + 全站标签并集），
   // 与构建期内容清单的 draft 过滤 / tags 聚合规则一致——新增文章无需改代码
-  const postsDir = new URL('../../content/posts/', import.meta.url)
-  const published = readdirSync(postsDir)
-    .filter((file) => file.endsWith('.md'))
-    .map((file) => matter(readFileSync(new URL(file, postsDir), 'utf8')))
-    .filter((parsed) => !parsed.data.draft)
+  const published = publishedPosts()
   const postCount = published.length
-  const tagCount = new Set(published.flatMap((parsed) => parsed.data.tags ?? [])).size
+  const tagCount = new Set(published.flatMap((post) => post.tags)).size
 
   await page.goto('/')
   const terminal = page.locator('.hero-terminal')
@@ -242,22 +220,7 @@ test('post list: terminal output lines show mono date, title and #tags (no descr
   page,
 }) => {
   // 期望值从内容源计算（与构建期内容清单同一契约：非 draft 文章、日期倒序）
-  const postsDir = new URL('../../content/posts/', import.meta.url)
-  const published = readdirSync(postsDir)
-    .filter((file) => file.endsWith('.md'))
-    .map((file) => {
-      const data = matter(readFileSync(new URL(file, postsDir), 'utf8')).data
-      return {
-        slug: file.replace(/\.md$/, ''),
-        title: data.title ?? '',
-        date: normalizeDate(data.date),
-        description: data.description ?? '',
-        tags: data.tags ?? [],
-        draft: data.draft ?? false,
-      }
-    })
-    .filter((post) => !post.draft)
-    .sort((a, b) => (a.date < b.date ? 1 : -1)) // 内容清单按日期倒序（最新在前）
+  const published = publishedPosts()
 
   await page.goto('/')
   const rows = page.locator('.post-row')
@@ -413,9 +376,9 @@ test('post rows are keyboard reachable: Tab focus, visible focus style, Enter op
   )
   await expect(firstRowLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
 
-  // Enter 打开文章
+  // Enter 打开最新文章（期望值从内容源计算，嵌套文章同样可达）
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/\/posts\/prerendered-blog-with-vite/)
+  await expect(page).toHaveURL(new RegExp(`/posts/${publishedPosts()[0]?.slug}`))
 })
 
 test('homepage shows site name and the fixture post', async ({ page }) => {
@@ -627,18 +590,23 @@ test('post page without TOC: right column hidden, layout falls back to two colum
 })
 
 test('prev/next navigation moves between posts', async ({ page }) => {
-  // 最新文章（真实技术文章）无上一篇，下一篇指向 hello-world
-  await page.goto('/posts/prerendered-blog-with-vite')
+  // 期望链从内容源计算（同一契约：非 draft、日期倒序）——新增/嵌套文章自动适配
+  const [newest, middle, older, oldest] = publishedPosts()
+
+  // 最新文章无上一篇，下一篇指向第二新
+  await page.goto(`/posts/${newest?.slug}`)
   await expect(page.getByRole('link', { name: /上一篇/ })).toHaveCount(0)
   await page.getByRole('link', { name: /下一篇/ }).click()
-  await expect(page).toHaveURL(/\/posts\/hello-world/)
+  await expect(page).toHaveURL(new RegExp(`/posts/${middle?.slug}`))
 
-  // hello-world 位于中间：上一篇 = 最新文章，下一篇 = second-post
+  // 中间文章：上一篇/下一篇都有，沿日期倒序翻页
   await expect(page.getByRole('link', { name: /上一篇/ })).toBeVisible()
   await page.getByRole('link', { name: /下一篇/ }).click()
-  await expect(page).toHaveURL(/\/posts\/second-post/)
+  await expect(page).toHaveURL(new RegExp(`/posts/${older?.slug}`))
+  await page.getByRole('link', { name: /下一篇/ }).click()
+  await expect(page).toHaveURL(new RegExp(`/posts/${oldest?.slug}`))
 
-  // 最旧文章（second-post）只有上一篇，没有下一篇
+  // 最旧文章只有上一篇，没有下一篇
   await expect(page.getByRole('link', { name: /上一篇/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /下一篇/ })).toHaveCount(0)
 })
@@ -1000,6 +968,82 @@ test('feed.xml is a valid RSS 2.0 feed with full article content', async ({ requ
 
   // draft 文章不在 feed
   expect(feed).not.toContain('draft-post')
+})
+
+/* ===== 嵌套目录文章（issue #41）：递归聚合 + 嵌套路由 + SEO 跟随 ===== */
+
+test('nested post: /posts/<dir path> opens; prerendered as .html and index.html (issue #41)', async ({
+  request,
+}) => {
+  // 直达嵌套 URL（slug = 相对目录路径）返回 200，源码含正文（爬虫不执行 JS 即可读）
+  const response = await request.get('/posts/pi-agent/01')
+  expect(response.status()).toBe(200)
+  const html = await response.text()
+  expect(html).toContain('什么是 pi agent')
+  expect(html).toContain('递归聚合')
+
+  // 双形态产物：<slug>.html 与 <slug>/index.html 均可访问（与根层文章同一输出契约）
+  const indexHtml = await request.get('/posts/pi-agent/01/')
+  expect(indexHtml.status()).toBe(200)
+  expect(await indexHtml.text()).toContain('什么是 pi agent')
+})
+
+test('nested post: canonical/OG/JSON-LD/sitemap/RSS derive from slug (issue #41)', async ({
+  request,
+}) => {
+  // canonical + og:url 跟随嵌套 slug
+  const post = await (await request.get('/posts/pi-agent/01')).text()
+  expect(post).toContain('rel="canonical" href="https://hacxy.cn/posts/pi-agent/01"')
+  expect(post).toContain('property="og:url" content="https://hacxy.cn/posts/pi-agent/01"')
+
+  // JSON-LD Article：url / mainEntityOfPage 由 slug 推导
+  expect(post).toContain('"@type": "Article"')
+  expect(post).toContain('"url": "https://hacxy.cn/posts/pi-agent/01"')
+  expect(post).toContain('"mainEntityOfPage": "https://hacxy.cn/posts/pi-agent/01"')
+
+  // OG 图：构建期生成于嵌套路径且可访问
+  expect(post).toContain('property="og:image" content="https://hacxy.cn/og/posts/pi-agent/01.svg"')
+  const og = await (await request.get('/og/posts/pi-agent/01.svg')).text()
+  expect(og).toContain('<svg')
+  expect(og).toContain('什么是 pi agent')
+
+  // sitemap 含嵌套 loc
+  const sitemap = await (await request.get('/sitemap.xml')).text()
+  expect(sitemap).toContain('<loc>https://hacxy.cn/posts/pi-agent/01</loc>')
+
+  // RSS 条目链接/guid 跟随嵌套 slug，全文进 content:encoded
+  const feed = await (await request.get('/feed.xml')).text()
+  expect(feed).toContain('<link>https://hacxy.cn/posts/pi-agent/01</link>')
+  expect(feed).toContain('<guid isPermaLink="true">https://hacxy.cn/posts/pi-agent/01</guid>')
+  expect(feed).toContain('<title>什么是 pi agent</title>')
+})
+
+test('nested post: listed on homepage in global date-desc order (issue #41)', async ({ page }) => {
+  const published = publishedPosts()
+
+  await page.goto('/')
+  // 嵌套文章自动上首页（最新在前），行链接指向嵌套 URL
+  const row = page.locator('.post-row').filter({ hasText: '什么是 pi agent' })
+  await expect(row).toBeVisible()
+  await expect(row).toHaveAttribute('href', '/posts/pi-agent/01')
+
+  // 全局日期倒序平铺：首页首行 = 最新文章（与内容源一致）
+  await expect(page.locator('.post-row').first().locator('.post-row-title')).toHaveText(
+    published[0]?.title ?? '',
+  )
+})
+
+test('nested post: opens via client navigation; tops the prev/next chain (issue #41)', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: '什么是 pi agent' }).click()
+  await expect(page).toHaveURL(/\/posts\/pi-agent\/01/)
+  await expect(page.getByRole('heading', { name: '什么是 pi agent' })).toBeVisible()
+
+  // 最新文章无上一篇（嵌套 slug 参与全局排序，上一篇/下一篇链完整）
+  await expect(page.getByRole('link', { name: /上一篇/ })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /下一篇/ })).toBeVisible()
 })
 
 test('favicon.svg is monochrome (black/white) and consistent with the site theme', async ({
@@ -1427,20 +1471,7 @@ test('post page left index: full list date desc, current highlighted, sticky, cl
   page,
 }) => {
   // 期望值：从内容源计算（与内容清单同一契约：非 draft、日期倒序）
-  const postsDir = new URL('../../content/posts/', import.meta.url)
-  const published = readdirSync(postsDir)
-    .filter((file) => file.endsWith('.md'))
-    .map((file) => {
-      const data = matter(readFileSync(new URL(file, postsDir), 'utf8')).data
-      return {
-        slug: file.replace(/\.md$/, ''),
-        title: data.title ?? '',
-        date: normalizeDate(data.date),
-        draft: data.draft ?? false,
-      }
-    })
-    .filter((post) => !post.draft)
-    .sort((a, b) => (a.date < b.date ? 1 : -1)) // 日期倒序（最新在前）
+  const published = publishedPosts()
 
   // ≥768px：两栏生效（1280px 视口下断言左栏索引）
   await page.setViewportSize({ width: 1280, height: 900 })
@@ -1566,12 +1597,7 @@ test('mobile drawer: <768px 文章 button opens left index drawer; current artic
   page,
 }) => {
   // 期望值从内容源计算（与内容清单同一契约：非 draft 文章、日期倒序）
-  const postsDir = new URL('../../content/posts/', import.meta.url)
-  const published = readdirSync(postsDir)
-    .filter((file) => file.endsWith('.md'))
-    .map((file) => matter(readFileSync(new URL(file, postsDir), 'utf8')))
-    .filter((parsed) => !parsed.data.draft)
-    .sort((a, b) => (normalizeDate(a.data.date) < normalizeDate(b.data.date) ? 1 : -1))
+  const published = publishedPosts()
 
   await page.setViewportSize({ width: 600, height: 800 })
   await page.goto('/posts/prerendered-blog-with-vite')
@@ -1596,9 +1622,7 @@ test('mobile drawer: <768px 文章 button opens left index drawer; current artic
 
   // 抽屉内容与桌面侧栏一致：全文章列表（数量/顺序与内容源一致）+ mono 日期
   await expect(drawerIndex.locator('.post-row')).toHaveCount(published.length)
-  await expect(drawerIndex.locator('.post-row-date').first()).toHaveText(
-    normalizeDate(published[0]?.data.date),
-  )
+  await expect(drawerIndex.locator('.post-row-date').first()).toHaveText(published[0]?.date ?? '')
 
   // 点击抽屉内文章行 → 跳转对应文章页（抽屉随页面卸载）
   await drawerIndex.getByRole('link', { name: '第二篇文章' }).click()
