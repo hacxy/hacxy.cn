@@ -17,7 +17,9 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:install": "playwright install chromium",
     "prepare": "husky",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sandcastle": "npx tsx .sandcastle/main.ts",
+    "sandcastle:build-image": "docker build -t sandcastle:pi-afk .sandcastle/"
   },
   "lint-staged": {
     "*.{js,ts,jsx,tsx}": [
@@ -44,6 +46,7 @@
     "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
+    "@ai-hero/sandcastle": "^0.12.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@hacxy/eslint-config": "^0.14.0",
     "@hacxy/prettier-config": "^0.14.0",
@@ -66,6 +69,7 @@
     "lint-staged": "^15.0.0",
     "prettier": "^3.0.0",
     "tailwindcss": "^4.0.0",
+    "tsx": "^4.23.12",
     "typescript": "~6.0.2",
     "vite": "^8.2.0",
     "vitest": "^4.1.10"
