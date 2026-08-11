@@ -19,7 +19,8 @@
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "sandcastle": "npx tsx .sandcastle/main.ts",
-    "sandcastle:build-image": "docker build -t sandcastle:pi-afk .sandcastle/"
+    "sandcastle:build-image": "docker build -t sandcastle:pi-afk .sandcastle/",
+    "typecheck:sandcastle": "tsc --ignoreConfig --noEmit --target es2022 --module nodenext --moduleResolution nodenext --strict --skipLibCheck --types node .sandcastle/main.ts"
   },
   "lint-staged": {
     "*.{js,ts,jsx,tsx}": [
