@@ -1,4 +1,8 @@
 import { type CSSProperties, type ReactNode } from 'react'
+import siteMeta from 'virtual:site-meta'
+
+import { formatGitStats } from '../statusBar.ts'
+import { useTheme } from '../useTheme.ts'
 
 /**
  * hero 终端（issue #18，父 PRD #16）：pi.dev 风格 AI agent 会话演出。
@@ -17,6 +21,11 @@ import { type CSSProperties, type ReactNode } from 'react'
  *   （预渲染 HTML 含全文、SEO 不回归、无 hydration mismatch），
  *   prefers-reduced-motion 时 media query 整体禁用动画（含 live 点静止）、
  *   全文直接可见，无 JS 报错
+ * - 底部 caption 扩展为终端状态栏（issue #42）：在「● live」基础上追加三段真实信息——
+ *   站点版本（构建期注入 package.json version，v<version>）、当前主题（运行时状态，
+ *   theme: light/dark，SSR 输出确定性值 + 水合后更新为实际主题，无 mismatch）、
+ *   git 状态（构建期注入真实仓库统计 branch@sha · N commits，脏工作区分支后缀 *；
+ *   git 不可得时该段优雅省略，构建与发布不受阻）
  */
 
 /** 打字机参数：每字符耗时（总时长由文本长度驱动） */
@@ -98,8 +107,11 @@ function TurnRow({ turn, index }: { turn: TerminalTurn; index: number }) {
   )
 }
 
-/** hero 终端（pi.dev 风格）：四角括号 + 会话轮次 + 底部 live caption */
+/** hero 终端（pi.dev 风格）：四角括号 + 会话轮次 + 底部状态栏 */
 export default function HeroTerminal({ turns }: { turns: TerminalTurn[] }) {
+  // 当前主题：SSR/水合首帧输出确定性值 'light'，水合后更新为实际主题（无 mismatch）
+  const theme = useTheme()
+
   return (
     <div className="hero-terminal" role="group" aria-label="AI 会话演出">
       {/* 四角括号装饰（┌ ┐ └ ┘，绝对定位不占文档流，不进可访问性树） */}
@@ -116,10 +128,42 @@ export default function HeroTerminal({ turns }: { turns: TerminalTurn[] }) {
           ))}
         </div>
       </div>
-      {/* 底部 caption：● live 红点 + 弱化 mono 文字（可见文本精简为「live」） */}
-      <div className="hero-terminal-caption">
+      {/* 底部状态栏（issue #42）：● live · v<版本> · theme: <亮/暗> · git: <真实仓库统计>；
+          git 不可得时该段省略（role=status：主题切换时读屏播报更新） */}
+      <div className="hero-terminal-caption" role="status" aria-label="终端状态栏">
         <span className="live-dot" aria-hidden="true" />
-        <span>live</span>
+        <span className="status-item">live</span>
+        <span className="status-sep" aria-hidden="true">
+          ·
+        </span>
+        {/* 站点版本：构建期注入 package.json version */}
+        <span className="status-item" data-version={siteMeta.version}>
+          v{siteMeta.version}
+        </span>
+        <span className="status-sep" aria-hidden="true">
+          ·
+        </span>
+        {/* 当前主题：运行时状态（data-theme 供 e2e 断言） */}
+        <span className="status-item" data-theme={theme}>
+          theme: {theme}
+        </span>
+        {/* git 状态：构建期注入真实仓库统计；不可得时整段省略 */}
+        {siteMeta.git && (
+          <>
+            <span className="status-sep" aria-hidden="true">
+              ·
+            </span>
+            <span
+              className="status-item"
+              data-git-branch={siteMeta.git.branch}
+              data-git-sha={siteMeta.git.sha}
+              data-git-count={siteMeta.git.commitCount}
+              data-git-dirty={String(siteMeta.git.dirty)}
+            >
+              git: {formatGitStats(siteMeta.git)}
+            </span>
+          </>
+        )}
       </div>
       <span className="hero-terminal-corner hero-terminal-corner--bl" aria-hidden="true">
         └
