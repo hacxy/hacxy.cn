@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 
 import { currentGitStats } from './git-helper.ts'
-import { publishedPosts } from './posts-helper.ts'
+import { expectedNeighbors, expectedDirectory, publishedPosts } from './posts-helper.ts'
 
 test('hero: big h1 site name + AI agent conversation (three Q&A rounds)', async ({ page }) => {
   await page.goto('/')
@@ -698,25 +698,43 @@ test('post page without TOC: right column hidden, layout falls back to two colum
   await expect(page.locator('.post-main')).toBeVisible()
 })
 
-test('prev/next navigation moves between posts', async ({ page }) => {
-  // 期望链从内容源计算（同一契约：非 draft、日期倒序）——新增/嵌套文章自动适配
-  const [newest, middle, older, oldest] = publishedPosts()
+test('prev/next navigation stays within the same directory, stopping at boundaries (issue #43)', async ({
+  page,
+}) => {
+  // 期望链从内容源计算（同一契约：非 draft、日期倒序、同目录相邻、边界停止）
+  const rootPosts = publishedPosts().filter((post) => expectedDirectory(post.slug) === '')
 
-  // 最新文章无上一篇，下一篇指向第二新
-  await page.goto(`/posts/${newest?.slug}`)
+  // 根层目录链：从目录内最新沿日期倒序翻到最旧，两端边界处无越界链接
+  const rootChain = rootPosts.map((post) => post.slug)
+  await page.goto(`/posts/${rootChain[0]}`)
   await expect(page.getByRole('link', { name: /上一篇/ })).toHaveCount(0)
-  await page.getByRole('link', { name: /下一篇/ }).click()
-  await expect(page).toHaveURL(new RegExp(`/posts/${middle?.slug}`))
-
-  // 中间文章：上一篇/下一篇都有，沿日期倒序翻页
+  for (let i = 0; i < rootChain.length - 1; i++) {
+    await page.getByRole('link', { name: /下一篇/ }).click()
+    // 等待导航完成（React Router 页面切换）后再继续，避免点击落在过渡中的 DOM 上
+    await expect(page).toHaveURL(new RegExp(`/posts/${rootChain[i + 1]}`))
+  }
   await expect(page.getByRole('link', { name: /上一篇/ })).toBeVisible()
-  await page.getByRole('link', { name: /下一篇/ }).click()
-  await expect(page).toHaveURL(new RegExp(`/posts/${older?.slug}`))
-  await page.getByRole('link', { name: /下一篇/ }).click()
-  await expect(page).toHaveURL(new RegExp(`/posts/${oldest?.slug}`))
+  await expect(page.getByRole('link', { name: /下一篇/ })).toHaveCount(0)
 
-  // 最旧文章只有上一篇，没有下一篇
-  await expect(page.getByRole('link', { name: /上一篇/ })).toBeVisible()
+  // 嵌套目录：01 → 02 同目录相邻——下一篇不指向全局第二新的根层文章（不跨界跳转）
+  const one = expectedNeighbors('pi-agent/01')
+  expect(one.newer).toBeUndefined() // 目录内最新：无上一篇
+  expect(one.older?.slug).toBe('pi-agent/02') // 下一篇 = 同目录内更旧
+  await page.goto('/posts/pi-agent/01')
+  await expect(page.getByRole('link', { name: /上一篇/ })).toHaveCount(0)
+  const nextLink = page.getByRole('link', { name: /下一篇/ })
+  await expect(nextLink).toHaveAttribute('href', `/posts/${one.older?.slug}`)
+
+  // 02：上一篇 = 01（同目录内更新），目录边界处停止（无下一篇）
+  await nextLink.click()
+  await expect(page).toHaveURL(/\/posts\/pi-agent\/02/)
+  const two = expectedNeighbors('pi-agent/02')
+  expect(two.newer?.slug).toBe('pi-agent/01')
+  expect(two.older).toBeUndefined()
+  await expect(page.getByRole('link', { name: /上一篇/ })).toHaveAttribute(
+    'href',
+    `/posts/${two.newer?.slug}`,
+  )
   await expect(page.getByRole('link', { name: /下一篇/ })).toHaveCount(0)
 })
 
@@ -738,6 +756,23 @@ test('post images in assets/ are copied to the build and accessible', async ({ r
   // 图片文件在构建产物中真实存在且可访问
   const image = await request.get('/assets/fixture.png')
   expect(image.status()).toBe(200)
+})
+
+test('nested post images: rewritten to /assets/<目录>/<文件名> and served without collision (issue #43)', async ({
+  request,
+}) => {
+  // 嵌套文章 HTML：assets/ 引用按所在目录路径化为站点绝对路径
+  const html = await (await request.get('/posts/pi-agent/01')).text()
+  expect(html).toContain('src="/assets/pi-agent/fixture.png"')
+
+  // 嵌套资源按目录路径可访问（dev 中间件与构建产物同一契约，此处验证构建产物）
+  const nested = await request.get('/assets/pi-agent/fixture.png')
+  expect(nested.status()).toBe(200)
+
+  // 根层同名图片仍指向根层文件：不同目录同名图片互不撞车（两份文件内容不同）
+  const root = await request.get('/assets/fixture.png')
+  expect(root.status()).toBe(200)
+  expect((await nested.body()).length).not.toBe((await root.body()).length)
 })
 
 test('real article renders full flow: body, code, table and image in raw HTML', async ({
@@ -1142,7 +1177,7 @@ test('nested post: listed on homepage in global date-desc order (issue #41)', as
   )
 })
 
-test('nested post: opens via client navigation; tops the prev/next chain (issue #41)', async ({
+test('nested post: opens via client navigation; prev/next stays inside the directory (issue #43)', async ({
   page,
 }) => {
   await page.goto('/')
@@ -1150,9 +1185,21 @@ test('nested post: opens via client navigation; tops the prev/next chain (issue 
   await expect(page).toHaveURL(/\/posts\/pi-agent\/01/)
   await expect(page.getByRole('heading', { name: '什么是 pi agent' })).toBeVisible()
 
-  // 最新文章无上一篇（嵌套 slug 参与全局排序，上一篇/下一篇链完整）
+  // 同目录相邻（issue #43）：目录内最新无上一篇，下一篇 = 同目录的 02
+  //（不跨界跳到全局第二新的根层文章）；02 的上一篇 = 01、无下一篇（目录边界）
+  const one = expectedNeighbors('pi-agent/01')
+  expect(one.newer).toBeUndefined()
+  expect(one.older?.slug).toBe('pi-agent/02')
   await expect(page.getByRole('link', { name: /上一篇/ })).toHaveCount(0)
-  await expect(page.getByRole('link', { name: /下一篇/ })).toBeVisible()
+  const next = page.getByRole('link', { name: /下一篇/ })
+  await expect(next).toHaveAttribute('href', `/posts/${one.older?.slug}`)
+  await next.click()
+  await expect(page).toHaveURL(/\/posts\/pi-agent\/02/)
+  await expect(page.getByRole('link', { name: /上一篇/ })).toHaveAttribute(
+    'href',
+    '/posts/pi-agent/01',
+  )
+  await expect(page.getByRole('link', { name: /下一篇/ })).toHaveCount(0)
 })
 
 test('favicon.svg is monochrome (black/white) and consistent with the site theme', async ({
