@@ -1,8 +1,14 @@
 declare module 'virtual:posts' {
+  import type { DirConfigMap } from './content/dirConfig.ts'
   import type { Post } from './content/types.ts'
 
-  const posts: Post[]
-  export default posts
+  interface PostsManifest {
+    posts: Post[]
+    dirConfigs: DirConfigMap
+  }
+
+  const manifest: PostsManifest
+  export default manifest
 }
 
 declare module 'virtual:site-meta' {
