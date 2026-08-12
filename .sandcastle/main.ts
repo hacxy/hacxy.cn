@@ -22,6 +22,9 @@
 import * as sandcastle from '@ai-hero/sandcastle'
 import { docker } from '@ai-hero/sandcastle/sandboxes/docker'
 import { execSync } from 'node:child_process'
+import { existsSync, readdirSync, rmSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { z } from 'zod'
 
 const originalToISOString = Date.prototype.toISOString
 Date.prototype.toISOString = function (): string {
@@ -50,6 +53,63 @@ if (!process.env.GH_TOKEN) {
 }
 
 // ---------------------------------------------------------------------------
+// 残留清理与信号处理（防止宿主中断后沙箱 agent 失控残留）
+// ---------------------------------------------------------------------------
+
+const WORKTREES_DIR = '.sandcastle/worktrees'
+
+/** 清理上次异常中断可能残留的沙箱容器（docker）与 worktree 目录 */
+function cleanupResidue(): void {
+  // 1. 残留沙箱容器：容器命名固定为 sandcastle-<uuid>（见 sandcastle 源码）
+  try {
+    const containers = execSync('docker ps -aq --filter name=sandcastle', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+    if (containers) {
+      execSync(`docker rm -f ${containers}`, { stdio: 'ignore' })
+      const count = containers.split(/\s+/).length
+      console.log(`🧹 清理 ${count} 个残留沙箱容器`)
+    }
+  } catch {
+    // docker 不可用/无残留时忽略
+  }
+
+  // 2. 残留 worktree：prune 元数据 + 删除未注册的 .sandcastle/worktrees/* 目录
+  try {
+    execSync('git worktree prune', { stdio: 'ignore' })
+    const registered = new Set(
+      execSync('git worktree list --porcelain', { encoding: 'utf8' })
+        .split('\n')
+        .filter((l) => l.startsWith('worktree '))
+        .map((l) => l.slice('worktree '.length)),
+    )
+    if (existsSync(WORKTREES_DIR)) {
+      for (const entry of readdirSync(WORKTREES_DIR)) {
+        const abs = resolve(WORKTREES_DIR, entry)
+        if (!registered.has(abs)) {
+          rmSync(abs, { recursive: true, force: true })
+          console.log(`🧹 清理残留 worktree：${abs}`)
+        }
+      }
+    }
+  } catch {
+    // 非 git 仓库等场景忽略
+  }
+}
+
+/** 信号处理：宿主被中断时先杀掉沙箱容器再退出，杜绝失控 agent 继续跑 */
+function registerSignalHandlers(): void {
+  const shutdown = (signal: string) => {
+    console.log(`\n⚠ 收到 ${signal}，清理沙箱容器后退出…`)
+    cleanupResidue()
+    process.exit(130)
+  }
+  process.on('SIGINT', () => shutdown('SIGINT'))
+  process.on('SIGTERM', () => shutdown('SIGTERM'))
+}
+
+// ---------------------------------------------------------------------------
 // 宿主辅助函数
 // ---------------------------------------------------------------------------
 
@@ -61,6 +121,11 @@ interface PlannedIssue {
   title: string
   branch: string
 }
+
+/** planner 输出的 <plan> JSON 结构（与 plan-prompt.md 的 OUTPUT 一致） */
+const planSchema = z.object({
+  issues: z.array(z.object({ number: z.number(), title: z.string(), branch: z.string() })),
+})
 
 interface IssueDetail {
   number: number
@@ -115,11 +180,25 @@ async function implement(planned: PlannedIssue): Promise<number> {
   await using sandbox = await sandcastle.createSandbox({
     sandbox: baseSandbox(),
     branch,
+    // 复制宿主 node_modules 到 worktree：沙箱立即可用，免全量 pnpm install
+    copyToWorktree: ['node_modules'],
+    // 沙箱就绪后增量 install：补齐平台相关二进制（宿主 macOS vs 容器 linux）
+    hooks: {
+      sandbox: {
+        onSandboxReady: [
+          { command: 'pnpm install --frozen-lockfile' },
+          // 版本匹配时秒级跳过；项目升级 playwright 后自动补齐对应 chromium
+          { command: 'pnpm playwright install chromium' },
+        ],
+      },
+    },
   })
 
   const result = await sandbox.run({
     name: `issue-${planned.number}`,
     agent: sandcastle.pi(MODEL, { thinking: THINKING }),
+    // 默认 maxIterations=1（只够一轮），给足轮数让 agent 完成完整实现+验证
+    maxIterations: 10,
     promptFile: './.sandcastle/prompt.md',
     promptArgs: {
       ISSUE_NUMBER: String(planned.number),
@@ -139,29 +218,6 @@ async function implement(planned: PlannedIssue): Promise<number> {
   console.log(`  ✓ #${planned.number} 完成：${result.commits.length} 个提交`)
   deliver(planned)
   return result.commits.length
-}
-
-/**
- * 从 planner 输出中提取 <plan> 标签内的 issues 列表。
- * 容错处理：去 ```json 代码块标记、清理多余空白；解析失败抛出带原始内容的清晰错误。
- */
-function extractPlanIssues(stdout: string): PlannedIssue[] {
-  const match = stdout.match(/<plan>([\s\S]*?)<\/plan>/)
-  if (!match) {
-    throw new Error('Planner 未产出 <plan> 标签。\n\n' + stdout)
-  }
-  const raw = (match[1] ?? '')
-    .trim()
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```$/, '')
-  try {
-    const { issues } = JSON.parse(raw) as { issues?: PlannedIssue[] }
-    return issues ?? []
-  } catch (error) {
-    throw new Error(
-      `Planner 的 <plan> JSON 解析失败：${error instanceof Error ? error.message : error}\n\n原始内容：\n${raw}`,
-    )
-  }
 }
 
 function deliver(issue: PlannedIssue): void {
@@ -185,6 +241,10 @@ function deliver(issue: PlannedIssue): void {
 // 主循环（Matt 原版结构）
 // ---------------------------------------------------------------------------
 
+// 启动前清理残留 + 注册信号处理（宿主中断时杀容器）
+cleanupResidue()
+registerSignalHandlers()
+
 for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   console.log(`\n========== Iteration ${iteration}/${MAX_ITERATIONS} ==========`)
 
@@ -193,11 +253,15 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   const plan = await sandcastle.run({
     sandbox: baseSandbox({ GH_TOKEN: process.env.GH_TOKEN ?? '' }),
     name: 'Planner',
+    // 结构化输出要求 maxIterations: 1（planner 只读分析，一轮足够）
+    maxIterations: 1,
     agent: sandcastle.pi(PLANNER_MODEL, { thinking: THINKING }),
     promptFile: './.sandcastle/plan-prompt.md',
+    // 内置结构化输出：fence-aware 解析 + schema 验证（失败抛 StructuredOutputError）
+    output: sandcastle.Output.object({ tag: 'plan', schema: planSchema }),
   })
 
-  const issues = extractPlanIssues(plan.stdout)
+  const issues = plan.output.issues
 
   if (issues.length === 0) {
     console.log('没有可执行的 issue。结束。')

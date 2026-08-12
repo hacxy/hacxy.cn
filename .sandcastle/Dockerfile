@@ -17,6 +17,13 @@ RUN apt-get update && apt-get install -y \
 # pnpm（与项目 lockfile 匹配）
 RUN corepack enable && corepack prepare pnpm@11.21.0 --activate
 
+# Playwright chromium + 系统库：e2e 视觉验证需要（agent 在沙箱内跑 playwright test）
+# 浏览器版本必须与项目 @playwright/test 匹配（pnpm-lock.yaml: 1.62.1）——项目升级 playwright 后需重建镜像
+# 浏览器装到全局路径 /ms-playwright（root 构建时下载，agent 只读使用）；--with-deps 自动 apt-get 装系统库
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN pnpm dlx playwright@1.62.1 install chromium --with-deps \
+  && rm -rf /var/lib/apt/lists/*
+
 # 安装 pi agent（与宿主版本一致）
 # 必须在 USER 切换前用 root 安装：npm -g 写 /usr/local/lib 需要 root 权限
 RUN npm install -g @earendil-works/pi-coding-agent@0.84.1
