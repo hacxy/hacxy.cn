@@ -5,56 +5,175 @@ import { formatGitStats } from '../statusBar.ts'
 import { useTheme } from '../useTheme.ts'
 
 /**
- * hero 终端（issue #18，父 PRD #16）：pi.dev 风格 AI agent 会话演出。
+ * hero 终端（issue #40，父 PRD #16）：真实 AI 编码 agent 会话演出（pi 风格）。
+ *
+ * 结构（自上而下）：会话 transcript → 分隔线（────）→ 输入区 → 状态栏。
+ * 终端框架恒黑底白字（亮暗模式均如此，与页面 chrome 主题色解耦）、四角括号
+ * 装饰（┌┐└┘，不占文档流、不进可访问性树）。
+ *
+ * 每轮演出（全部数据驱动）：输入框自动逐字符打字输入问题 → 发送（问题进入
+ * transcript 成为用户行、输入框清空）→ Thinking… → Done. → 回答。
+ * 演出播放一遍后停驻最终态（不循环）：输入框为空、块状闪烁光标继续。
  *
  * 设计决策：
- * - 数据模型为「对话轮次」（TerminalTurn：❓ user 提问 / ▲ tool 工具调用 /
- *   assistant 回答），不再是「命令 + 输出」——文章数/标签数等仍由调用方从站点
- *   信息与内容清单自动计算，新增文章无需改渲染代码
- * - 终端框架（pi.dev 风格）：恒黑底白字（亮暗模式均如此，与页面 chrome 主题色
- *   解耦）、四角括号装饰（┌┐└┘）、底部 caption（● live 红点 + 弱化 mono 文字）；
- *   移除 mac 装饰圆点窗口栏（文章卡片行不沿用窗口栏形态，见 PostRow）
- * - 演出编排为纯 CSS：逐段入场（轮次按 --i * --turn-gap 依次错开）、tagline 打字机
- *   （clip-path + steps）、tool 块灰阶脉冲；自动播放一遍后停在最终态、不循环；
- *   live 红点除外——caption 精简为「● live」（去掉演出说明），红点以软脉冲无限
- *   循环（0.9s，opacity 1↔0.35，红色不变）；SSR 与客户端首帧都渲染完整对话文本
- *   （预渲染 HTML 含全文、SEO 不回归、无 hydration mismatch），
- *   prefers-reduced-motion 时 media query 整体禁用动画（含 live 点静止）、
- *   全文直接可见，无 JS 报错
- * - 底部 caption 扩展为终端状态栏（issue #42）：在「● live」基础上追加三段真实信息——
- *   站点版本（构建期注入 package.json version，v<version>）、当前主题（运行时状态，
- *   theme: light/dark，SSR 输出确定性值 + 水合后更新为实际主题，无 mismatch）、
- *   git 状态（构建期注入真实仓库统计 branch@sha · N commits，脏工作区分支后缀 *；
- *   git 不可得时该段优雅省略，构建与发布不受阻）
+ * - 数据模型为「轮次」（TerminalTurn：question + lines），不再区分
+ *   user/tool/assistant 角色行——问题经输入框演出后进入 transcript，输出行为
+ *   状态行（Thinking…/Done.，真实 agent 会话质感）与回答行（文本或任意节点，
+ *   如 GitHub 外链）。文章数/标签数仍由调用方从站点信息与内容清单自动计算，
+ *   新增文章/新增轮次无需改渲染代码
+ * - 演出编排为行级纯 CSS 动画：每条行与输入框打字各带 --delay（组件按数据
+ *   计算：字符数 × 打字速度 + 节奏参数，确定性输出，SSR 与水合一致），
+ *   动画本身延续既有纯 CSS 机制——打字机 = clip-path + steps(字符数) 逐字符
+ *   揭示；输入框打字 = 同一机制扩展到输入框内（input-type），发送时以 opacity
+ *   淡出清空（input-hide，与问题进入 transcript 同一时刻，两条动画作用于不同
+ *   属性互不干扰）；Thinking… 状态行带灰阶脉冲（3 次后停驻）；回答行淡入，
+ *   行内 typewriter 行逐字符揭示
+ * - 输入区：三轮问题各一个 .terminal-typed（绝对定位叠放于同一槽位，clip 动画
+ *   使同一时刻仅当前轮文本可见）；停驻光标 .terminal-input-cursor 在末轮发送后
+ *   出现（块状闪烁无限循环）；reduced-motion 时输入框全文直接可见
+ *   （问题行内排布、不重叠），全部动画禁用
+ * - 预渲染 HTML 含演出全文（输入框文本 + Thinking…/Done. + 回答 + 状态栏），
+ *   爬虫不执行 JS 可读，无 hydration mismatch
+ * - 状态栏：● live（红点软脉冲无限循环）+ 文章数 · 标签数（构建期自动计算）+
+ *   既有 issue #42 三段真实信息（版本 / 主题 / git）
  */
 
 /** 打字机参数：每字符耗时（总时长由文本长度驱动） */
 const TYPE_SPEED = 0.13
+/** 打字最短时长（输入框打字与行内揭示共用下限，issue #18 行为延续） */
+const MIN_TYPE = 1.5
 
-/** 对话轮次：驱动 hero 终端渲染（❓ user 提问 / ▲ tool 工具调用 / assistant 回答） */
-export type TerminalTurn =
-  | { role: 'user'; text: string }
-  | { role: 'tool'; call: string }
-  | {
-      role: 'assistant'
-      /** 回答行序列：文本或任意节点（如外链）；typewriter 仅对纯文本行生效 */
-      lines: { text: ReactNode; typewriter?: boolean }[]
-    }
+/** 演出节奏参数（秒） */
+const INPUT_IN = 0.25 // 输入区开始打字的延迟（hero 入场后）
+const SEND_PAUSE = 0.35 // 打字完成到发送的停顿
+const THINK_IN = 0.3 // 发送后 Thinking… 出现的延迟
+const THINK_DUR = 0.9 // Thinking… 持续到 Done.（与状态行脉冲 3 × 0.3s 同周期）
+const ANSWER_IN = 0.2 // Done. 到第一条回答的间隔
+const ANSWER_GAP = 0.25 // 回答行之间错开
+const LINE_IN = 0.3 // 行淡入时长
+const PARK_IN = 0.25 // 停驻光标在末轮发送后的出现延迟
+
+/** 终端输出行：agent 状态行（Thinking…/Done.）或回答行（文本或任意节点） */
+export type TerminalLine =
+  { status: 'thinking' | 'done'; text: string } | { text: ReactNode; typewriter?: boolean }
+
+/** 对话轮次：输入框打字的 question + 发送后依次揭示的输出行 */
+export interface TerminalTurn {
+  /** 输入框逐字符打字的问题；发送后作为用户行进入 transcript */
+  question: string
+  /** 发送后依次揭示的输出行（状态行/回答行，新增内容只需追加数据） */
+  lines: TerminalLine[]
+}
+
+/** 状态栏真实信息（文章数 · 标签数，调用方从内容清单构建期自动计算） */
+export interface SiteStats {
+  postCount: number
+  tagCount: number
+}
+
+/** 单轮时刻表：输入框打字窗口 / 发送时刻 / 各输出行揭示时刻 */
+export interface TurnTiming {
+  /** 输入框逐字符打字起始 */
+  typeStart: number
+  /** 打字时长（由问题字符数驱动） */
+  typeDuration: number
+  /** 发送时刻（问题进入 transcript + 输入框清空） */
+  sendTime: number
+  /** 各输出行揭示时刻（与 turn.lines 一一对应） */
+  lineTimes: number[]
+}
+
+/** 整场演出时刻表（数据驱动编排，确定性输出 → SSR/水合一致） */
+export interface TerminalTimeline {
+  rounds: TurnTiming[]
+  /** 演出总时长（末轮最后一行揭示完成） */
+  showEnd: number
+  /** 停驻光标出现时刻（末轮发送后，输入框清空） */
+  parkedDelay: number
+}
+
+function isStatus(line: TerminalLine): line is { status: 'thinking' | 'done'; text: string } {
+  return 'status' in line
+}
+
+/** 行揭示时长：状态行/普通回答淡入，typewriter 行按字符数（含最短下限） */
+function lineDuration(line: TerminalLine): number {
+  if (isStatus(line)) return LINE_IN
+  return line.typewriter && typeof line.text === 'string'
+    ? Math.max(line.text.length * TYPE_SPEED, MIN_TYPE)
+    : LINE_IN
+}
+
+/** 输入框打字时长：按问题字符数（含最短下限） */
+function typeDuration(question: string): number {
+  return Math.max(question.length * TYPE_SPEED, MIN_TYPE)
+}
 
 /**
- * 打字机文本（纯 CSS）：完整文本始终在 DOM 中（基础态 clip-path 不裁切），
- * animation 期间用 steps(字符数) 逐字符揭示；reduced-motion 下 animation 禁用
- * → 直接显示完整文本。--type-chars / --type-duration 由文本长度驱动；
- * 延迟由所在轮次（--i）与演出节奏（--turn-gap）经 CSS calc 计算。
+ * 由轮次数据计算整场演出时刻表（纯函数，无副作用）：
+ * 轮次严格串行——roundTotal = 最长一轮的总时长，第 r 轮打字起点 =
+ * r × roundTotal + INPUT_IN，发送 = 打字完成 + SEND_PAUSE，
+ * 输出行 = 发送后 Thinking… → Done. → 回答（各按节奏参数错开）。
  */
-function TypewriterText({ text }: { text: string }) {
+export function computeTurnTimings(turns: TerminalTurn[]): TerminalTimeline {
+  const roundSpans = turns.map((turn) => {
+    const statuses = turn.lines.filter(isStatus).length
+    const answers = turn.lines.filter((line) => !isStatus(line))
+    const thinkingSpan = statuses > 0 ? THINK_IN + (statuses - 1) * THINK_DUR : 0
+    const lastAnswerDur = answers.length > 0 ? lineDuration(answers[answers.length - 1]!) : 0
+    return (
+      INPUT_IN +
+      typeDuration(turn.question) +
+      SEND_PAUSE +
+      thinkingSpan +
+      ANSWER_IN +
+      Math.max(answers.length - 1, 0) * ANSWER_GAP +
+      lastAnswerDur
+    )
+  })
+  const roundTotal = roundSpans.length > 0 ? Math.max(...roundSpans) : 0
+
+  let lastSend = 0
+  const rounds = turns.map((turn, r) => {
+    const typeStart = r * roundTotal + INPUT_IN
+    const dur = typeDuration(turn.question)
+    const sendTime = typeStart + dur + SEND_PAUSE
+    lastSend = sendTime
+
+    const statuses = turn.lines.filter(isStatus).length
+    const answerBase =
+      sendTime + (statuses > 0 ? THINK_IN + (statuses - 1) * THINK_DUR : 0) + ANSWER_IN
+    let statusIndex = 0
+    let answerIndex = 0
+    const lineTimes = turn.lines.map((line) =>
+      isStatus(line)
+        ? sendTime + THINK_IN + statusIndex++ * THINK_DUR
+        : answerBase + answerIndex++ * ANSWER_GAP,
+    )
+    return { typeStart, typeDuration: dur, sendTime, lineTimes }
+  })
+
+  const showEnd =
+    rounds.length > 0
+      ? rounds[rounds.length - 1]!.lineTimes[turns[turns.length - 1]!.lines.length - 1]! +
+        lineDuration(turns[turns.length - 1]!.lines[turns[turns.length - 1]!.lines.length - 1]!)
+      : 0
+
+  return { rounds, showEnd, parkedDelay: lastSend + PARK_IN }
+}
+
+/** 打字机文本（纯 CSS）：完整文本始终在 DOM 中（基础态 clip-path 不裁切），
+ *  animation 期间用 steps(字符数) 逐字符揭示；reduced-motion 下 animation 禁用
+ *  → 直接显示完整文本。--type-chars / --type-duration / --delay 由数据驱动。 */
+function TypewriterText({ text, delay }: { text: string; delay: number }) {
   return (
     <span
       className="typewriter-text"
       style={
         {
           '--type-chars': text.length,
-          '--type-duration': `${Math.max(text.length * TYPE_SPEED, 1.5)}s`,
+          '--type-duration': `${Math.max(text.length * TYPE_SPEED, MIN_TYPE)}s`,
+          '--delay': `${delay}s`,
         } as CSSProperties
       }
     >
@@ -64,53 +183,55 @@ function TypewriterText({ text }: { text: string }) {
   )
 }
 
-/** 单轮渲染：user（❓ 加粗）/ tool（▲ 缩进 mono 脉冲）/ assistant（回答行） */
-function TurnRow({ turn, index }: { turn: TerminalTurn; index: number }) {
-  // 轮次序号：CSS 演出编排参数（入场错开 / 打字机与脉冲延迟由 calc(var(--i) …) 计算）
-  const style = { '--i': index } as CSSProperties
-
-  if (turn.role === 'user') {
-    return (
-      <div className="hero-turn hero-turn--user" style={style}>
-        <span className="user-question">
-          <span className="turn-mark" aria-hidden="true">
-            ❓
-          </span>
-          {turn.text}
-        </span>
-      </div>
-    )
-  }
-
-  if (turn.role === 'tool') {
-    return (
-      <div className="hero-turn hero-turn--tool" style={style}>
-        <span className="tool-call">
-          <span aria-hidden="true">▲</span> tool: {turn.call}
-        </span>
-      </div>
-    )
-  }
-
+/** 单轮渲染：问题行（发送时刻进入 transcript）+ 状态行（Thinking…/Done.）+ 回答行 */
+function TurnRow({ turn, timing }: { turn: TerminalTurn; timing: TurnTiming }) {
   return (
-    <div className="hero-turn hero-turn--answer" style={style}>
-      {turn.lines.map((line, i) => (
-        <div className="hero-line" key={i}>
-          {line.typewriter && typeof line.text === 'string' ? (
-            <TypewriterText text={line.text} />
-          ) : (
-            line.text
-          )}
-        </div>
-      ))}
+    <div className="hero-turn">
+      {/* 问题行：发送时刻淡入（与输入框清空同一时刻，--delay = sendTime） */}
+      <div className="user-question" style={{ '--delay': `${timing.sendTime}s` } as CSSProperties}>
+        <span className="turn-mark" aria-hidden="true">
+          ❓
+        </span>
+        {turn.question}
+      </div>
+      {turn.lines.map((line, j) => {
+        const delay = timing.lineTimes[j]!
+        if (isStatus(line)) {
+          return (
+            <div
+              key={j}
+              className={`terminal-status terminal-status--${line.status}`}
+              style={{ '--delay': `${delay}s` } as CSSProperties}
+            >
+              {line.text}
+            </div>
+          )
+        }
+        return (
+          <div key={j} className="hero-line" style={{ '--delay': `${delay}s` } as CSSProperties}>
+            {line.typewriter && typeof line.text === 'string' ? (
+              <TypewriterText text={line.text} delay={delay} />
+            ) : (
+              line.text
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
 
-/** hero 终端（pi.dev 风格）：四角括号 + 会话轮次 + 底部状态栏 */
-export default function HeroTerminal({ turns }: { turns: TerminalTurn[] }) {
+/** hero 终端（pi 风格 AI 编码 agent 会话演出）：transcript → 分隔线 → 输入区 → 状态栏 */
+export default function HeroTerminal({
+  turns,
+  siteStats,
+}: {
+  turns: TerminalTurn[]
+  siteStats: SiteStats
+}) {
   // 当前主题：SSR/水合首帧输出确定性值 'light'，水合后更新为实际主题（无 mismatch）
   const theme = useTheme()
+  const timeline = computeTurnTimings(turns)
 
   return (
     <div className="hero-terminal" role="group" aria-label="AI 会话演出">
@@ -121,18 +242,71 @@ export default function HeroTerminal({ turns }: { turns: TerminalTurn[] }) {
       <span className="hero-terminal-corner hero-terminal-corner--tr" aria-hidden="true">
         ┐
       </span>
+
+      {/* 会话 transcript：每轮 = 问题行 + 状态行（Thinking…/Done.）+ 回答行，
+          行级动画由 --delay 编排（发送/状态/回答各按数据计算的时刻揭示） */}
       <div className="hero-terminal-scroll">
         <div className="hero-terminal-body">
           {turns.map((turn, i) => (
-            <TurnRow key={i} turn={turn} index={i} />
+            <TurnRow key={i} turn={turn} timing={timeline.rounds[i]!} />
           ))}
         </div>
       </div>
-      {/* 底部状态栏（issue #42）：● live · v<版本> · theme: <亮/暗> · git: <真实仓库统计>；
+
+      {/* 分隔线（────）：transcript 与输入区的分界（装饰性） */}
+      <div className="terminal-divider" aria-hidden="true">
+        ────
+      </div>
+
+      {/* 输入区：每轮一个 .terminal-typed（绝对定位叠放，clip 打字揭示 → 发送时
+          opacity 清空）；停驻光标末轮发送后出现，块状闪烁无限循环 */}
+      <div className="terminal-input-row">
+        <div className="terminal-input">
+          {turns.map((turn, i) => {
+            const t = timeline.rounds[i]!
+            return (
+              <span
+                key={i}
+                className="terminal-typed"
+                style={
+                  {
+                    '--type-chars': turn.question.length,
+                    '--type-duration': `${t.typeDuration}s`,
+                    '--delay-type': `${t.typeStart}s`,
+                    '--delay-hide': `${t.sendTime}s`,
+                  } as CSSProperties
+                }
+              >
+                <span className="terminal-input-text">{turn.question}</span>
+                <span className="terminal-cursor" aria-hidden="true" />
+              </span>
+            )
+          })}
+          <span
+            className="terminal-input-cursor"
+            aria-hidden="true"
+            style={{ '--delay-appear': `${timeline.parkedDelay}s` } as CSSProperties}
+          />
+        </div>
+      </div>
+
+      {/* 状态栏（issue #40 + #42）：● live · 文章数 · 标签数 · v<版本> · theme · git；
+          ● live 红点软脉冲无限循环；文章数/标签数构建期自动计算（调用方传入）；
           git 不可得时该段省略（role=status：主题切换时读屏播报更新） */}
       <div className="hero-terminal-caption" role="status" aria-label="终端状态栏">
         <span className="live-dot" aria-hidden="true" />
         <span className="status-item">live</span>
+        <span className="status-sep" aria-hidden="true">
+          ·
+        </span>
+        {/* 站点真实信息：文章数 · 标签数（构建期从内容清单计算，data-* 供 e2e 断言） */}
+        <span
+          className="status-item"
+          data-posts={siteStats.postCount}
+          data-tags={siteStats.tagCount}
+        >
+          {siteStats.postCount} 篇文章 · {siteStats.tagCount} 个标签
+        </span>
         <span className="status-sep" aria-hidden="true">
           ·
         </span>
@@ -165,6 +339,7 @@ export default function HeroTerminal({ turns }: { turns: TerminalTurn[] }) {
           </>
         )}
       </div>
+
       <span className="hero-terminal-corner hero-terminal-corner--bl" aria-hidden="true">
         └
       </span>

@@ -197,8 +197,10 @@ html.dark .bg-texture {
 
 /* 终端框架（pi.dev 风格）：恒黑底白字，与页面 chrome 主题色解耦——亮暗模式均为
    黑底白字（不随 .dark 切换）；四角括号装饰（┌┐└┘）；移除 mac 装饰圆点窗口栏。
+   结构（issue #40）自上而下：会话 transcript → 分隔线（────）→ 输入区 → 状态栏。
    overflow 移到内部 .hero-terminal-scroll（横向滚动不影响四角括号）；
-   --turn-gap / --turn-in 为演出编排参数：轮次入场按 --i * --turn-gap 依次错开 */
+   演出编排为行级纯 CSS 动画：每条行与输入框打字各带 --delay（组件按数据计算，
+   确定性输出），播放一遍后停驻最终态、不循环 */
 .hero-terminal {
   position: relative;
   margin-top: 1.25rem;
@@ -208,8 +210,7 @@ html.dark .bg-texture {
   font-family: var(--font-mono);
   font-size: 0.875rem;
   line-height: 1.75;
-  --turn-gap: 0.5s;
-  --turn-in: 0.45s;
+  --line-in: 0.3s;
 }
 
 /* 四角括号：┌ ┐ └ ┘ 装饰在终端四角（重叠在边框线上，绝对定位不占文档流） */
@@ -246,11 +247,9 @@ html.dark .bg-texture {
   padding: 1rem 1rem 0.75rem;
 }
 
-/* 对话轮次：逐段入场（淡入 + 轻微上移），按轮次序号 --i 依次错开；
-   自动播放一遍（iteration-count 1）后停在最终态，不循环 */
+/* 对话轮次容器：结构分组（无容器入场动画——行级动画负责逐行揭示编排） */
 .hero-turn {
-  animation: turn-in var(--turn-in) ease-out both;
-  animation-delay: calc(var(--i) * var(--turn-gap));
+  display: block;
 }
 @keyframes turn-in {
   from {
@@ -263,25 +262,32 @@ html.dark .bg-texture {
   }
 }
 
-/* user 提问行：❓ 前缀 + 加粗（黑白下的第一视觉层级） */
+/* user 提问行：❓ 前缀 + 加粗（黑白下的第一视觉层级）；发送时刻淡入
+   （--delay = 发送时刻：问题进入 transcript 与输入框清空同一时刻） */
 .user-question {
   display: block;
   font-weight: 700;
+  animation: turn-in var(--line-in, 0.3s) ease-out both;
+  animation-delay: var(--delay, 0s);
 }
 .turn-mark {
   margin-right: 0.375rem;
 }
 
-/* tool 工具调用块：缩进 + mono + 灰阶脉冲（3 次后停在最终态，不循环）；
-   延迟等所在轮次入场后开始 */
-.hero-turn--tool .tool-call {
+/* agent 状态行（真实会话质感）：Thinking… / Done.——弱化灰阶，随 --delay 淡入；
+   Thinking… 带灰阶脉冲（3 × 0.3s = 与 THINK_DUR 同周期，3 次后停驻不循环） */
+.terminal-status {
   display: block;
-  margin-left: 1.5rem;
   color: #d6d6d6;
-  animation: tool-pulse 0.8s ease-in-out 3 both;
-  animation-delay: calc(var(--i) * var(--turn-gap) + 0.35s);
+  animation: turn-in var(--line-in, 0.3s) ease-out both;
+  animation-delay: var(--delay, 0s);
 }
-@keyframes tool-pulse {
+.terminal-status--thinking {
+  animation:
+    turn-in var(--line-in, 0.3s) ease-out var(--delay, 0s) both,
+    status-pulse 0.3s ease-in-out calc(var(--delay, 0s) + 0.2s) 3 both;
+}
+@keyframes status-pulse {
   0%,
   100% {
     color: #d6d6d6;
@@ -291,9 +297,12 @@ html.dark .bg-texture {
   }
 }
 
-/* assistant 回答行：常规文本；多行之间留白 */
+/* assistant 回答行：随 --delay 淡入；typewriter 行由行内 .typewriter-text
+   逐字符揭示（见下）；多行之间留白 */
 .hero-line {
   display: block;
+  animation: turn-in var(--line-in, 0.3s) ease-out both;
+  animation-delay: var(--delay, 0s);
 }
 .hero-line + .hero-line {
   margin-top: 0.25rem;
@@ -301,15 +310,15 @@ html.dark .bg-texture {
 
 /* 打字机文本（纯 CSS）：完整文本始终在 DOM（SEO / reduced-motion / 结束态直接可见），
    动画用 clip-path 从右向左裁切 + steps(字符数) 逐字符揭示；
-   --type-chars / --type-duration 由组件按文本长度驱动；
-   延迟由所在轮次（--i）与演出节奏（--turn-gap）计算：所在轮次入场后开始打字 */
+   --type-chars / --type-duration / --delay 由组件按数据驱动（issue #40：
+   打字机机制从行内揭示扩展到输入框内逐字符打字，见 .terminal-typed） */
 .typewriter-text {
   display: inline-block;
   clip-path: inset(0 0 0 0);
   animation-name: terminal-typing;
   animation-duration: var(--type-duration, 1.5s);
   animation-timing-function: steps(var(--type-chars, 14));
-  animation-delay: calc(var(--i, 0) * var(--turn-gap, 0.5s) + 0.3s);
+  animation-delay: var(--delay, 0s);
   animation-fill-mode: both;
 }
 @keyframes terminal-typing {
@@ -342,7 +351,87 @@ html.dark .bg-texture {
   }
 }
 
-/* 底部状态栏（issue #42）：● live · v<版本> · theme: <亮/暗> · git: <真实仓库统计>；
+/* 分隔线（────）：会话 transcript 与输入区之间的分界（issue #40，装饰性） */
+.terminal-divider {
+  padding: 0.125rem 0 0.375rem;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1;
+  color: #555;
+  user-select: none;
+}
+
+/* 输入区（issue #40）：终端底部输入框（演出用，非交互）。每轮一个 .terminal-typed
+   （绝对定位叠放于同一槽位，同一时刻仅当前轮文本可见）：
+   - 打字：clip-path + steps(字符数) 逐字符揭示（input-type，延续行内打字机同一机制）
+   - 发送：opacity 淡出清空（input-hide，与问题进入 transcript 同一时刻）——
+     两条动画作用于不同属性（clip-path / opacity），互不干扰且各自 fill both
+   - 停驻光标：末轮发送后出现在输入框行首，块状闪烁无限循环（演出停驻态） */
+.terminal-input-row {
+  padding: 0 1rem 0.75rem;
+}
+.terminal-input {
+  position: relative;
+  min-height: 2.1rem;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.25rem;
+  background: #0d0d0d;
+  padding: 0.4rem 0.625rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.terminal-typed {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.625rem;
+  white-space: nowrap;
+  /* 基础态完整可见（reduced-motion / 无动画时输入框直接显示全文） */
+  clip-path: inset(0 0 0 0);
+  animation:
+    input-type var(--type-duration, 1.5s) steps(var(--type-chars, 8)) var(--delay-type, 0s) both,
+    input-hide 0.2s ease var(--delay-hide, 30s) both;
+}
+@keyframes input-type {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes input-hide {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+/* 停驻光标：clip 隐藏直到 --delay-appear（末轮发送后），随后块状闪烁继续
+   （块状视觉与行内 .terminal-cursor 同一形态：白块 + 闪烁） */
+.terminal-input-cursor {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.625rem;
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  background: #fff;
+  clip-path: inset(0 0 0 0);
+  animation:
+    terminal-blink 1.1s steps(1) infinite,
+    cursor-appear 0.01s linear var(--delay-appear, 60s) both;
+}
+@keyframes cursor-appear {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* 底部状态栏（issue #40 + #42）：● live · 文章数 · 标签数 · v<版本> · theme · git；
    弱化 mono 文字（与正文以细线分隔）、段间以「·」分隔，多段在窄屏换行不撑破小屏 */
 .hero-terminal-caption {
   display: flex;
@@ -411,12 +500,10 @@ html.dark .terminal-dot--green {
 
 /* ===== 文章列表（issue #19，父 PRD #16）：连续终端流最后一幕 ===== */
 
-/* 连续终端流容器：--turn-gap / --turn-in 与 hero 终端演出同一节奏参数
-   （.hero-terminal 内同名变量同值，这里作为文章行时序的公共来源）；
-   --row-gap / --row-in 为文章行逐行错开的节奏 */
+/* 连续终端流容器：--row-start / --row-gap / --row-in 为文章行入场节奏参数
+   （issue #40：与 hero 终端演出并行开始，不再等演出播完） */
 .home-stream {
-  --turn-gap: 0.5s;
-  --turn-in: 0.45s;
+  --row-start: 0.4s;
   --row-gap: 0.14s;
   --row-in: 0.3s;
 }
@@ -428,14 +515,11 @@ html.dark .terminal-dot--green {
   margin-top: 1.25rem;
 }
 
-/* 行入场：最后一幕。延迟 = 会话演出总时长（轮次数 × 错开 + 末轮入场时长）
-   之后再开始——演出停驻最终态后文章行才逐行错开入场（终端逐行输出感） */
+/* 行入场：与 hero 终端演出并行开始（issue #40）——入场延迟（--row-start）不再大于
+   演出末段（首行 ~0.4s 即开始，而演出末轮回答在数秒后），保留逐行错开 fade-in */
 .post-row-enter {
   animation: row-in var(--row-in, 0.3s) ease-out both;
-  animation-delay: calc(
-    var(--turn-count, 0) * var(--turn-gap, 0.5s) + var(--turn-in, 0.45s) + 0.45s + var(--i, 0) *
-      var(--row-gap, 0.14s)
-  );
+  animation-delay: calc(var(--row-start, 0.4s) + var(--i, 0) * var(--row-gap, 0.14s));
 }
 @keyframes row-in {
   from {
@@ -1026,18 +1110,33 @@ html.dark .drawer-panel {
   overflow-wrap: anywhere;
 }
 
-/* 无障碍：prefers-reduced-motion 下禁用打字机 / 入场 / 工具脉冲 / live 点 / 光标闪烁
-   动画，全文直接可见（live 红点静止、演出全文直接可见；无动画报错；演出编排为纯
-   CSS，无 JS 参与） */
+/* 无障碍：prefers-reduced-motion 下禁用全部动画，全文直接可见——问题/状态/回答行、
+   输入框打字文本（问题行内排布、不重叠不隐藏）、live 红点静止、光标静止；
+   无动画报错（演出编排为纯 CSS，无 JS 参与） */
 @media (prefers-reduced-motion: reduce) {
   .hero-enter,
-  .hero-turn,
+  .user-question,
+  .terminal-status,
+  .hero-line,
   .typewriter-text,
-  .hero-turn--tool .tool-call,
+  .terminal-typed,
+  .terminal-input-cursor,
   .live-dot,
   .terminal-cursor,
   .post-row-enter {
     animation: none;
+  }
+  /* 输入区：输入框全文直接可见（问题按顺序行内排布，不再绝对定位叠放）；
+     光标闪烁同为动画 → 静止（隐藏输入区光标，避免与文本重叠） */
+  .terminal-typed {
+    position: static;
+    display: inline-block;
+    margin-right: 0.5em;
+    opacity: 1;
+  }
+  .terminal-typed .terminal-cursor,
+  .terminal-input-cursor {
+    display: none;
   }
   /* 平滑滚动回退瞬时跳转（issue #30） */
   html {
