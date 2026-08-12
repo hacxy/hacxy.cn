@@ -16,23 +16,23 @@ test('hero: big h1 site name + AI agent conversation (three Q&A rounds)', async 
   const heading = page.getByRole('heading', { level: 1, name: 'Hacxy' })
   await expect(heading).toBeVisible()
 
-  // pi.dev 风格会话演出终端可见
+  // pi 风格 AI 编码 agent 会话演出终端可见
   const terminal = page.locator('.hero-terminal')
   await expect(terminal).toBeVisible()
 
-  // 三轮问答的 ❓ user 提问行（加粗，黑白下的第一视觉层级）
+  // 三轮问答全部经输入框演出（issue #40）：问题既在输入框（逐字符打字的文本）
+  // 也在 transcript（❓ 用户行，加粗 = 黑白下的第一视觉层级）
   for (const question of ['你是谁', '这个站有什么', '怎么联系']) {
+    const typed = terminal.locator('.terminal-input-text').filter({ hasText: question })
+    await expect(typed).toBeVisible()
     const q = terminal.locator('.user-question').filter({ hasText: question })
     await expect(q).toBeVisible()
     expect(await q.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
   }
 
-  // ▲ tool 工具调用块（缩进 + mono + 灰阶脉冲）：read about.md / ls posts / open github.com/hacxy
-  for (const call of ['read about.md', 'ls posts', 'open github.com/hacxy']) {
-    const tool = terminal.locator('.tool-call').filter({ hasText: call })
-    await expect(tool).toBeVisible()
-    expect(await tool.evaluate((el) => getComputedStyle(el).fontFamily)).toContain('JetBrains Mono')
-  }
+  // 每轮发送后：Thinking… → Done.（agent 状态行，三轮各一对）
+  await expect(terminal.locator('.terminal-status--thinking')).toHaveCount(3)
+  await expect(terminal.locator('.terminal-status--done')).toHaveCount(3)
 
   // assistant 回答：简介 + tagline（打字机结束态全文可见，不做时序断言）
   await expect(terminal.getByText(/前端工程师/)).toBeVisible()
@@ -57,9 +57,18 @@ test('hero terminal: ls posts counts match the content manifest', async ({ page 
 
   await page.goto('/')
   const terminal = page.locator('.hero-terminal')
-  // 输出形如「3 篇文章 · 4 个标签」（文章数/标签数自动计算）
-  await expect(terminal.getByText(new RegExp(`${postCount} 篇文章`))).toBeVisible()
-  await expect(terminal.getByText(new RegExp(`${tagCount} 个标签`))).toBeVisible()
+
+  // 回答行输出形如「3 篇文章 · 4 个标签」（文章数/标签数自动计算）
+  await expect(
+    terminal.locator('.hero-line').filter({ hasText: new RegExp(`${postCount} 篇文章`) }),
+  ).toBeVisible()
+
+  // 状态栏（issue #40）：同一信息随 ● live 并入状态栏（构建期自动计算，data-* 供断言）
+  const statsItem = terminal.locator('.hero-terminal-caption [data-posts]')
+  await expect(statsItem).toBeVisible()
+  await expect(statsItem).toHaveAttribute('data-posts', String(postCount))
+  await expect(statsItem).toHaveAttribute('data-tags', String(tagCount))
+  await expect(statsItem).toHaveText(new RegExp(`${postCount} 篇文章 · ${tagCount} 个标签`))
 })
 
 test('hero terminal: always black background with white text in light and dark themes', async ({
@@ -82,7 +91,7 @@ test('hero terminal: always black background with white text in light and dark t
   await expect(terminal).toHaveCSS('color', 'rgb(255, 255, 255)')
 })
 
-test('hero terminal: four corner brackets + bottom status bar (red live dot, weak mono text) (issue #42)', async ({
+test('hero terminal: transcript → divider (────) → input → status bar structure (issue #40)', async ({
   page,
 }) => {
   await page.goto('/')
@@ -92,6 +101,37 @@ test('hero terminal: four corner brackets + bottom status bar (red live dot, wea
   const corners = terminal.locator('.hero-terminal-corner')
   await expect(corners).toHaveCount(4)
   expect((await corners.allTextContents()).sort()).toEqual(['┌', '┐', '└', '┘'].sort())
+
+  // 终端内部结构自上而下：会话 transcript → 分隔线（────）→ 输入区 → 状态栏
+  const order = await page.evaluate(() => {
+    const sels = [
+      '.hero-terminal-body',
+      '.terminal-divider',
+      '.terminal-input-row',
+      '.hero-terminal-caption',
+    ]
+    const nodes = sels.map((sel) => document.querySelector(sel))
+    const follows = (a: Element, b: Element) =>
+      !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+    return [
+      follows(nodes[0]!, nodes[1]!),
+      follows(nodes[1]!, nodes[2]!),
+      follows(nodes[2]!, nodes[3]!),
+    ]
+  })
+  expect(order).toEqual([true, true, true])
+
+  // 分隔线 = ────（box-drawing 字符，装饰性不进可访问性树）
+  const divider = terminal.locator('.terminal-divider')
+  await expect(divider).toBeVisible()
+  await expect(divider).toHaveText('────')
+  expect(await divider.getAttribute('aria-hidden')).toBe('true')
+
+  // 输入区 = 输入框（演出用，非交互）：三轮问题各一个打字文本 + 停驻光标
+  const input = terminal.locator('.terminal-input')
+  await expect(input).toBeVisible()
+  await expect(input.locator('.terminal-typed')).toHaveCount(3)
+  await expect(input.locator('.terminal-input-cursor')).toHaveCount(1)
 
   // 底部 caption = 终端状态栏（issue #42）：● live · v<版本> · theme · git
   const caption = terminal.locator('.hero-terminal-caption')
@@ -108,7 +148,7 @@ test('hero terminal: four corner brackets + bottom status bar (red live dot, wea
   await expect(dot).toBeVisible()
   expect(await dot.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(239, 68, 68)')
 
-  // 状态段三段真实信息各自存在（内容由专门用例从源计算断言）：版本 / 主题 / git
+  // 状态段真实信息各自存在（内容由专门用例从源计算断言）：版本 / 主题 / git
   await expect(caption.locator('.status-item').filter({ hasText: /^v\d/ })).toBeVisible()
   await expect(caption.locator('[data-theme]')).toBeVisible()
   await expect(caption.locator('[data-git-branch]')).toBeVisible()
@@ -218,23 +258,28 @@ test('status bar: git stats computed from the real repository (issue #42)', asyn
 test('prerendered HTML contains the full conversation text (SEO no regression)', async ({
   request,
 }) => {
-  // 站点名 h1 + 三轮问答全文（user 提问 / tool 调用 / assistant 回答 / caption）
-  // 都在预渲染源码中（爬虫不执行 JS 即可读）。注：React SSR 会在混合静态文本与
-  // 表达式的节点间插入 <!-- --> 注释（文本本身连续），故先剥离再断言全文
+  // 站点名 h1 + 三轮问答全文（输入框打字文本 + transcript 问题行 + Thinking…/Done. +
+  // 回答 + 分隔线 + 状态栏）都在预渲染源码中（爬虫不执行 JS 即可读）。注：React SSR
+  // 会在混合静态文本与表达式的节点间插入 <!-- --> 注释（文本本身连续），先剥离再断言全文
   const html = (await (await request.get('/')).text()).replaceAll('<!-- -->', '')
 
   expect(html).toContain('Hacxy')
-  expect(html).toContain('你是谁')
-  expect(html).toContain('这个站有什么')
-  expect(html).toContain('怎么联系')
-  expect(html).toContain('tool: read about.md')
-  expect(html).toContain('tool: ls posts')
-  expect(html).toContain('tool: open github.com/hacxy')
+  // 三轮问题：transcript 用户行 + 输入框打字文本（输入框文本同样进预渲染 HTML）
+  for (const q of ['你是谁', '这个站有什么', '怎么联系']) {
+    expect(html).toContain(q)
+  }
+  // 每轮发送后的 agent 状态行：Thinking… → Done.
+  expect(html).toContain('Thinking…')
+  expect(html).toContain('Done.')
+  // 回答全文
   expect(html).toContain('前端工程师')
   expect(html).toContain('了解真相，才能获得真正的自由')
   expect(html).toContain('https://github.com/hacxy')
+  // 分隔线（────）
+  expect(html).toContain('────')
+  // 状态栏（issue #40 + #42）：live + 文章数·标签数 + 版本 + theme: light
   expect(html).toContain('live')
-  // 状态栏（issue #42）构建期注入/确定性值同样在预渲染源码中：版本 + theme: light
+  expect(html).toContain('篇文章')
   const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
     version: string
   }
@@ -242,17 +287,18 @@ test('prerendered HTML contains the full conversation text (SEO no regression)',
   expect(html).toContain('theme: light')
 })
 
-test('hero terminal: CSS show plays once and stops; live dot pulses infinitely', async ({
+test('hero terminal: CSS show plays once and stops; live dot + parked cursor pulse infinitely', async ({
   page,
 }) => {
   await page.goto('/')
   const terminal = page.locator('.hero-terminal')
 
-  // 演出动画均播放一遍后停驻：逐段入场 1 次、打字机 1 次、工具脉冲 3 次（不循环）；
-  // 仅 live 红点无限循环（软脉冲，0.9s）——持续闪烁的 live 状态指示
+  // 演出动画均播放一遍后停驻：问题行淡入 1 次、行内打字机 1 次、Thinking… 脉冲 3 次
+  // （3 × 0.3s = 与 THINK_DUR 同周期）、输入框打字（input-type）与清空（input-hide）
+  // 各 1 次且 fill both → 停驻最终态；不循环
   expect(
     await terminal
-      .locator('.hero-turn')
+      .locator('.user-question')
       .first()
       .evaluate((el) => getComputedStyle(el).animationIterationCount),
   ).toBe('1')
@@ -263,31 +309,124 @@ test('hero terminal: CSS show plays once and stops; live dot pulses infinitely',
   ).toBe('1')
   expect(
     await terminal
-      .locator('.tool-call')
+      .locator('.terminal-status--thinking')
       .first()
       .evaluate((el) => getComputedStyle(el).animationIterationCount),
-  ).toBe('3')
+  ).toBe('1, 3')
+  expect(
+    await terminal
+      .locator('.terminal-typed')
+      .first()
+      .evaluate((el) => getComputedStyle(el).animationIterationCount),
+  ).toBe('1, 1')
+  expect(
+    await terminal
+      .locator('.terminal-typed')
+      .first()
+      .evaluate((el) => getComputedStyle(el).animationName),
+  ).toBe('input-type, input-hide')
+
+  // 仅 live 红点无限循环（软脉冲，0.9s，opacity 1↔0.35）——持续闪烁的 live 状态指示
   expect(
     await terminal
       .locator('.live-dot')
       .evaluate((el) => getComputedStyle(el).animationIterationCount),
   ).toBe('infinite')
-  // live 点软脉冲周期 0.9s（opacity 1↔0.35）
   expect(
     await terminal.locator('.live-dot').evaluate((el) => getComputedStyle(el).animationDuration),
   ).toBe('0.9s')
+  // 停驻光标：末轮发送后出现（cursor-appear 1 次）并块状闪烁无限循环（演出停驻态）
+  expect(
+    await terminal
+      .locator('.terminal-input-cursor')
+      .evaluate((el) => getComputedStyle(el).animationIterationCount),
+  ).toBe('infinite, 1')
 
-  // 等演出播完（9 轮 × 0.5s 错开 + 入场时长 + 打字机/脉冲尾段），停在最终态：
-  // 最后一轮完全可见（opacity 1），tagline 全文揭示
+  // 等演出播完，停在最终态：末轮回答完全可见（opacity 1）、tagline 全文揭示、
+  // 输入框全部清空（每轮打字文本 opacity 0）、停驻光标出现在输入框
   await expect
-    .poll(() =>
-      terminal
-        .locator('.hero-turn')
-        .last()
-        .evaluate((el) => getComputedStyle(el).opacity),
+    .poll(
+      () =>
+        terminal
+          .locator('.hero-line')
+          .last()
+          .evaluate((el) => getComputedStyle(el).opacity),
+      { timeout: 25_000 },
     )
     .toBe('1')
   await expect(terminal.getByText('了解真相，才能获得真正的自由')).toBeVisible()
+  for (let i = 0; i < 3; i++) {
+    expect(
+      await terminal
+        .locator('.terminal-typed')
+        .nth(i)
+        .evaluate((el) => getComputedStyle(el).opacity),
+    ).toBe('0')
+  }
+  await expect(terminal.locator('.terminal-input-cursor')).toBeVisible()
+})
+
+test('hero terminal: per-round choreography — input types, then send, then Thinking… → Done. → answer', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const terminal = page.locator('.hero-terminal')
+  const typed = terminal.locator('.terminal-typed')
+
+  // 每轮：输入框逐字符打字（第 0 条动画）先开始，发送（第 1 条动画 = 输入框清空）在后
+  const delays = (el: Element) =>
+    getComputedStyle(el)
+      .animationDelay.split(',')
+      .map((d) => parseFloat(d))
+  const [typeDelay0, hideDelay0] = await typed.first().evaluate(delays)
+  expect(typeDelay0!).toBeGreaterThan(0)
+  expect(hideDelay0!).toBeGreaterThan(typeDelay0!)
+
+  for (let r = 0; r < 3; r++) {
+    const turn = terminal.locator('.hero-turn').nth(r)
+    // 发送：问题进入 transcript（user-question 淡入）与输入框清空（input-hide）同一时刻
+    const questionDelay = parseFloat(
+      await turn.locator('.user-question').evaluate((el) => getComputedStyle(el).animationDelay),
+    )
+    const roundHide = (await typed.nth(r).evaluate(delays))[1]!
+    expect(questionDelay).toBe(roundHide)
+
+    // 状态行与回答行依次晚于发送：Thinking… → Done. → 回答
+    const thinkingDelay = (await turn
+      .locator('.terminal-status--thinking')
+      .evaluate((el) => getComputedStyle(el).animationDelay.split(',')[0]))!
+    const doneDelay = parseFloat(
+      await turn
+        .locator('.terminal-status--done')
+        .evaluate((el) => getComputedStyle(el).animationDelay),
+    )
+    expect(parseFloat(thinkingDelay)).toBeGreaterThan(questionDelay)
+    expect(doneDelay).toBeGreaterThan(parseFloat(thinkingDelay))
+    const answerDelay = parseFloat(
+      await turn
+        .locator('.hero-line')
+        .first()
+        .evaluate((el) => getComputedStyle(el).animationDelay),
+    )
+    expect(answerDelay).toBeGreaterThan(doneDelay)
+  }
+
+  // 轮次严格串行（真实会话顺序）：下一轮输入框打字不早于上一轮最后一行揭示
+  const nextType = (await typed.nth(1).evaluate(delays))[0]!
+  const firstRoundLastAnswer = parseFloat(
+    await terminal
+      .locator('.hero-turn')
+      .nth(0)
+      .locator('.hero-line')
+      .last()
+      .evaluate((el) => getComputedStyle(el).animationDelay),
+  )
+  expect(nextType).toBeGreaterThan(firstRoundLastAnswer)
+
+  // 停驻光标：末轮发送后出现（演出停驻态，块状闪烁继续）
+  const lastHide = (await typed.nth(2).evaluate(delays))[1]!
+  const cursorAppear = (await terminal.locator('.terminal-input-cursor').evaluate(delays))[1]!
+  expect(cursorAppear).toBeGreaterThan(lastHide)
 })
 
 test('hero terminal: reduced-motion skips all animations, full text visible, no errors', async ({
@@ -298,33 +437,41 @@ test('hero terminal: reduced-motion skips all animations, full text visible, no 
 
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
+  const terminal = page.locator('.hero-terminal')
 
-  // 全文直接可见（无需等待动画）：三轮提问 + tool 调用 + tagline 全文
-  for (const text of ['你是谁', '这个站有什么', '怎么联系', '了解真相，才能获得真正的自由']) {
-    await expect(page.getByText(text).first()).toBeVisible()
+  // 全文直接可见（无需等待动画）：三轮提问（transcript 用户行 + 输入框打字文本）、
+  // 状态行 Thinking…/Done.、回答（简介 + tagline 全文）
+  for (const text of ['你是谁', '这个站有什么', '怎么联系']) {
+    await expect(terminal.locator('.user-question').filter({ hasText: text })).toBeVisible()
+    await expect(terminal.locator('.terminal-input-text').filter({ hasText: text })).toBeVisible()
   }
+  await expect(terminal.locator('.terminal-status--thinking').first()).toBeVisible()
+  await expect(terminal.locator('.terminal-status--done').first()).toBeVisible()
+  await expect(terminal.getByText('了解真相，才能获得真正的自由')).toBeVisible()
 
-  // 逐段入场 / 打字机 / 工具脉冲 / live 点脉冲 / hero 入场全部禁用（animation: none）
+  // 全部动画禁用（animation: none）：问题行淡入 / 状态行 / 打字机 / 输入框打字与清空 /
+  // 停驻光标 / live 点脉冲 / hero 入场
+  for (const sel of [
+    '.user-question',
+    '.terminal-status',
+    '.typewriter-text',
+    '.terminal-typed',
+    '.terminal-input-cursor',
+    '.live-dot',
+    '.hero-enter',
+  ]) {
+    const root = sel === '.hero-enter' ? page : terminal
+    expect(
+      await root
+        .locator(sel)
+        .first()
+        .evaluate((el) => getComputedStyle(el).animationName),
+    ).toBe('none')
+  }
+  // 输入区：输入框全文直接可见（问题行内排布，不重叠不隐藏）；输入区光标隐藏
+  await expect(terminal.locator('.terminal-typed').first()).toBeVisible()
   expect(
-    await page
-      .locator('.hero-turn')
-      .first()
-      .evaluate((el) => getComputedStyle(el).animationName),
-  ).toBe('none')
-  expect(
-    await page.locator('.typewriter-text').evaluate((el) => getComputedStyle(el).animationName),
-  ).toBe('none')
-  expect(
-    await page
-      .locator('.tool-call')
-      .first()
-      .evaluate((el) => getComputedStyle(el).animationName),
-  ).toBe('none')
-  expect(await page.locator('.live-dot').evaluate((el) => getComputedStyle(el).animationName)).toBe(
-    'none',
-  )
-  expect(
-    await page.locator('.hero-enter').evaluate((el) => getComputedStyle(el).animationName),
+    await terminal.locator('.terminal-input-cursor').evaluate((el) => getComputedStyle(el).display),
   ).toBe('none')
   // 全程无动画/脚本报错
   expect(pageErrors).toHaveLength(0)
@@ -424,7 +571,7 @@ test('post row hover feedback: terminal prompt fades in + title underline, no ba
   await expect(row.locator('.post-row-tag').first()).toHaveCSS('color', 'rgb(158, 158, 158)')
 })
 
-test('post list entrance: last act of the stream, staggered after the conversation ends', async ({
+test('post list entrance: parallel with the hero show, staggered fade-in (issue #40)', async ({
   page,
 }) => {
   await page.goto('/')
@@ -433,15 +580,17 @@ test('post list entrance: last act of the stream, staggered after the conversati
 
   // 行入场为纯 CSS（淡入 + 轻微上移，与 hero 逐段入场同节奏）
   await expect(firstRow).toHaveCSS('animation-name', 'row-in')
-  // 入场延迟在会话演出结束之后（最后一轮完全可见后才开始入场）
+  // 入场与终端演出并行开始（issue #40）：入场延迟不再大于演出末段——首行在演出
+  // 早期即开始入场（旧行为：等演出播完才作为最后一幕入场）；末轮回答揭示时刻晚得多
   const rowDelay = parseFloat(await firstRow.evaluate((el) => getComputedStyle(el).animationDelay))
-  const lastTurnDelay = parseFloat(
+  expect(rowDelay).toBeLessThan(5)
+  const lastAnswerDelay = parseFloat(
     await terminal
-      .locator('.hero-turn')
+      .locator('.hero-line')
       .last()
       .evaluate((el) => getComputedStyle(el).animationDelay),
   )
-  expect(rowDelay).toBeGreaterThan(lastTurnDelay + 0.45)
+  expect(rowDelay).toBeLessThan(lastAnswerDelay)
   // 行间逐行错开（--i * --row-gap）
   const secondRowDelay = parseFloat(
     await page
