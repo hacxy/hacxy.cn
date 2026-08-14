@@ -29,7 +29,8 @@
 /* 设计基调：正文 = 系统无衬线栈（PingFang SC / Microsoft YaHei / Noto Sans SC）；
    代码与元数据 = JetBrains Mono；全站配色为纯黑白灰阶（issue #17）：
    亮色 = 白底黑字 + 灰阶过渡，暗色 = 黑底白字反色，无任何彩色系残留。
-   链接不再依赖颜色区分（见 @layer base 全站链接样式）：下划线 + 加粗 + hover 反白。 */
+   链接不再依赖颜色区分（见 @layer base 全站链接样式）：下划线 + 加粗，
+   hover/focus 背景保持透明 + 颜色/下划线反馈（issue #52，不再黑白反白块）。 */
 @theme {
   --font-sans:
     system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
@@ -82,24 +83,37 @@ html.dark {
   body {
     font-family: var(--font-sans);
   }
-  /* 全站链接样式（issue #17）：下划线 + 加粗 + hover 反白，不再依赖颜色区分；
+  /* 全站链接样式（issue #17）：下划线 + 加粗，不再依赖颜色区分；
+     hover / focus-visible（issue #52）：背景保持透明（不再黑白反白块），
+     颜色变 accent + 下划线（页脚等 muted 上下文可见颜色变化；灰阶下 accent
+     与正文同色属设计系统固有，下划线/加粗承担主要反馈）。键盘 Tab 聚焦与
+     鼠标 hover 同一视觉机制。
      导航高亮沿用同一机制：active 导航项 = 加粗 + 下划线（见 .site-nav a.nav-active）。
      例外：文章列表行（.post-row）为终端输出行形态——常规字重、无下划线，
-     hover/键盘焦点反白沿用同一 accent 令牌机制。 */
+     hover/键盘焦点仅标题 accent + 下划线（issue #25，见下）。 */
   a {
     font-weight: 700;
     text-decoration: underline;
     text-underline-offset: 3px;
   }
-  a:hover {
-    background-color: var(--color-accent);
-    color: var(--color-accent-contrast);
+  a:hover,
+  a:focus-visible {
+    background-color: transparent;
+    color: var(--color-accent);
   }
-  /* 顶部导航：菜单项为普通文本外观（不加粗、无下划线），
-     active 项用链接机制高亮（加粗 + 下划线） */
+  /* 顶部导航：菜单项为普通文本外观（不加粗、无下划线）；
+     hover/focus（issue #52）= 加粗 + 下划线 + accent 色（与 active 高亮
+     同一视觉机制，无背景色块）；active 项用链接机制高亮（加粗 + 下划线） */
   .site-nav a {
     font-weight: 400;
     text-decoration: none;
+  }
+  .site-nav a:hover,
+  .site-nav a:focus-visible {
+    background-color: transparent;
+    color: var(--color-accent);
+    font-weight: 700;
+    text-decoration: underline;
   }
   .site-nav a.nav-active {
     font-weight: 700;
@@ -466,8 +480,10 @@ html.dark .bg-texture {
   }
 }
 
-/* 终端内链接 hover：恒黑底终端自闭环（白底黑字反白），与页面 chrome 主题解耦 */
-.hero-terminal a:hover {
+/* 终端内链接 hover/focus：恒黑底终端自闭环（白底黑字反白），与页面 chrome 主题解耦
+   （issue #52：全站链接去反白后，终端自闭环反白保留，focus 与 hover 同一视觉机制） */
+.hero-terminal a:hover,
+.hero-terminal a:focus-visible {
   background-color: #fff;
   color: #000;
 }
@@ -535,7 +551,8 @@ html.dark .terminal-dot--green {
 /* 整行为单个链接：mono 日期 + 标题 + #标签（终端 ls 输出行形态）；
    hover / 键盘 focus-visible 反馈（issue #25）：行首沟槽淡入「>」终端提示符 +
    标题 accent 色 + 下划线（字重保持 400），日期/标签保持 muted，
-   整行背景不再黑白反转（全站链接反白机制为文章行特例豁免）；
+   整行背景保持透明、文字保持继承色（issue #52 全站链接去反白后，文章行豁免仍生效：
+   行自身不接受 accent 整行染色，仅标题 accent + 下划线）；
    行内不渲染摘要（内容管线保留 description，文章页/SEO 继续使用） */
 .post-row {
   display: flex;
@@ -565,8 +582,8 @@ html.dark .terminal-dot--green {
   opacity: 1;
 }
 
-/* hover/focus 时整行豁免全站 a:hover 反白（背景保持透明、文字保持继承色），
-   与页面 chrome 链接的反白机制解耦 */
+/* hover/focus 时整行豁免全站 a:hover/a:focus-visible 的 accent 染色
+   （背景保持透明、文字保持继承色），仅标题经子选择器变 accent + 下划线 */
 .post-row:hover,
 .post-row:focus-visible {
   background-color: transparent;
@@ -710,7 +727,7 @@ html.dark .terminal-dot--green {
 
 /* 文件夹行：按钮形态（非链接），行布局与 .post-row 同构（折叠标记 + mono 名）；
    常规字重、muted 灰（结构层弱于文章标题），hover/键盘焦点 accent + 下划线，
-   背景不反白（与文章行同一豁免） */
+   背景保持透明（与文章行同一豁免，不出现色块） */
 .post-tree-folder {
   display: flex;
   align-items: baseline;
@@ -796,14 +813,15 @@ html.dark .terminal-dot--green {
 }
 
 /* 目录链接：普通文本外观（不加粗、无下划线，与顶部导航同机制），
-   hover 弱化下划线；active（当前章节，scroll-spy）加粗 + 下划线——
+   hover/focus 加下划线；active（当前章节，scroll-spy）加粗 + 下划线——
    全站导航高亮同一机制（.site-nav a.nav-active） */
 .post-toc a {
   font-weight: 400;
   text-decoration: none;
   color: var(--color-muted);
 }
-.post-toc a:hover {
+.post-toc a:hover,
+.post-toc a:focus-visible {
   background-color: transparent;
   color: var(--color-accent);
   text-decoration: underline;
@@ -852,8 +870,8 @@ html.dark .terminal-dot--green {
   }
 }
 
-/* 触发按钮：终端风格（mono + 边框 + 灰底），hover 反白与全站交互一致；
-   打开的抽屉对应按钮加粗 + 下划线（沿用导航高亮机制） */
+/* 触发按钮：终端风格（mono + 边框 + 灰底），hover/focus 反白与全站交互一致
+   （键盘 Tab 与鼠标 hover 同一视觉机制，issue #52） */
 .drawer-trigger {
   align-items: center;
   padding: 0.25rem 0.75rem;
@@ -865,7 +883,8 @@ html.dark .terminal-dot--green {
   line-height: 1.5;
   color: var(--color-accent);
 }
-.drawer-trigger:hover {
+.drawer-trigger:hover,
+.drawer-trigger:focus-visible {
   background-color: var(--color-accent);
   color: var(--color-accent-contrast);
 }
@@ -943,7 +962,7 @@ html.dark .drawer-panel {
   }
 }
 
-/* 关闭按钮：面板右上角（flex 列末尾右对齐）；hover 反白 */
+/* 关闭按钮：面板右上角（flex 列末尾右对齐）；hover/focus 反白（与鼠标一致） */
 .drawer-close {
   align-self: flex-end;
   width: 2rem;
@@ -956,7 +975,8 @@ html.dark .drawer-panel {
   line-height: 1;
   color: var(--color-accent);
 }
-.drawer-close:hover {
+.drawer-close:hover,
+.drawer-close:focus-visible {
   background-color: var(--color-accent);
   color: var(--color-accent-contrast);
 }
