@@ -1154,21 +1154,10 @@ test('geek-style design: mono fonts; links are bold+underline with transparent h
   await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(255, 255, 255)')
   await expect(page.locator('html')).toHaveCSS('color', 'rgb(26, 26, 26)')
 
-  // 全站链接样式 = 下划线 + 加粗（不再依赖颜色区分：链接与同上下文文本同色）
-  // 页脚链接继承 footer 的 muted 灰（与页脚正文同色），hover 用 accent 令牌覆盖
-  const ccLink = page.getByRole('link', { name: 'CC BY-NC-SA 4.0' })
-  expect(await ccLink.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
-  expect(await ccLink.evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain(
-    'underline',
-  )
-  expect(await ccLink.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(102, 102, 102)')
-
-  // hover（issue #52）：背景保持透明（不再黑白反白块）、颜色变 accent（亮色近黑）、
-  // 下划线保留；muted 灰 → accent 为页脚链接可见的 hover 反馈
-  await ccLink.hover()
-  await expect(ccLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
-  await expect(ccLink).toHaveCSS('color', 'rgb(26, 26, 26)')
-  await expect(ccLink).toHaveCSS('text-decoration-line', 'underline')
+  // 页脚版权文本（issue #69：CC BY-NC-SA 4.0 已移除，footer 不再含链接）：
+  // 继承 footer 的 muted 灰（与页脚正文同色）
+  const footer = page.getByRole('contentinfo')
+  expect(await footer.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(102, 102, 102)')
 
   // 顶部导航 hover（issue #52）：加粗 + 下划线 + accent 色，无背景色块；
   // 灰阶下 accent 与正文同色属设计系统固有，加粗/下划线承担主要反馈。
@@ -1184,10 +1173,7 @@ test('geek-style design: mono fonts; links are bold+underline with transparent h
   await page.getByRole('button', { name: '切换暗色模式' }).click()
   await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(10, 10, 10)')
   await expect(page.locator('html')).toHaveCSS('color', 'rgb(230, 230, 230)')
-  await ccLink.hover()
-  await expect(ccLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
-  await expect(ccLink).toHaveCSS('color', 'rgb(230, 230, 230)')
-  await expect(ccLink).toHaveCSS('text-decoration-line', 'underline')
+  await expect(footer).toHaveCSS('color', 'rgb(158, 158, 158)')
   await aboutNav.hover()
   await expect(aboutNav).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
   await expect(aboutNav).toHaveCSS('color', 'rgb(230, 230, 230)')
@@ -1210,7 +1196,7 @@ test('geek-style design: mono fonts; links are bold+underline with transparent h
   )
 })
 
-test('nav & footer links focus-visible matches hover: transparent bg + accent color + underline + bold (keyboard Tab, issue #52)', async ({
+test('nav & post-row links focus-visible matches hover: transparent bg + accent color + underline (keyboard Tab, issue #52)', async ({
   page,
 }) => {
   await page.goto('/')
@@ -1246,20 +1232,20 @@ test('nav & footer links focus-visible matches hover: transparent bg + accent co
   await expect(aboutNav).toHaveCSS('font-weight', '700')
   await expect(aboutNav).toHaveCSS('text-decoration-line', 'underline')
 
-  // 页脚 CC 链接：Tab 顺延至页脚（主题 → GitHub → RSS → hero GitHub 外链 →
-  // 全部文章行 → CC），焦点反馈与 hover 一致（背景透明 + accent 色 + 下划线 + 加粗）。
-  // 不硬编码 Tab 次数（正常链路 = 距「关于」5 + 文章行数）：逐次 Tab 至 CC 聚焦即停，
+  // 文章区末行链接（页脚 CC 外链已于 issue #69 移除，Tab 链路终点 = 末行文章）：
+  // 焦点反馈与 hover 一致（背景透明 + 标题 accent 色 + 下划线，字重保持 400）。
+  // 不硬编码 Tab 次数（正常链路 = 距「关于」5 + 文章行数）：逐次 Tab 至末行聚焦即停，
   // 上限多加 30 次防真回归死循环；中途新增可聚焦项不破坏本用例
-  const ccLink = page.getByRole('link', { name: 'CC BY-NC-SA 4.0' })
+  const lastRow = page.locator('.post-row').last()
   for (let i = 0; i < publishedPosts().length + 30; i++) {
     await page.keyboard.press('Tab')
-    if (await ccLink.evaluate((el) => el === document.activeElement)) break
+    if (await lastRow.evaluate((el) => el === document.activeElement)) break
   }
-  await expect(ccLink).toBeFocused()
-  await expect(ccLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
-  await expect(ccLink).toHaveCSS('color', 'rgb(26, 26, 26)')
-  await expect(ccLink).toHaveCSS('text-decoration-line', 'underline')
-  await expect(ccLink).toHaveCSS('font-weight', '700')
+  await expect(lastRow).toBeFocused()
+  await expect(lastRow).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(lastRow.locator('.post-row-title')).toHaveCSS('color', 'rgb(26, 26, 26)')
+  await expect(lastRow.locator('.post-row-title')).toHaveCSS('text-decoration-line', 'underline')
+  await expect(lastRow).toHaveCSS('font-weight', '400')
 })
 
 test('issue #56: nav icon links (GitHub/RSS) hover/focus-visible = transparent bg + muted color, no underline', async ({
@@ -1421,11 +1407,24 @@ test('fonts are self-hosted: woff2 on same origin, no external font requests', a
   expect(font.status()).toBe(200)
 })
 
-test('footer shows the CC BY-NC-SA 4.0 license', async ({ page }) => {
+test('footer shows copyright centered without the CC BY-NC-SA 4.0 license (issue #69)', async ({
+  page,
+}) => {
   await page.goto('/')
 
-  await expect(page.getByText('CC BY-NC-SA 4.0')).toBeVisible()
-  await expect(page.getByRole('contentinfo')).toBeVisible()
+  const footer = page.getByRole('contentinfo')
+  await expect(footer).toBeVisible()
+
+  // 版权行 = 「© 年份 站点名」（与 src/site.ts 的 copyrightYear / siteName 一致）；
+  // CC BY-NC-SA 4.0 外链已移除，footer 不再含任何链接
+  await expect(footer.getByText(/^© \d{4} Hacxy$/)).toBeVisible()
+  await expect(footer.getByText('CC BY-NC-SA 4.0')).toHaveCount(0)
+  await expect(footer.locator('a')).toHaveCount(0)
+
+  // 内容垂直 + 水平居中（flex 容器：items-center 垂直 / justify-center 水平）
+  await expect(footer).toHaveCSS('display', 'flex')
+  await expect(footer).toHaveCSS('align-items', 'center')
+  await expect(footer).toHaveCSS('justify-content', 'center')
 })
 
 test('layout has no horizontal overflow on mobile viewport', async ({ page }) => {
