@@ -191,10 +191,13 @@ export async function implement(planned: PlannedIssue): Promise<number> {
     // 沙箱就绪后增量 install：补齐平台相关二进制（宿主 macOS vs 容器 linux）
     hooks: {
       sandbox: {
+        // 注意：同一 hook 点的多个 sandbox hook 是并行跑的，两个 pnpm 命令会抢 store 锁——
+        // 合成一条顺序命令（CI=true 已注入：pnpm 无 TTY purge node_modules 时自动重装）
         onSandboxReady: [
-          { command: 'pnpm install --frozen-lockfile' },
-          // 版本匹配时秒级跳过；项目升级 playwright 后自动补齐对应 chromium
-          { command: 'pnpm playwright install chromium' },
+          {
+            command: 'pnpm install --frozen-lockfile && pnpm playwright install chromium',
+            timeoutMs: 300_000,
+          },
         ],
       },
     },
@@ -270,9 +273,12 @@ export async function mergeToMain(completed: PlannedIssue[]): Promise<boolean> {
       copyToWorktree: ['node_modules'],
       hooks: {
         sandbox: {
+          // 同 implement：顺序执行 + 长超时（CI=true 已由 baseSandbox 注入）
           onSandboxReady: [
-            { command: 'pnpm install --frozen-lockfile' },
-            { command: 'pnpm playwright install chromium' },
+            {
+              command: 'pnpm install --frozen-lockfile && pnpm playwright install chromium',
+              timeoutMs: 300_000,
+            },
           ],
         },
       },
