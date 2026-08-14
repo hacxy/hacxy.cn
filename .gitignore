@@ -33,5 +33,6 @@ pnpm-debug.log*
 .sandcastle/worktrees/
 .sandcastle/pi-home/
 
-# pi-workspace 运行时产物
-.workspace/
+
+*/afk/sessions
+*/afk/worktrees
