@@ -63,6 +63,13 @@ export function cleanupResidue(): void {
   } catch {
     // 忽略
   }
+
+  // 4. worktrees 目录：baseSandbox 挂载源必须存在（sandcastle 0.12 校验 hostPath）
+  try {
+    mkdirSync(WORKTREES_DIR, { recursive: true })
+  } catch {
+    // 忽略
+  }
 }
 
 /** 信号处理：宿主被中断时先杀掉沙箱容器再退出，杜绝失控 agent 继续跑 */
