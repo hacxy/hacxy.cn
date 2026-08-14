@@ -325,8 +325,10 @@ html.dark .bg-texture {
 /* 打字机文本（纯 CSS）：完整文本始终在 DOM（SEO / reduced-motion / 结束态直接可见），
    动画用 clip-path 从右向左裁切 + steps(字符数) 逐字符揭示；
    --type-chars / --type-duration / --delay 由组件按数据驱动（issue #40：
-   打字机机制从行内揭示扩展到输入框内逐字符打字，见 .terminal-typed） */
+   打字机机制从行内揭示扩展到输入框内逐字符打字，见 .terminal-typed）；
+   position: relative 为行内光标提供定位基准（issue #53，见 .terminal-cursor） */
 .typewriter-text {
+  position: relative;
   display: inline-block;
   clip-path: inset(0 0 0 0);
   animation-name: terminal-typing;
@@ -344,14 +346,25 @@ html.dark .bg-texture {
   }
 }
 
-/* 块状闪烁光标：打字机行尾（终端「正在输出」状态） */
-.terminal-cursor {
-  display: inline-block;
+/* 块状光标几何（issue #53）：打字机行尾行内光标与输入框停驻光标共用同一套规则——
+   高度 = 字形高度（1em）、以字形中线为基准垂直居中，不遮文字：
+   - 行内 .terminal-cursor：绝对定位于文字容器（.typewriter-text / .terminal-typed，
+     容器高度 = 行框高 = line-height），top 50% + translateY(-50%) ⇒ 垂直中心 =
+     行框中心 = 字形中线（与相邻文字块 rect 中心重合，不依赖字体度量）
+   - 停驻 .terminal-input-cursor：top = padding-top + 半行高余量（见输入区） */
+.terminal-cursor,
+.terminal-input-cursor {
   width: 0.55em;
-  height: 1.05em;
-  margin-left: 0.1em;
-  vertical-align: text-bottom;
+  height: 1em;
   background: #fff;
+}
+/* 行内块状闪烁光标：打字机行尾（终端「正在输出」状态）与输入框打字光标；
+   跟随文字末尾（容器右端 + 0.1em 间距），随容器 clip-path 一起逐字符揭示 */
+.terminal-cursor {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 0.1em);
+  transform: translateY(-50%);
   animation: terminal-blink 1.1s steps(1) infinite;
 }
 @keyframes terminal-blink {
@@ -385,18 +398,22 @@ html.dark .bg-texture {
   padding: 0 1rem 0.75rem;
 }
 .terminal-input {
+  /* 输入槽位参数（issue #53）：停驻光标按「padding-top + 半行高余量」公式对齐文字行，
+     padding/行高在此单一定义、槽位与光标共用（.terminal-typed / .terminal-input-cursor） */
+  --input-pad-y: 0.4rem;
+  --input-line-height: 1.5;
   position: relative;
   min-height: 2.1rem;
   border: 1px solid #3a3a3a;
   border-radius: 0.25rem;
   background: #0d0d0d;
-  padding: 0.4rem 0.625rem;
+  padding: var(--input-pad-y) 0.625rem;
   font-size: 0.875rem;
-  line-height: 1.5;
+  line-height: var(--input-line-height);
 }
 .terminal-typed {
   position: absolute;
-  top: 0.4rem;
+  top: var(--input-pad-y);
   left: 0.625rem;
   white-space: nowrap;
   /* 基础态完整可见（reduced-motion / 无动画时输入框直接显示全文） */
@@ -422,15 +439,14 @@ html.dark .bg-texture {
   }
 }
 /* 停驻光标：clip 隐藏直到 --delay-appear（末轮发送后），随后块状闪烁继续
-   （块状视觉与行内 .terminal-cursor 同一形态：白块 + 闪烁） */
+   （块状视觉与行内 .terminal-cursor 同一形态：白块 + 闪烁，几何规则见 .terminal-cursor
+   共用块——高度 1em、以字形中线垂直居中） */
 .terminal-input-cursor {
   position: absolute;
-  top: 0.4rem;
+  /* 对齐文字行：padding-top + 半行高余量（(line-height − 1em)/2，line-height 1.5
+     ⇒ 0.25em）——以字形中线为基准垂直居中，不再从 padding 顶边起算 */
+  top: calc(var(--input-pad-y) + (var(--input-line-height) - 1) * 0.5em);
   left: 0.625rem;
-  display: inline-block;
-  width: 0.55em;
-  height: 1.05em;
-  background: #fff;
   clip-path: inset(0 0 0 0);
   animation:
     terminal-blink 1.1s steps(1) infinite,
