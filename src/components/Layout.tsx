@@ -7,7 +7,8 @@ import ThemeToggle from './ThemeToggle.tsx'
 /** 当前导航高亮：全站链接机制（加粗 + 下划线，不依赖颜色区分） */
 const navLinkClass = ({ isActive }: { isActive: boolean }) => (isActive ? 'nav-active' : undefined)
 
-/** 全局布局：全站容器 + 「文章 | 关于」导航 + CC BY-NC-SA 页脚；
+/** 全局布局：全站容器 + 「文章 | 关于」导航 + 版权页脚（issue #69：移除 CC BY-NC-SA
+ *  4.0 外链，footer 内容垂直 + 水平居中）
  *  容器 max-w-6xl，各页内容列由内层 max-w-2xl 收窄居中 */
 export default function Layout() {
   return (
@@ -43,16 +44,9 @@ export default function Layout() {
         <main className="flex-1 pb-16">
           <Outlet />
         </main>
-        <footer className="border-t py-6 text-sm text-muted">
+        <footer className="flex items-center justify-center border-t py-6 text-sm text-muted">
           <p>
-            © {copyrightYear} {siteName} ·{' '}
-            <a
-              href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              CC BY-NC-SA 4.0
-            </a>
+            © {copyrightYear} {siteName}
           </p>
         </footer>
       </div>
