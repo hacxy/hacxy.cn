@@ -134,7 +134,13 @@ function deepseekApiKey(): string | undefined {
     const auth = JSON.parse(readFileSync(join(homedir(), '.pi', 'agent', 'auth.json'), 'utf8')) as {
       deepseek?: unknown
     }
-    return typeof auth.deepseek === 'string' ? auth.deepseek : undefined
+    // pi 的 auth.json 里 deepseek 是 { type, key } 对象（兼容纯字符串形式）
+    if (typeof auth.deepseek === 'string') return auth.deepseek
+    if (auth.deepseek && typeof auth.deepseek === 'object') {
+      const key = (auth.deepseek as { key?: unknown }).key
+      if (typeof key === 'string') return key
+    }
+    return undefined
   } catch {
     return undefined
   }
