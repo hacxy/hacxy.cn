@@ -132,7 +132,7 @@ test('hero terminal: transcript → divider (────) → input → status 
   await expect(input.locator('.terminal-typed')).toHaveCount(3)
   await expect(input.locator('.terminal-input-cursor')).toHaveCount(1)
 
-  // 底部 caption = 终端状态栏（issue #42 + #55 精简）：● live · v<版本>
+  // 底部 caption = 终端状态栏（issue #42 + #55 精简）：● live · 文章数·标签数 · v<版本>
   // （issue #55 移除 theme / git 段，只保留站点真实信息）
   const caption = terminal.locator('.hero-terminal-caption')
   await expect(caption).toBeVisible()

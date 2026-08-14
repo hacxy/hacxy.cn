@@ -13,11 +13,15 @@ export interface SiteMeta {
   version: string
 }
 
-/** 站点版本：构建期读取 package.json（版本缺失/损坏回退 0.0.0） */
-export function collectSiteMeta(): SiteMeta {
+/**
+ * 站点版本：构建期读取 package.json（版本缺失/损坏回退 0.0.0，不阻塞构建）。
+ * baseDir 可注入（单测用临时目录模拟缺失/损坏 package.json；与已删除的
+ * collectGitStats 的 injectable exec 同一测试模式）；vite 插件用默认值 process.cwd()。
+ */
+export function collectSiteMeta(baseDir: string = process.cwd()): SiteMeta {
   let version = '0.0.0'
   try {
-    const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')) as {
+    const pkg = JSON.parse(readFileSync(join(baseDir, 'package.json'), 'utf8')) as {
       version?: unknown
     }
     if (typeof pkg.version === 'string' && pkg.version) version = pkg.version
