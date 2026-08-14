@@ -431,7 +431,7 @@ html.dark .bg-texture {
   }
 }
 
-/* 底部状态栏（issue #40 + #42）：● live · 文章数 · 标签数 · v<版本> · theme · git；
+/* 底部状态栏（issue #40 + #55 精简）：● live · 文章数 · 标签数 · v<版本>；
    弱化 mono 文字（与正文以细线分隔）、段间以「·」分隔，多段在窄屏换行不撑破小屏 */
 .hero-terminal-caption {
   display: flex;
