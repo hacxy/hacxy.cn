@@ -10,7 +10,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), postsPlugin(), postAssetsPlugin(), siteMetaPlugin()],
   test: {
     environment: 'jsdom',
-    include: ['tests/unit/**/*.test.{ts,tsx}'],
+    include: ['tests/unit/**/*.test.{ts,tsx}', '.sandcastle/*.test.ts'],
+    exclude: ['**/node_modules/**', '.sandcastle/worktrees/**'],
     setupFiles: ['tests/unit/setup.ts'],
     coverage: {
       provider: 'v8',
