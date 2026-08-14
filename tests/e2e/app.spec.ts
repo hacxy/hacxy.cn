@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 
-import { currentGitStats } from './git-helper.ts'
 import {
   expectedNeighbors,
   expectedDirectory,
@@ -133,7 +132,7 @@ test('hero terminal: transcript → divider (────) → input → status 
   await expect(input.locator('.terminal-typed')).toHaveCount(3)
   await expect(input.locator('.terminal-input-cursor')).toHaveCount(1)
 
-  // 底部 caption = 终端状态栏（issue #42）：● live · v<版本> · theme · git
+  // 底部 caption = 终端状态栏（issue #55 精简）：● live · v<版本>，无 theme / git 段
   const caption = terminal.locator('.hero-terminal-caption')
   await expect(caption).toBeVisible()
   await expect(caption.getByText('live', { exact: true })).toBeVisible()
@@ -148,10 +147,14 @@ test('hero terminal: transcript → divider (────) → input → status 
   await expect(dot).toBeVisible()
   expect(await dot.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(239, 68, 68)')
 
-  // 状态段真实信息各自存在（内容由专门用例从源计算断言）：版本 / 主题 / git
+  // 状态段真实信息各自存在（内容由专门用例从源计算断言）：版本
   await expect(caption.locator('.status-item').filter({ hasText: /^v\d/ })).toBeVisible()
-  await expect(caption.locator('[data-theme]')).toBeVisible()
-  await expect(caption.locator('[data-git-branch]')).toBeVisible()
+
+  // issue #55 精简：theme 段与 git 段不再渲染（DOM 不存在）
+  await expect(caption.locator('[data-theme]')).toHaveCount(0)
+  await expect(caption.getByText(/^theme: /)).toHaveCount(0)
+  await expect(caption.locator('[data-git-branch]')).toHaveCount(0)
+  await expect(caption.getByText(/commits$/)).toHaveCount(0)
 
   // 无 mac 装饰圆点窗口栏（issue #18 移除；文章卡片的 ●●● 标题栏不受影响）
   await expect(terminal.locator('.hero-terminal-bar')).toHaveCount(0)
@@ -180,81 +183,6 @@ test('status bar: site version injected from package.json at build time (issue #
   expect(html).toContain(expected)
 })
 
-test('status bar: theme segment updates instantly when toggling (issue #42)', async ({ page }) => {
-  await page.goto('/')
-  const themeItem = page.locator('.hero-terminal-caption [data-theme]')
-  await expect(themeItem).toBeVisible()
-
-  // 归一化亮色（初始主题由环境决定，先切到已知状态）
-  if ((await themeItem.getAttribute('data-theme')) === 'dark') {
-    await page.getByRole('button', { name: '切换暗色模式' }).click()
-  }
-  await expect(themeItem).toHaveAttribute('data-theme', 'light')
-  await expect(themeItem).toHaveText('theme: light')
-
-  // 切换主题 → 状态栏即时更新（MutationObserver 监听 html class，无需刷新）
-  await page.getByRole('button', { name: '切换暗色模式' }).click()
-  await expect(themeItem).toHaveAttribute('data-theme', 'dark')
-  await expect(themeItem).toHaveText('theme: dark')
-
-  await page.getByRole('button', { name: '切换暗色模式' }).click()
-  await expect(themeItem).toHaveText('theme: light')
-})
-
-test('status bar: SSR ships deterministic theme value, hydrates to actual theme without mismatch (issue #42)', async ({
-  page,
-  request,
-}) => {
-  const consoleErrors: string[] = []
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') consoleErrors.push(msg.text())
-  })
-  page.on('pageerror', (err) => consoleErrors.push(err.message))
-
-  // SSR 确定性输出 'light'（与 hydration 首帧一致 → 无 mismatch）；
-  // 先剥离 React SSR 的 <!-- --> 注释分隔符再断言
-  const html = (await (await request.get('/')).text()).replaceAll('<!-- -->', '')
-  expect(html).toContain('theme: light')
-
-  // 暗色偏好：首帧前 inline 防闪烁脚本置 .dark → 水合后状态栏更新为实际主题 dark
-  await page.addInitScript(() => localStorage.setItem('theme', 'dark'))
-  await page.goto('/')
-  const themeItem = page.locator('.hero-terminal-caption [data-theme]')
-  await expect(themeItem).toHaveText('theme: dark')
-
-  // 全程无 hydration/mismatch 报错（React 对 useSyncExternalStore 用服务端快照水合）
-  expect(consoleErrors.filter((e) => /hydrat|mismatch/i.test(e))).toHaveLength(0)
-})
-
-test('status bar: git stats computed from the real repository (issue #42)', async ({
-  page,
-  request,
-}) => {
-  // 期望值从真实仓库计算（与构建期注入同一契约：分支 / 短 SHA / 提交数 / 脏标记）
-  const git = currentGitStats()
-  test.skip(!git, '非 git 目录：git 段优雅省略（省略逻辑由单测覆盖）')
-
-  await page.goto('/')
-  const gitItem = page.locator('.hero-terminal-caption [data-git-branch]')
-  await expect(gitItem).toBeVisible()
-  await expect(gitItem).toHaveAttribute('data-git-branch', git?.branch ?? '')
-  await expect(gitItem).toHaveAttribute('data-git-sha', git?.sha ?? '')
-  await expect(gitItem).toHaveAttribute('data-git-count', String(git?.commitCount))
-  await expect(gitItem).toHaveAttribute('data-git-dirty', String(git?.dirty))
-
-  // 展示形态：git: branch[@dirty]@shortsha · N commits（与 formatGitStats 同一契约）
-  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const branch = esc(git?.branch ?? '')
-  await expect(gitItem).toHaveText(
-    new RegExp(`^git: ${branch}\\*?@${git?.sha} · ${git?.commitCount} commits$`),
-  )
-
-  // 构建期注入 → 预渲染 HTML 已含 git 段（爬虫不执行 JS 可读）；先剥离 SSR 注释分隔符；
-  // 脏工作区分支带 * 后缀（与 formatGitStats 同一契约）
-  const html = (await (await request.get('/')).text()).replaceAll('<!-- -->', '')
-  expect(html).toContain(`git: ${git?.branch}${git?.dirty ? '*' : ''}@${git?.sha}`)
-})
-
 test('prerendered HTML contains the full conversation text (SEO no regression)', async ({
   request,
 }) => {
@@ -277,14 +205,14 @@ test('prerendered HTML contains the full conversation text (SEO no regression)',
   expect(html).toContain('https://github.com/hacxy')
   // 分隔线（────）
   expect(html).toContain('────')
-  // 状态栏（issue #40 + #42）：live + 文章数·标签数 + 版本 + theme: light
+  // 状态栏（issue #40 + #55 精简）：live + 文章数·标签数 + 版本（无 theme / git 段）
   expect(html).toContain('live')
   expect(html).toContain('篇文章')
   const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
     version: string
   }
   expect(html).toContain(`v${pkg.version}`)
-  expect(html).toContain('theme: light')
+  expect(html).not.toContain('theme: light')
 })
 
 test('hero terminal: CSS show plays once and stops; live dot + parked cursor pulse infinitely', async ({
@@ -975,7 +903,7 @@ test('prerendered HTML ships the inline no-flash theme script', async ({ request
   expect(html).toContain('prefers-color-scheme')
 })
 
-test('geek-style design: mono fonts; links are bold+underline with inverted hover, nav active shares mechanism', async ({
+test('geek-style design: mono fonts; links are bold+underline with transparent hover (color+underline), nav active shares mechanism', async ({
   page,
 }) => {
   await page.goto('/')
@@ -997,7 +925,7 @@ test('geek-style design: mono fonts; links are bold+underline with inverted hove
   await expect(page.locator('html')).toHaveCSS('color', 'rgb(26, 26, 26)')
 
   // 全站链接样式 = 下划线 + 加粗（不再依赖颜色区分：链接与同上下文文本同色）
-  // 页脚链接继承 footer 的 muted 灰（与页脚正文同色），hover 反白用 accent 令牌覆盖
+  // 页脚链接继承 footer 的 muted 灰（与页脚正文同色），hover 用 accent 令牌覆盖
   const ccLink = page.getByRole('link', { name: 'CC BY-NC-SA 4.0' })
   expect(await ccLink.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
   expect(await ccLink.evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain(
@@ -1005,23 +933,40 @@ test('geek-style design: mono fonts; links are bold+underline with inverted hove
   )
   expect(await ccLink.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(102, 102, 102)')
 
-  // hover 反白：亮色 = 黑底白字
+  // hover（issue #52）：背景保持透明（不再黑白反白块）、颜色变 accent（亮色近黑）、
+  // 下划线保留；muted 灰 → accent 为页脚链接可见的 hover 反馈
   await ccLink.hover()
-  await expect(ccLink).toHaveCSS('background-color', 'rgb(26, 26, 26)')
-  await expect(ccLink).toHaveCSS('color', 'rgb(255, 255, 255)')
+  await expect(ccLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(ccLink).toHaveCSS('color', 'rgb(26, 26, 26)')
+  await expect(ccLink).toHaveCSS('text-decoration-line', 'underline')
 
-  // 暗色 = 黑底白字反色（背景近黑、文字近白），hover 反白 = 白底黑字
+  // 顶部导航 hover（issue #52）：加粗 + 下划线 + accent 色，无背景色块；
+  // 灰阶下 accent 与正文同色属设计系统固有，加粗/下划线承担主要反馈。
+  // 悬停非 active 的「关于」（首页当前页 = 文章，避免与 nav-active 混淆）
+  const aboutNav = page.getByRole('link', { name: '关于' })
+  await aboutNav.hover()
+  await expect(aboutNav).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(aboutNav).toHaveCSS('color', 'rgb(26, 26, 26)')
+  await expect(aboutNav).toHaveCSS('font-weight', '700')
+  await expect(aboutNav).toHaveCSS('text-decoration-line', 'underline')
+
+  // 暗色 = 黑底白字反色（背景近黑、文字近白），同一机制：hover 背景透明 + accent（近白）
   await page.getByRole('button', { name: '切换暗色模式' }).click()
   await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(10, 10, 10)')
   await expect(page.locator('html')).toHaveCSS('color', 'rgb(230, 230, 230)')
   await ccLink.hover()
-  await expect(ccLink).toHaveCSS('background-color', 'rgb(230, 230, 230)')
-  await expect(ccLink).toHaveCSS('color', 'rgb(0, 0, 0)')
+  await expect(ccLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(ccLink).toHaveCSS('color', 'rgb(230, 230, 230)')
+  await expect(ccLink).toHaveCSS('text-decoration-line', 'underline')
+  await aboutNav.hover()
+  await expect(aboutNav).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(aboutNav).toHaveCSS('color', 'rgb(230, 230, 230)')
+  await expect(aboutNav).toHaveCSS('font-weight', '700')
+  await expect(aboutNav).toHaveCSS('text-decoration-line', 'underline')
 
   // 导航高亮沿用同一机制（加粗 + 下划线，不再依赖颜色区分）
-  await page.getByRole('link', { name: '关于' }).click()
+  await aboutNav.click()
   await expect(page).toHaveURL(/\/about/)
-  const aboutNav = page.getByRole('link', { name: '关于' })
   await expect(aboutNav).toHaveClass(/nav-active/)
   expect(await aboutNav.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
   expect(await aboutNav.evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain(
@@ -1033,6 +978,58 @@ test('geek-style design: mono fonts; links are bold+underline with inverted hove
   expect(await postsNav.evaluate((el) => getComputedStyle(el).textDecorationLine)).not.toContain(
     'underline',
   )
+})
+
+test('nav & footer links focus-visible matches hover: transparent bg + accent color + underline + bold (keyboard Tab, issue #52)', async ({
+  page,
+}) => {
+  await page.goto('/')
+
+  // 归一化亮色（focus-visible 颜色断言用）后重置焦点（主题切换点击会聚焦按钮，
+  // 否则后续 Tab 链整体偏移一位）
+  const html = page.locator('html')
+  if (((await html.getAttribute('class')) ?? '').includes('dark')) {
+    await page.getByRole('button', { name: '切换暗色模式' }).click()
+  }
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.())
+
+  // 等水合完成（点阵 canvas 仅客户端挂载）再按 Tab，避免快速 Tab 落在水合期间被吞
+  await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
+
+  // 基线：首页非 active 的「关于」导航项为普通文本外观（无下划线、不加粗）
+  const aboutNav = page.getByRole('link', { name: '关于' })
+  await expect(aboutNav).toHaveCSS('font-weight', '400')
+  await expect(aboutNav).toHaveCSS('text-decoration-line', 'none')
+
+  // Tab 1 → 「文章」导航项（首页 active 项，加粗/下划线既有；背景/颜色不回归）
+  await page.keyboard.press('Tab')
+  const postsNav = page.getByRole('link', { name: '文章', exact: true })
+  await expect(postsNav).toBeFocused()
+  await expect(postsNav).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+
+  // Tab 2 → 「关于」导航项（非 active）：focus-visible 与 hover 同一视觉机制
+  // （背景透明 + accent 色 + 加粗 + 下划线，无背景色块）
+  await page.keyboard.press('Tab')
+  await expect(aboutNav).toBeFocused()
+  await expect(aboutNav).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(aboutNav).toHaveCSS('color', 'rgb(26, 26, 26)')
+  await expect(aboutNav).toHaveCSS('font-weight', '700')
+  await expect(aboutNav).toHaveCSS('text-decoration-line', 'underline')
+
+  // 页脚 CC 链接：Tab 顺延至页脚（主题 → GitHub → RSS → hero GitHub 外链 →
+  // 全部文章行 → CC），焦点反馈与 hover 一致（背景透明 + accent 色 + 下划线 + 加粗）。
+  // 不硬编码 Tab 次数（正常链路 = 距「关于」5 + 文章行数）：逐次 Tab 至 CC 聚焦即停，
+  // 上限多加 30 次防真回归死循环；中途新增可聚焦项不破坏本用例
+  const ccLink = page.getByRole('link', { name: 'CC BY-NC-SA 4.0' })
+  for (let i = 0; i < publishedPosts().length + 30; i++) {
+    await page.keyboard.press('Tab')
+    if (await ccLink.evaluate((el) => el === document.activeElement)) break
+  }
+  await expect(ccLink).toBeFocused()
+  await expect(ccLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(ccLink).toHaveCSS('color', 'rgb(26, 26, 26)')
+  await expect(ccLink).toHaveCSS('text-decoration-line', 'underline')
+  await expect(ccLink).toHaveCSS('font-weight', '700')
 })
 
 test('fonts are self-hosted: woff2 on same origin, no external font requests', async ({
