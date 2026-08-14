@@ -192,6 +192,39 @@ html.dark .bg-texture {
   pointer-events: none;
 }
 
+/* ===== 主题切换按钮与过渡（issue #54） ===== */
+
+/* 图标按钮：月亮（亮色，点击进入暗色）/ 太阳（暗色，点击进入亮色）——动作语义
+   图标（一眼看出切换后进入的主题）；currentColor 线性符号（icons.svg 精灵），
+   颜色 = --color-accent（亮色近黑 / 暗色近白，随主题灰阶自动反色），与导航
+   GitHub/RSS 图标同一视觉层级；hover/focus 无背景色块（issue #52 机制） */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  color: var(--color-accent);
+  cursor: pointer;
+}
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  background-color: transparent;
+  color: var(--color-accent);
+}
+
+/* 主题切换过渡：支持 View Transitions API 的浏览器由入口脚本给 <html> 挂 .theme-vt
+   标记类（见 index.html）——整页交叉淡化交给 View Transition（旧/新快照交叉淡化，
+   背景纹理与点阵 canvas 均被快照覆盖），此时禁用 CSS 过渡（不双重动画）；
+   无标记（不支持该 API）时 CSS 过渡兜底——html 背景/文字颜色平滑渐变
+   （color 为继承属性，正文各元素随 html 动画值逐帧跟随）。
+   prefers-reduced-motion：JS 侧跳过 View Transition、CSS 侧禁用过渡（见底部 reduce 块） */
+html:not(.theme-vt) {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
 /* ===== hero 终端（issue #18）：pi.dev 风格 AI 会话演出 ===== */
 
 /* hero 区入场动画：克制（淡入 + 轻微上移 8px，纯 CSS） */
@@ -1170,5 +1203,9 @@ html.dark .drawer-panel {
   .drawer-overlay,
   .drawer-panel {
     animation: none;
+  }
+  /* 主题切换过渡兜底：reduce 下禁用（瞬时切换，issue #54） */
+  html:not(.theme-vt) {
+    transition: none;
   }
 }

@@ -20,6 +20,14 @@
         }
       })()
     </script>
+    <script>
+      // 主题过渡标记（issue #54）：支持 View Transitions API 时给 <html> 挂 .theme-vt。
+      // CSS 以标记门控——标记存在时整页交叉淡化交给 View Transition（禁用 CSS 过渡，
+      // 不双重动画）；无标记（不支持该 API）时 CSS 过渡兜底。首帧前执行，避免切换瞬间样式闪跳。
+      if (document.startViewTransition) {
+        document.documentElement.classList.add('theme-vt')
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
