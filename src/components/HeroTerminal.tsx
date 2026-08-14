@@ -1,9 +1,6 @@
 import { type CSSProperties, type ReactNode } from 'react'
 import siteMeta from 'virtual:site-meta'
 
-import { formatGitStats } from '../statusBar.ts'
-import { useTheme } from '../useTheme.ts'
-
 /**
  * hero 终端（issue #40，父 PRD #16）：真实 AI 编码 agent 会话演出（pi 风格）。
  *
@@ -34,8 +31,9 @@ import { useTheme } from '../useTheme.ts'
  *   （问题行内排布、不重叠），全部动画禁用
  * - 预渲染 HTML 含演出全文（输入框文本 + Thinking…/Done. + 回答 + 状态栏），
  *   爬虫不执行 JS 可读，无 hydration mismatch
- * - 状态栏：● live（红点软脉冲无限循环）+ 文章数 · 标签数（构建期自动计算）+
- *   既有 issue #42 三段真实信息（版本 / 主题 / git）
+ * - 状态栏（issue #55 精简）：● live（红点软脉冲无限循环）+ 文章数 · 标签数
+ *   （构建期自动计算）+ 版本号（构建期注入 package.json）；role=status 语义
+ *   保留（内容更新仍可被读屏播报）。issue #42 的 theme / git 两段环境噪声已移除
  */
 
 /** 打字机参数：每字符耗时（总时长由文本长度驱动） */
@@ -229,8 +227,6 @@ export default function HeroTerminal({
   turns: TerminalTurn[]
   siteStats: SiteStats
 }) {
-  // 当前主题：SSR/水合首帧输出确定性值 'light'，水合后更新为实际主题（无 mismatch）
-  const theme = useTheme()
   const timeline = computeTurnTimings(turns)
 
   return (
@@ -290,9 +286,9 @@ export default function HeroTerminal({
         </div>
       </div>
 
-      {/* 状态栏（issue #40 + #42）：● live · 文章数 · 标签数 · v<版本> · theme · git；
+      {/* 状态栏（issue #40 + #55 精简）：● live · 文章数 · 标签数 · v<版本>；
           ● live 红点软脉冲无限循环；文章数/标签数构建期自动计算（调用方传入）；
-          git 不可得时该段省略（role=status：主题切换时读屏播报更新） */}
+          版本号构建期注入 package.json（role=status：内容更新可被读屏播报） */}
       <div className="hero-terminal-caption" role="status" aria-label="终端状态栏">
         <span className="live-dot" aria-hidden="true" />
         <span className="status-item">live</span>
@@ -314,30 +310,6 @@ export default function HeroTerminal({
         <span className="status-item" data-version={siteMeta.version}>
           v{siteMeta.version}
         </span>
-        <span className="status-sep" aria-hidden="true">
-          ·
-        </span>
-        {/* 当前主题：运行时状态（data-theme 供 e2e 断言） */}
-        <span className="status-item" data-theme={theme}>
-          theme: {theme}
-        </span>
-        {/* git 状态：构建期注入真实仓库统计；不可得时整段省略 */}
-        {siteMeta.git && (
-          <>
-            <span className="status-sep" aria-hidden="true">
-              ·
-            </span>
-            <span
-              className="status-item"
-              data-git-branch={siteMeta.git.branch}
-              data-git-sha={siteMeta.git.sha}
-              data-git-count={siteMeta.git.commitCount}
-              data-git-dirty={String(siteMeta.git.dirty)}
-            >
-              git: {formatGitStats(siteMeta.git)}
-            </span>
-          </>
-        )}
       </div>
 
       <span className="hero-terminal-corner hero-terminal-corner--bl" aria-hidden="true">
