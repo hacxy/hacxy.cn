@@ -29,6 +29,10 @@
 
 # 关闭 issue
 
+本迭代完成的 issue 清单（合并成功一个就关一个）：
+
+{{ISSUES}}
+
 对每个**成功合并**的分支，关闭其 issue：
 
 `gh issue close <number> --reason completed`

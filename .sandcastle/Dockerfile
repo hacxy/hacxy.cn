@@ -36,6 +36,11 @@ ARG AGENT_GID=1000
 RUN groupmod -o -g $AGENT_GID node && usermod -o -u $AGENT_UID -g $AGENT_GID -d /home/agent -m -l agent node
 USER ${AGENT_UID}:${AGENT_GID}
 
+# 以 agent 用户预热 corepack pnpm 缓存：
+# 上面的 root 预热只写 /root/.cache，agent 用户每次容器首启都要重新下载 pnpm tarball——
+# 那是一个失败点（网络抖动即挂），在这里以 agent 身份下载并写进镜像，容器内零下载。
+RUN corepack prepare pnpm@11.21.0 --activate
+
 WORKDIR /home/agent
 
 # 沙箱模式：worktree 会被 bind-mount 到 /home/agent/workspace
