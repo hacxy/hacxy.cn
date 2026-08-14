@@ -1,4 +1,6 @@
-import { useTheme } from '../useTheme.ts'
+import { useRef } from 'react'
+
+import { useTheme, type Theme } from '../useTheme.ts'
 import Icon from './Icon.tsx'
 
 /**
@@ -19,19 +21,34 @@ import Icon from './Icon.tsx'
  */
 export default function ThemeToggle() {
   const theme = useTheme()
+  // 未落地的目标主题：startViewTransition 的回调是异步任务，快速连点时新过渡会跳过
+  // 前一回调（丢翻转）——把每次点击折叠进目标态，由最后一次回调一次落地
+  const pendingTarget = useRef<Theme | null>(null)
 
   const toggle = () => {
     const root = document.documentElement
-    const next = !root.classList.contains('dark')
+    const current: Theme =
+      pendingTarget.current ?? (root.classList.contains('dark') ? 'dark' : 'light')
+    pendingTarget.current = current === 'dark' ? 'light' : 'dark'
+
     const apply = () => {
-      root.classList.toggle('dark', next)
-      localStorage.setItem('theme', next ? 'dark' : 'light')
+      const target = pendingTarget.current
+      pendingTarget.current = null
+      if (!target) return
+      root.classList.toggle('dark', target === 'dark')
+      localStorage.setItem('theme', target)
     }
+
     const canViewTransition =
       !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
       typeof document.startViewTransition === 'function'
     if (canViewTransition) {
-      document.startViewTransition(apply)
+      try {
+        document.startViewTransition(apply)
+      } catch {
+        // API 存在但调用失败（如页面非激活态）：同步兜底，不丢本次切换
+        apply()
+      }
     } else {
       apply()
     }

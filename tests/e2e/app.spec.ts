@@ -982,6 +982,17 @@ test('theme toggle icon: light=moon, dark=sun; html transition marker; final bg 
   // 入口脚本在支持 View Transitions API 的浏览器给 <html> 挂 .vt-supported（CSS 门控标记）
   await expect(html).toHaveClass(/vt-supported/)
 
+  // 包装 startViewTransition 计数：确定性断言「点击确实经整页过渡包裹」，避免 getAnimations 时序抖动
+  await page.evaluate(() => {
+    const original = document.startViewTransition.bind(document)
+    ;(window as unknown as { __vtCalls: number }).__vtCalls = 0
+    document.startViewTransition = (updateCallback) => {
+      ;(window as unknown as { __vtCalls: number }).__vtCalls += 1
+      return original(updateCallback)
+    }
+  })
+  const vtCalls = () => page.evaluate(() => (window as unknown as { __vtCalls: number }).__vtCalls)
+
   // 归一化亮色（初始主题由环境决定，先切到已知状态）
   if (((await html.getAttribute('class')) ?? '').includes('dark')) {
     await toggle.click()
@@ -990,22 +1001,50 @@ test('theme toggle icon: light=moon, dark=sun; html transition marker; final bg 
 
   // 亮色 = 月亮（点击进入暗色）→ 切到暗色 = 太阳（点击进入亮色）
   await expect(toggle.locator('use')).toHaveAttribute('href', '/icons.svg#moon-icon')
+  const before = await vtCalls()
   await toggle.click()
   await expect(toggle.locator('use')).toHaveAttribute('href', '/icons.svg#sun-icon')
-
-  // 切换确实走整页交叉淡化（View Transition 动画在根快照上），且最终态为暗色黑底
-  const vtActive = await page.evaluate(() =>
-    document
-      .getAnimations()
-      .some((a) => (a.effect as KeyframeEffect | null)?.pseudoElement?.includes('view-transition')),
-  )
-  expect(vtActive).toBe(true)
+  // 切换确实被 startViewTransition 包裹（整页交叉淡化），且最终态为暗色黑底
+  expect(await vtCalls()).toBe(before + 1)
   await expect(html).toHaveCSS('background-color', 'rgb(10, 10, 10)')
 
   // 切回亮色 → 月亮 + 白底最终态
+  const beforeBack = await vtCalls()
   await toggle.click()
   await expect(toggle.locator('use')).toHaveAttribute('href', '/icons.svg#moon-icon')
+  expect(await vtCalls()).toBe(beforeBack + 1)
   await expect(html).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+})
+
+test('theme toggle: rapid double-click keeps both toggles (async view-transition callback must not swallow clicks) (issue #54)', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const html = page.locator('html')
+  const toggle = page.getByRole('button', { name: '切换暗色模式' })
+
+  // 归一化亮色
+  if (((await html.getAttribute('class')) ?? '').includes('dark')) {
+    await toggle.click()
+  }
+  await expect(html).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+
+  // 同一任务内连点两次：startViewTransition 的回调异步落地，新过渡会跳过前一回调——
+  // 两次点击的目标都必须保留（亮→暗→亮 = 回到亮色，localStorage 同步为 light）
+  await page.evaluate(() => {
+    const btn = document.querySelector<HTMLButtonElement>('button[aria-label="切换暗色模式"]')
+    btn?.click()
+    btn?.click()
+  })
+  await expect(html).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+  await expect(html).not.toHaveClass(/dark/)
+  await expect(toggle.locator('use')).toHaveAttribute('href', '/icons.svg#moon-icon')
+  expect(await page.evaluate(() => localStorage.getItem('theme'))).toBe('light')
+
+  // 连点后按钮未被卡死：单点仍正常进入暗色
+  await toggle.click()
+  await expect(html).toHaveClass(/dark/)
+  await expect(html).toHaveCSS('background-color', 'rgb(10, 10, 10)')
 })
 
 test('theme toggle: prefers-reduced-motion switches instantly, no view transition (issue #54)', async ({
@@ -1015,6 +1054,16 @@ test('theme toggle: prefers-reduced-motion switches instantly, no view transitio
   await page.goto('/')
   const html = page.locator('html')
   const toggle = page.getByRole('button', { name: '切换暗色模式' })
+
+  // 包装 startViewTransition 计数：断言 reduce 下 JS 侧一次都不调用（瞬时切换）
+  await page.evaluate(() => {
+    const original = document.startViewTransition.bind(document)
+    ;(window as unknown as { __vtCalls: number }).__vtCalls = 0
+    document.startViewTransition = (updateCallback) => {
+      ;(window as unknown as { __vtCalls: number }).__vtCalls += 1
+      return original(updateCallback)
+    }
+  })
 
   // 归一化亮色
   if (((await html.getAttribute('class')) ?? '').includes('dark')) {
@@ -1026,13 +1075,8 @@ test('theme toggle: prefers-reduced-motion switches instantly, no view transitio
   // 瞬时切换：类与背景色同步到位（computed style 直接读取即为最终态，无过渡）
   expect(await html.getAttribute('class')).toContain('dark')
   expect(await html.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(10, 10, 10)')
-  // JS 侧跳过 View Transition：根上无交叉淡化动画
-  const vtActive = await page.evaluate(() =>
-    document
-      .getAnimations()
-      .some((a) => (a.effect as KeyframeEffect | null)?.pseudoElement?.includes('view-transition')),
-  )
-  expect(vtActive).toBe(false)
+  // JS 侧跳过 View Transition：startViewTransition 一次都不调用
+  expect(await page.evaluate(() => (window as unknown as { __vtCalls: number }).__vtCalls)).toBe(0)
   await expect(toggle.locator('use')).toHaveAttribute('href', '/icons.svg#sun-icon')
 })
 

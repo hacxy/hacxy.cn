@@ -184,12 +184,13 @@ html.dark .shiki span {
   ::view-transition-new(root) {
     animation-duration: 0.3s;
   }
-  /* 兜底：无 View Transitions API 的浏览器，元素级过渡（含 opacity：不覆盖既有
-     .post-row-prompt 淡入等单属性过渡） */
-  html:not(.vt-supported),
-  html:not(.vt-supported) *,
-  html:not(.vt-supported) *::before,
-  html:not(.vt-supported) *::after {
+  /* 兜底：无 View Transitions API 的浏览器，元素级过渡（background/color/border/opacity）。
+     用 :where() 把选择器特异性归零——既有元素自带的 transition（如 .post-row-prompt
+     淡入 0.15s）不被覆盖，其余元素获得主题过渡兜底 */
+  :where(html:not(.vt-supported)),
+  :where(html:not(.vt-supported)) *,
+  :where(html:not(.vt-supported)) *::before,
+  :where(html:not(.vt-supported)) *::after {
     transition:
       background-color 0.3s ease,
       color 0.3s ease,
