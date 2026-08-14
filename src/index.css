@@ -333,8 +333,9 @@ html.dark .bg-texture {
 /* 块状光标几何（issue #53）：输出行行内光标与输入框停驻光标共用同一套规则——
    高度 = 1em（字形高度，不再 1.05em 高出字形遮住文字）、以字形中线垂直居中、
    不遮挡文字。行内光标（打字机行尾，终端「正在输出」状态）：vertical-align
-   偏移使光标中线 = 行盒中线（= em 盒中线；-0.17em 为 line-height 1.5/1.75
-   两处实测校准值，误差 ≈0.13px）；停驻光标同一高度/宽度，垂直位置按
+   偏移使光标中线 = 行盒中线（-0.17em 为字形度量校准值：基线距 em 盒顶 ≈0.83em；
+   与 line-height 无关——半行高在计算中线时抵消，故 line-height 1.5/1.75
+   两处同一值，实测误差 ≈0.13px）；停驻光标同一高度/宽度，垂直位置按
    padding-top + 半行高余量公式（见 .terminal-input-cursor） */
 .terminal-cursor,
 .terminal-input-cursor {
@@ -417,12 +418,12 @@ html.dark .bg-texture {
 }
 /* 停驻光标：clip 隐藏直到 --delay-appear（末轮发送后），随后块状闪烁继续。
    几何与行内光标共用同一套规则（高度 1em / 字形中线居中，见 .terminal-cursor）；
-   top 按「padding-top + 半行高余量」公式对齐文字行——输入区 line-height 1.5：
-   半行高余量 = (1.5em − 1em)/2 = 0.25em，光标 em 盒与文字行行盒中线重合
-   （不再从 padding 顶边起算） */
+   top 按「padding-top + 半行高余量」公式对齐文字行——半行高余量 =
+   (1lh − 1em)/2（1lh = 行高：输入区 line-height 1.5 → 0.25em，随行高自同步，
+   不再写死 1.5），光标 em 盒与文字行行盒中线重合（不再从 padding 顶边起算） */
 .terminal-input-cursor {
   position: absolute;
-  top: calc(0.4rem + (1.5em - 1em) / 2);
+  top: calc(0.4rem + (1lh - 1em) / 2);
   left: 0.625rem;
   clip-path: inset(0 0 0 0);
   animation:

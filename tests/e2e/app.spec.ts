@@ -485,6 +485,15 @@ test('hero terminal: block cursors share geometry — 1em height, glyph-midline 
   const lastTyped = await terminal.locator('.terminal-typed').last().evaluate(geom)
   expect(parked.center).toBeCloseTo(lastTyped.center, 0)
 
+  // 两处表现一致（共用同一套规则）：输入框打字光标（.terminal-typed 内行内光标，
+  // line-height 1.5 语境）中线 = 同一文字行行盒中线（.terminal-typed 行盒）
+  const typingCursor = await terminal
+    .locator('.terminal-typed')
+    .last()
+    .locator('.terminal-cursor')
+    .evaluate(geom)
+  expect(typingCursor.center).toBeCloseTo(lastTyped.center, 0)
+
   // 垂直中心一致：输出行行内光标中线 = 相邻文字块（所在 .hero-line 行盒）中线
   const typewriterLine = await terminal
     .locator('.hero-line')
