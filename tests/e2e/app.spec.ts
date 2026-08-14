@@ -1194,6 +1194,140 @@ test('nav & footer links focus-visible matches hover: transparent bg + accent co
   await expect(ccLink).toHaveCSS('font-weight', '700')
 })
 
+test('issue #56: nav icon links (GitHub/RSS) hover/focus-visible = transparent bg + muted color, no underline', async ({
+  page,
+}) => {
+  await page.goto('/')
+
+  // 归一化亮色（muted 亮色断言用）后重置焦点（主题切换点击会聚焦按钮）
+  const html = page.locator('html')
+  if (((await html.getAttribute('class')) ?? '').includes('dark')) {
+    await page.getByRole('button', { name: '切换暗色模式' }).click()
+  }
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.())
+  // 等水合完成再按 Tab，避免快速 Tab 落在水合期间被吞
+  await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
+
+  const githubIcon = page.getByRole('link', { name: 'GitHub', exact: true })
+  const rssIcon = page.getByRole('link', { name: 'RSS 订阅' })
+
+  // 基态：图标链接为纯图形元素——无文字下划线
+  await expect(githubIcon).toHaveCSS('text-decoration-line', 'none')
+  await expect(rssIcon).toHaveCSS('text-decoration-line', 'none')
+
+  // focus-visible（键盘）：逐次 Tab 至 GitHub 图标聚焦即停（不硬编码次数，
+  // 防快速 Tab 被水合吞掉）；与 hover 同一反馈：背景透明 + muted + 无下划线
+  for (let i = 0; i < 20; i++) {
+    await page.keyboard.press('Tab')
+    if (await githubIcon.evaluate((el) => el === document.activeElement)) break
+  }
+  await expect(githubIcon).toBeFocused()
+  await expect(githubIcon).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(githubIcon).toHaveCSS('color', 'rgb(102, 102, 102)') // muted 亮色 #666
+  await expect(githubIcon).toHaveCSS('text-decoration-line', 'none')
+  await page.keyboard.press('Tab') // 下一项 = RSS 图标（与 GitHub 相邻）
+  await expect(rssIcon).toBeFocused()
+  await expect(rssIcon).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(rssIcon).toHaveCSS('color', 'rgb(102, 102, 102)')
+  await expect(rssIcon).toHaveCSS('text-decoration-line', 'none')
+
+  // hover（issue #56）：背景保持透明（不再反白色块）+ 颜色降阶 muted + 无下划线
+  await githubIcon.hover()
+  await expect(githubIcon).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(githubIcon).toHaveCSS('color', 'rgb(102, 102, 102)')
+  await expect(githubIcon).toHaveCSS('text-decoration-line', 'none')
+  await rssIcon.hover()
+  await expect(rssIcon).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(rssIcon).toHaveCSS('color', 'rgb(102, 102, 102)')
+  await expect(rssIcon).toHaveCSS('text-decoration-line', 'none')
+
+  // 暗色模式：muted 反色（浅灰 #9e9e9e），同一机制
+  await page.getByRole('button', { name: '切换暗色模式' }).click()
+  await githubIcon.hover()
+  await expect(githubIcon).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(githubIcon).toHaveCSS('color', 'rgb(158, 158, 158)')
+  await expect(githubIcon).toHaveCSS('text-decoration-line', 'none')
+})
+
+test('issue #56: terminal link hover/focus-visible = transparent bg + terminal grayscale fade (theme-independent black terminal)', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const terminalLink = page.getByRole('link', { name: 'https://github.com/hacxy' })
+  await expect(terminalLink).toBeVisible()
+
+  // focus-visible（键盘）：逐次 Tab 至终端 GitHub 外链聚焦即停（不硬编码次数）。
+  // 注意：hover 会在 Chromium 里设置顺序焦点导航起点，故先测键盘再测 hover
+  await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
+  for (let i = 0; i < publishedPosts().length + 30; i++) {
+    await page.keyboard.press('Tab')
+    if (await terminalLink.evaluate((el) => el === document.activeElement)) break
+  }
+  await expect(terminalLink).toBeFocused()
+  await expect(terminalLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(terminalLink).toHaveCSS('color', 'rgb(140, 140, 140)')
+
+  // hover：背景保持透明（不再白底反白）+ 终端内灰阶降阶（#8c8c8c，恒黑底终端
+  // 独立于页面主题）；文字链接下划线/加粗基态保留
+  await terminalLink.hover()
+  await expect(terminalLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(terminalLink).toHaveCSS('color', 'rgb(140, 140, 140)')
+  await expect(terminalLink).toHaveCSS('text-decoration-line', 'underline')
+})
+
+test('issue #56: drawer trigger & close hover/focus-visible = transparent bg + underline / muted (open state not regressing)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1000, height: 800 })
+  await page.goto('/posts/prerendered-blog-with-vite')
+
+  const tocTrigger = page.getByRole('button', { name: '目录' })
+  await expect(tocTrigger).toBeVisible()
+
+  // 基态：终端风格按钮（浅灰底 prose-bg）
+  await expect(tocTrigger).toHaveCSS('background-color', 'rgb(245, 245, 245)')
+
+  // focus-visible（键盘）：逐次 Tab 至「目录」触发按钮聚焦即停（按钮条在正文之前）。
+  // 注意：hover 会在 Chromium 里设置顺序焦点导航起点，故先测键盘再测 hover
+  for (let i = 0; i < 30; i++) {
+    await page.keyboard.press('Tab')
+    if (await tocTrigger.evaluate((el) => el === document.activeElement)) break
+  }
+  await expect(tocTrigger).toBeFocused()
+  await expect(tocTrigger).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(tocTrigger).toHaveCSS('text-decoration-line', 'underline')
+
+  // 键盘 Enter 打开抽屉 → 焦点移入关闭按钮：focus-visible = 透明背景 + muted
+  // （符号按钮不适用下划线）；打开的抽屉对应按钮加粗 + 下划线不回归
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('dialog', { name: '文章目录' })).toBeVisible()
+  const closeBtn = page.getByRole('button', { name: '关闭' })
+  await expect(closeBtn).toBeFocused()
+  await expect(closeBtn).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(closeBtn).toHaveCSS('color', 'rgb(102, 102, 102)') // muted
+  await expect(tocTrigger).toHaveAttribute('aria-expanded', 'true')
+  await expect(tocTrigger).toHaveCSS('font-weight', '700')
+  await expect(tocTrigger).toHaveCSS('text-decoration-line', 'underline')
+
+  // 关闭按钮 hover（鼠标）：与 focus-visible 同一反馈（透明背景 + muted）
+  await closeBtn.hover()
+  await expect(closeBtn).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(closeBtn).toHaveCSS('color', 'rgb(102, 102, 102)')
+
+  // Esc 关闭：焦点归还触发按钮，其 focus-visible 反馈仍为透明背景 + 下划线
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: '文章目录' })).toHaveCount(0)
+  await expect(tocTrigger).toBeFocused()
+  await expect(tocTrigger).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(tocTrigger).toHaveCSS('text-decoration-line', 'underline')
+
+  // 触发按钮 hover（鼠标）：透明背景 + 下划线（颜色保持 accent），与 focus-visible 一致
+  await tocTrigger.hover()
+  await expect(tocTrigger).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(tocTrigger).toHaveCSS('text-decoration-line', 'underline')
+  await expect(tocTrigger).toHaveCSS('color', 'rgb(26, 26, 26)') // accent 亮色
+})
+
 test('fonts are self-hosted: woff2 on same origin, no external font requests', async ({
   page,
   request,

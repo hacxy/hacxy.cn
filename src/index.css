@@ -30,15 +30,14 @@
    代码与元数据 = JetBrains Mono；全站配色为纯黑白灰阶（issue #17）：
    亮色 = 白底黑字 + 灰阶过渡，暗色 = 黑底白字反色，无任何彩色系残留。
    链接不再依赖颜色区分（见 @layer base 全站链接样式）：下划线 + 加粗，
-   hover/focus 背景保持透明 + 颜色/下划线反馈（issue #52，不再黑白反白块）。 */
+   hover/focus 背景保持透明 + 颜色/下划线反馈（issue #52，不再黑白反白块）；
+   图标链接/抽屉按钮/终端链接等表面同样无背景反白（issue #56）。 */
 @theme {
   --font-sans:
     system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   /* 亮色：白底黑字。强调色 = 近黑（链接与正文同色，靠下划线/加粗区分） */
   --color-accent: #1a1a1a;
-  /* hover 反白用：强调色底上的反色（亮色 = 黑底白字） */
-  --color-accent-contrast: #ffffff;
   /* 终端输出：亮色近黑 */
   --color-terminal: #111111;
   --color-muted: #666666;
@@ -53,9 +52,8 @@
 }
 
 html.dark {
-  /* 暗色：黑底白字反色。强调色 = 近白（hover 反白 = 白底黑字） */
+  /* 暗色：黑底白字反色。强调色 = 近白 */
   --color-accent: #e6e6e6;
-  --color-accent-contrast: #000000;
   /* 终端输出：暗色浅灰 */
   --color-terminal: #e6e6e6;
   --color-muted: #9e9e9e;
@@ -132,6 +130,20 @@ html.dark {
     display: block;
     overflow-x: auto;
   }
+}
+
+/* 导航图标链接（GitHub/RSS，纯图形元素，issue #56）：无文字下划线（svg-only 不适用
+   文字下划线）；hover/focus-visible 背景保持透明（不再反白色块）+ 颜色降阶 muted
+   （灰度可见反馈，随亮暗主题反色）。放在层外（非 @layer base）：图标链接基色来自
+   Tailwind text-accent 工具类（utilities 层），同层/内层规则无法覆盖工具类颜色 */
+.icon-link {
+  text-decoration: none;
+}
+.icon-link:hover,
+.icon-link:focus-visible {
+  background-color: transparent;
+  color: var(--color-muted);
+  text-decoration: none;
 }
 
 /* 全站平滑滚动（issue #30）：目录锚点点击 = 原生 hash 跳转 + CSS 平滑滚动
@@ -529,12 +541,13 @@ html:not(.theme-vt) {
   }
 }
 
-/* 终端内链接 hover/focus：恒黑底终端自闭环（白底黑字反白），与页面 chrome 主题解耦
-   （issue #52：全站链接去反白后，终端自闭环反白保留，focus 与 hover 同一视觉机制） */
+/* 终端内链接 hover/focus（issue #56）：恒黑底终端自闭环——背景保持透明
+   （不再白底黑字反白），颜色降阶为终端内灰阶（#8c8c8c，与状态栏弱化灰同一层级）；
+   终端恒黑底、独立于页面主题，灰阶取值固定不随亮暗切换；下划线/加粗基态保留 */
 .hero-terminal a:hover,
 .hero-terminal a:focus-visible {
-  background-color: #fff;
-  color: #000;
+  background-color: transparent;
+  color: #8c8c8c;
 }
 
 /* 文章卡片（issue #14）：标题栏 ●●● 装饰圆点（亮色由浅到深、暗色由深到浅，
@@ -919,8 +932,9 @@ html.dark .terminal-dot--green {
   }
 }
 
-/* 触发按钮：终端风格（mono + 边框 + 灰底），hover/focus 反白与全站交互一致
-   （键盘 Tab 与鼠标 hover 同一视觉机制，issue #52） */
+/* 触发按钮：终端风格（mono + 边框 + 灰底），hover/focus-visible（issue #56）
+   背景保持透明 + 下划线（不再反白色块）；颜色保持 accent；
+   打开的抽屉对应按钮加粗 + 下划线（[aria-expanded='true'] 见下，不回归） */
 .drawer-trigger {
   align-items: center;
   padding: 0.25rem 0.75rem;
@@ -934,8 +948,10 @@ html.dark .terminal-dot--green {
 }
 .drawer-trigger:hover,
 .drawer-trigger:focus-visible {
-  background-color: var(--color-accent);
-  color: var(--color-accent-contrast);
+  background-color: transparent;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .drawer-trigger[aria-expanded='true'] {
   font-weight: 700;
@@ -1011,7 +1027,8 @@ html.dark .drawer-panel {
   }
 }
 
-/* 关闭按钮：面板右上角（flex 列末尾右对齐）；hover/focus 反白（与鼠标一致） */
+/* 关闭按钮：面板右上角（flex 列末尾右对齐）；hover/focus-visible（issue #56）
+   背景保持透明 + 颜色降阶 muted（符号按钮不适用下划线） */
 .drawer-close {
   align-self: flex-end;
   width: 2rem;
@@ -1026,8 +1043,8 @@ html.dark .drawer-panel {
 }
 .drawer-close:hover,
 .drawer-close:focus-visible {
-  background-color: var(--color-accent);
-  color: var(--color-accent-contrast);
+  background-color: transparent;
+  color: var(--color-muted);
 }
 
 /* 抽屉内复用桌面侧栏组件：覆盖其 <1024px/<768px 的隐藏与 sticky 定位
