@@ -23,8 +23,10 @@
 1. **探索** —— 仔细阅读 issue。如果引用了父 PRD 或相关文档，先读完。
    - 阅读相关源码和测试后再编辑
 2. **计划** —— 决定改什么、为什么。让改动尽可能小。
-3. **执行** —— 使用 RGR（Red → Green → Repeat → Refactor）循环：先写失败测试，再写实现让它通过。
+3. **执行** —— 按 TDD 流程执行：先读 `.sandcastle/skills/tdd/SKILL.md`（及其配套文件），严格遵循其工作流程。
+   - AFK 剪裁：该 skill 中"与用户确认"的步骤一律跳过——本 issue 的验收标准即 spec，由你自主决策；重要决策记录在提交信息中
    - 除非已有合适的测试接缝，否则不要为了可测试性随意抽取新函数/新接口——那会制造意大利面条测试（spaghetti tests）
+   - 其他可用 skill 在 `.sandcastle/skills/`：`frontend-design`（视觉设计方向，UI 类 issue 先读它）、`research`（一手文档/API 事实调研）、`prd-to-plan`（计划拆解）。任务匹配时阅读对应 SKILL.md
 4. **验证** —— 提交前运行项目的验证命令，修复所有失败再继续：
    - `pnpm run typecheck`（类型检查）
    - `pnpm run test`（单元测试）

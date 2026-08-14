@@ -1,11 +1,21 @@
 import * as sandcastle from '@ai-hero/sandcastle'
 import { docker } from '@ai-hero/sandcastle/sandboxes/docker'
 import { execSync } from 'node:child_process'
-import { existsSync, readdirSync, rmSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { z } from 'zod'
 
-import { DELIVERY, IMAGE, MODEL, SKIP_LABELS, THINKING, WORKTREES_DIR } from './constants.js'
+import {
+  DELIVERY,
+  IMAGE,
+  MODEL,
+  PI_HOME_DIR,
+  REVIEW_MODEL,
+  SKIP_LABELS,
+  THINKING,
+  WORKTREES_DIR,
+} from './constants.js'
 
 /** 清理上次异常中断可能残留的沙箱容器（docker）与 worktree 目录 */
 export function cleanupResidue(): void {
@@ -44,6 +54,14 @@ export function cleanupResidue(): void {
     }
   } catch {
     // 非 git 仓库等场景忽略
+  }
+
+  // 3. 残留 pi-home（干净配置目录，session 已捕获到宿主 ~/.pi/agent/sessions，可整体清空重建）
+  try {
+    rmSync(PI_HOME_DIR, { recursive: true, force: true })
+    mkdirSync(PI_HOME_DIR, { recursive: true })
+  } catch {
+    // 忽略
   }
 }
 
@@ -103,18 +121,34 @@ export function recentCommits(): string {
   }
 }
 
-/** 基础沙箱：pi 配置挂载（可写，pi 要写 sessions/锁文件），可附加 env */
+/** 读宿主 pi 凭据（~/.pi/agent/auth.json 的 deepseek key），沙箱经 env 注入，不挂载 auth 文件 */
+function deepseekApiKey(): string | undefined {
+  try {
+    const auth = JSON.parse(readFileSync(join(homedir(), '.pi', 'agent', 'auth.json'), 'utf8')) as {
+      deepseek?: unknown
+    }
+    return typeof auth.deepseek === 'string' ? auth.deepseek : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** 基础沙箱：干净 pi 配置目录（.sandcastle/pi-home，可写），凭据走 env，不挂载宿主 ~/.pi */
 export function baseSandbox(env?: Record<string, string>): sandcastle.SandboxProvider {
+  const key = deepseekApiKey()
   return docker({
     imageName: IMAGE,
     mounts: [
-      { hostPath: '~/.pi', sandboxPath: '/home/agent/.pi' },
+      // 沙箱内 pi 的配置/会话目录（pi 默认 /home/agent/.pi/agent/sessions）。
+      // 不挂宿主 ~/.pi：避免扩展、settings.json 的 npm packages、keybindings 等污染沙箱。
+      // session 捕获是文件传输机制，捕获后仍落回宿主 ~/.pi/agent/sessions。
+      { hostPath: PI_HOME_DIR, sandboxPath: '/home/agent/.pi' },
       // 修复 sandcastle #855/#854：worktree 反向 gitdir 链接在容器内不可见，
       // 容器内 git prune 会把 worktree 管理目录误删（双向挂载直接删到宿主）。
       // 把 .sandcastle/worktrees 挂到容器内的宿主路径，使指针目标可见。
       { hostPath: '.sandcastle/worktrees', sandboxPath: resolve('.sandcastle/worktrees') },
     ],
-    env,
+    env: key ? { DEEPSEEK_API_KEY: key, ...env } : env,
   })
 }
 
@@ -171,13 +205,35 @@ export async function implement(planned: PlannedIssue): Promise<number> {
     return 0
   }
 
-  console.log(`  ✓ #${planned.number} 完成：${result.commits.length} 个提交`)
+  console.log(`  ✓ #${planned.number} 实现完成：${result.commits.length} 个提交`)
+
+  // ---- S3: Review（同沙箱串行；reviewer 直接改代码 + 提交，无人值守下评论没人回应）----
+  console.log(`  🔍 #${planned.number} review 中…`)
+  const review = await sandbox.run({
+    name: `review-${planned.number}`,
+    agent: sandcastle.pi(REVIEW_MODEL, { thinking: THINKING }),
+    maxIterations: 10,
+    promptFile: './.sandcastle/review-prompt.md',
+    promptArgs: {
+      ISSUE_NUMBER: String(planned.number),
+      ISSUE_TITLE: planned.title,
+      ISSUE_BODY: detail.body || '(无正文)',
+      ISSUE_COMMENTS: detail.comments.length ? detail.comments.join('\n---\n') : '(无评论)',
+      BRANCH: branch,
+    },
+  })
+  if (review.commits.length > 0) {
+    console.log(`  ✅ #${planned.number} review 产出 ${review.commits.length} 个提交`)
+  } else {
+    console.log(`  ⏹ #${planned.number} review 无改动`)
+  }
+
   deliver(planned)
   return result.commits.length
 }
 
 function deliver(issue: PlannedIssue): void {
-  if (DELIVERY === 'push' || DELIVERY === 'pr') {
+  if (DELIVERY === 'push' || DELIVERY === 'pr' || DELIVERY === 'merge') {
     execSync(`git push -u origin ${issue.branch}`, { stdio: 'inherit' })
     console.log(`  ↑ 已推送 ${issue.branch}`)
   }
