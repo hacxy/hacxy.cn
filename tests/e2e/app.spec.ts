@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 
-import { currentGitStats } from './git-helper.ts'
 import {
   expectedNeighbors,
   expectedDirectory,
@@ -133,7 +132,8 @@ test('hero terminal: transcript → divider (────) → input → status 
   await expect(input.locator('.terminal-typed')).toHaveCount(3)
   await expect(input.locator('.terminal-input-cursor')).toHaveCount(1)
 
-  // 底部 caption = 终端状态栏（issue #42）：● live · v<版本> · theme · git
+  // 底部 caption = 终端状态栏（issue #42 + #55 精简）：● live · v<版本>
+  // （issue #55 移除 theme / git 段，只保留站点真实信息）
   const caption = terminal.locator('.hero-terminal-caption')
   await expect(caption).toBeVisible()
   await expect(caption.getByText('live', { exact: true })).toBeVisible()
@@ -148,10 +148,14 @@ test('hero terminal: transcript → divider (────) → input → status 
   await expect(dot).toBeVisible()
   expect(await dot.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(239, 68, 68)')
 
-  // 状态段真实信息各自存在（内容由专门用例从源计算断言）：版本 / 主题 / git
+  // 状态段真实信息存在（内容由专门用例从源计算断言）：版本号（构建期注入）
   await expect(caption.locator('.status-item').filter({ hasText: /^v\d/ })).toBeVisible()
-  await expect(caption.locator('[data-theme]')).toBeVisible()
-  await expect(caption.locator('[data-git-branch]')).toBeVisible()
+
+  // issue #55：theme 段与 git 段不再渲染（DOM 不存在——环境噪声段已从状态栏移除）
+  await expect(caption.locator('[data-theme]')).toHaveCount(0)
+  await expect(caption.locator('[data-git-branch]')).toHaveCount(0)
+  await expect(caption.getByText(/^theme:/)).toHaveCount(0)
+  await expect(caption.getByText(/^git:/)).toHaveCount(0)
 
   // 无 mac 装饰圆点窗口栏（issue #18 移除；文章卡片的 ●●● 标题栏不受影响）
   await expect(terminal.locator('.hero-terminal-bar')).toHaveCount(0)
@@ -180,81 +184,6 @@ test('status bar: site version injected from package.json at build time (issue #
   expect(html).toContain(expected)
 })
 
-test('status bar: theme segment updates instantly when toggling (issue #42)', async ({ page }) => {
-  await page.goto('/')
-  const themeItem = page.locator('.hero-terminal-caption [data-theme]')
-  await expect(themeItem).toBeVisible()
-
-  // 归一化亮色（初始主题由环境决定，先切到已知状态）
-  if ((await themeItem.getAttribute('data-theme')) === 'dark') {
-    await page.getByRole('button', { name: '切换暗色模式' }).click()
-  }
-  await expect(themeItem).toHaveAttribute('data-theme', 'light')
-  await expect(themeItem).toHaveText('theme: light')
-
-  // 切换主题 → 状态栏即时更新（MutationObserver 监听 html class，无需刷新）
-  await page.getByRole('button', { name: '切换暗色模式' }).click()
-  await expect(themeItem).toHaveAttribute('data-theme', 'dark')
-  await expect(themeItem).toHaveText('theme: dark')
-
-  await page.getByRole('button', { name: '切换暗色模式' }).click()
-  await expect(themeItem).toHaveText('theme: light')
-})
-
-test('status bar: SSR ships deterministic theme value, hydrates to actual theme without mismatch (issue #42)', async ({
-  page,
-  request,
-}) => {
-  const consoleErrors: string[] = []
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') consoleErrors.push(msg.text())
-  })
-  page.on('pageerror', (err) => consoleErrors.push(err.message))
-
-  // SSR 确定性输出 'light'（与 hydration 首帧一致 → 无 mismatch）；
-  // 先剥离 React SSR 的 <!-- --> 注释分隔符再断言
-  const html = (await (await request.get('/')).text()).replaceAll('<!-- -->', '')
-  expect(html).toContain('theme: light')
-
-  // 暗色偏好：首帧前 inline 防闪烁脚本置 .dark → 水合后状态栏更新为实际主题 dark
-  await page.addInitScript(() => localStorage.setItem('theme', 'dark'))
-  await page.goto('/')
-  const themeItem = page.locator('.hero-terminal-caption [data-theme]')
-  await expect(themeItem).toHaveText('theme: dark')
-
-  // 全程无 hydration/mismatch 报错（React 对 useSyncExternalStore 用服务端快照水合）
-  expect(consoleErrors.filter((e) => /hydrat|mismatch/i.test(e))).toHaveLength(0)
-})
-
-test('status bar: git stats computed from the real repository (issue #42)', async ({
-  page,
-  request,
-}) => {
-  // 期望值从真实仓库计算（与构建期注入同一契约：分支 / 短 SHA / 提交数 / 脏标记）
-  const git = currentGitStats()
-  test.skip(!git, '非 git 目录：git 段优雅省略（省略逻辑由单测覆盖）')
-
-  await page.goto('/')
-  const gitItem = page.locator('.hero-terminal-caption [data-git-branch]')
-  await expect(gitItem).toBeVisible()
-  await expect(gitItem).toHaveAttribute('data-git-branch', git?.branch ?? '')
-  await expect(gitItem).toHaveAttribute('data-git-sha', git?.sha ?? '')
-  await expect(gitItem).toHaveAttribute('data-git-count', String(git?.commitCount))
-  await expect(gitItem).toHaveAttribute('data-git-dirty', String(git?.dirty))
-
-  // 展示形态：git: branch[@dirty]@shortsha · N commits（与 formatGitStats 同一契约）
-  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const branch = esc(git?.branch ?? '')
-  await expect(gitItem).toHaveText(
-    new RegExp(`^git: ${branch}\\*?@${git?.sha} · ${git?.commitCount} commits$`),
-  )
-
-  // 构建期注入 → 预渲染 HTML 已含 git 段（爬虫不执行 JS 可读）；先剥离 SSR 注释分隔符；
-  // 脏工作区分支带 * 后缀（与 formatGitStats 同一契约）
-  const html = (await (await request.get('/')).text()).replaceAll('<!-- -->', '')
-  expect(html).toContain(`git: ${git?.branch}${git?.dirty ? '*' : ''}@${git?.sha}`)
-})
-
 test('prerendered HTML contains the full conversation text (SEO no regression)', async ({
   request,
 }) => {
@@ -277,14 +206,16 @@ test('prerendered HTML contains the full conversation text (SEO no regression)',
   expect(html).toContain('https://github.com/hacxy')
   // 分隔线（────）
   expect(html).toContain('────')
-  // 状态栏（issue #40 + #42）：live + 文章数·标签数 + 版本 + theme: light
+  // 状态栏（issue #40 + #55）：live + 文章数·标签数 + 版本（issue #55 移除 theme/git 段）
   expect(html).toContain('live')
   expect(html).toContain('篇文章')
   const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
     version: string
   }
   expect(html).toContain(`v${pkg.version}`)
-  expect(html).toContain('theme: light')
+  // issue #55：theme / git 环境噪声段不在预渲染 HTML 中（DOM 不存在）
+  expect(html).not.toContain('theme: ')
+  expect(html).not.toContain('commits')
 })
 
 test('hero terminal: CSS show plays once and stops; live dot + parked cursor pulse infinitely', async ({
