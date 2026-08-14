@@ -8,12 +8,14 @@ import {
   treeVisiblePosts,
 } from './posts-helper.ts'
 
-test('hero: big h1 site name + AI agent conversation (three Q&A rounds)', async ({ page }) => {
+test('hero: AI agent conversation (three Q&A rounds), no site-name h1 (issue #67)', async ({
+  page,
+}) => {
   await page.goto('/')
 
-  // 大号站点名作为 h1（既有 E2E 对 h1 的断言保留）
-  const heading = page.getByRole('heading', { level: 1, name: 'Hacxy' })
-  await expect(heading).toBeVisible()
+  // issue #67：首页不再展示站点名标题——全页无 h1、「Hacxy」不作为标题出现
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Hacxy' })).toHaveCount(0)
 
   // pi 风格 AI 编码 agent 会话演出终端可见
   const terminal = page.locator('.hero-terminal')
@@ -174,12 +176,15 @@ test('status bar: site version injected from package.json at build time (issue #
 test('prerendered HTML contains the full conversation text (SEO no regression)', async ({
   request,
 }) => {
-  // 站点名 h1 + 三轮问答全文（输入框打字文本 + transcript 问题行 + Thinking…/Done. +
-  // 回答 + 状态栏）都在预渲染源码中（爬虫不执行 JS 即可读）。注：React SSR
-  // 会在混合静态文本与表达式的节点间插入 <!-- --> 注释（文本本身连续），先剥离再断言全文
+  // 三轮问答全文（输入框打字文本 + transcript 问题行 + Thinking…/Done. + 回答 + 状态栏）
+  // 都在预渲染源码中（爬虫不执行 JS 即可读）；「Hacxy」仅出现在页脚版权（issue #67：
+  // 站点名标题 h1 已移除）。注：React SSR 会在混合静态文本与表达式的节点间插入
+  // <!-- --> 注释（文本本身连续），先剥离再断言全文
   const html = (await (await request.get('/')).text()).replaceAll('<!-- -->', '')
 
   expect(html).toContain('Hacxy')
+  // issue #67：首页预渲染源码不再含站点名标题 h1
+  expect(html).not.toContain('<h1')
   // 三轮问题：transcript 用户行 + 输入框打字文本（输入框文本同样进预渲染 HTML）
   for (const q of ['你是谁', '这个站有什么', '怎么联系']) {
     expect(html).toContain(q)
@@ -674,10 +679,12 @@ test('post rows are keyboard reachable: Tab focus, visible focus style, Enter op
   await expect(page).toHaveURL(new RegExp(`/posts/${publishedPosts()[0]?.slug}`))
 })
 
-test('homepage shows site name and the fixture post', async ({ page }) => {
+test('homepage: site-name title removed, fixture post shown (issue #67)', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { name: 'Hacxy' })).toBeVisible()
+  // issue #67：站点名不再作为标题展示（h1 移除）
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Hacxy' })).toHaveCount(0)
   await expect(page.getByText('你好，世界')).toBeVisible()
   await expect(page.getByText('2026-08-10')).toBeVisible()
 })
@@ -691,7 +698,9 @@ test('nav switches between posts list and about page', async ({ page }) => {
 
   await page.getByRole('link', { name: '文章' }).click()
   await expect(page).toHaveURL('/')
-  await expect(page.getByRole('heading', { name: 'Hacxy' })).toBeVisible()
+  // 回到首页：终端演出可见（站点名标题已移除，issue #67）
+  await expect(page.locator('.hero-terminal')).toBeVisible()
+  await expect(page.getByText('你好，世界')).toBeVisible()
 })
 
 test('unknown path renders 404', async ({ page }) => {
@@ -1129,11 +1138,11 @@ test('geek-style design: mono fonts; links are bold+underline with transparent h
 }) => {
   await page.goto('/')
 
-  // 站点名与日期元数据使用等宽字体（JetBrains Mono 自托管）
-  const nameFont = await page
-    .getByRole('heading', { name: 'Hacxy' })
+  // 终端与日期元数据使用等宽字体（JetBrains Mono 自托管；站点名标题已移除，issue #67）
+  const terminalFont = await page
+    .locator('.hero-terminal')
     .evaluate((el) => getComputedStyle(el).fontFamily)
-  expect(nameFont).toContain('JetBrains Mono')
+  expect(terminalFont).toContain('JetBrains Mono')
 
   const dateFont = await page
     .getByText('2026-08-11')
@@ -1490,8 +1499,8 @@ test('dots animation is skipped under prefers-reduced-motion: page renders, no c
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
 
-  // 页面正常渲染（无动画依赖）
-  await expect(page.getByRole('heading', { name: 'Hacxy' })).toBeVisible()
+  // 页面正常渲染（无动画依赖；站点名标题已移除，issue #67）
+  await expect(page.locator('.hero-terminal')).toBeVisible()
   await expect(page.getByText('你好，世界')).toBeVisible()
 
   // prefers-reduced-motion：完全不渲染 canvas（无结构、无报错）
