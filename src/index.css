@@ -190,7 +190,8 @@ html.dark .bg-texture {
 
 /* 图标按钮：月亮（亮色，点击进入暗色）/ 太阳（暗色，点击进入亮色）——动作语义
    图标（一眼看出切换后进入的主题）；currentColor 线性符号（icons.svg 精灵），
-   颜色 = --color-accent（随主题灰阶自动反色） */
+   颜色 = --color-accent（随主题灰阶自动反色）；hover/focus-visible 背景保持透明
+   + 颜色降阶 muted（issue #68，与 GitHub 图标一致） */
 .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -203,7 +204,7 @@ html.dark .bg-texture {
 .theme-toggle:hover,
 .theme-toggle:focus-visible {
   background-color: transparent;
-  color: var(--color-accent);
+  color: var(--color-muted);
 }
 
 /* 主题切换过渡：支持 View Transitions API 时由入口脚本给 <html> 挂 .theme-vt

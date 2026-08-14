@@ -1317,6 +1317,62 @@ test('issue #56: nav icon links (GitHub/RSS) hover/focus-visible = transparent b
   await expect(githubIcon).toHaveCSS('text-decoration-line', 'none')
 })
 
+test('issue #68: theme toggle hover/focus-visible matches GitHub icon = transparent bg + muted color (visible fade)', async ({
+  page,
+}) => {
+  await page.goto('/')
+
+  // 归一化亮色（muted 亮色断言用）后重置焦点（主题切换点击会聚焦按钮）
+  const html = page.locator('html')
+  if (((await html.getAttribute('class')) ?? '').includes('dark')) {
+    await page.getByRole('button', { name: '切换暗色模式' }).click()
+  }
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.())
+  // 等水合完成再按 Tab，避免快速 Tab 落在水合期间被吞
+  await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
+
+  const toggle = page.getByRole('button', { name: '切换暗色模式' })
+  const githubIcon = page.getByRole('link', { name: 'GitHub', exact: true })
+
+  // 基态：accent 色 + 透明背景（与 GitHub 图标同一视觉层级）
+  await expect(toggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(toggle).toHaveCSS('color', 'rgb(26, 26, 26)') // accent 亮色 #1a1a1a
+
+  // focus-visible（键盘）：Tab 至主题按钮聚焦——与 hover 同一反馈：背景透明 + muted
+  for (let i = 0; i < 20; i++) {
+    await page.keyboard.press('Tab')
+    if (await toggle.evaluate((el) => el === document.activeElement)) break
+  }
+  await expect(toggle).toBeFocused()
+  await expect(toggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(toggle).toHaveCSS('color', 'rgb(102, 102, 102)') // muted 亮色 #666
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.())
+
+  // hover（issue #68）：背景保持透明 + 颜色降阶 muted——颜色变化可见（≠ 基态 accent），
+  // 且与 GitHub 图标 hover 完全一致（同一 muted 令牌 → 同一计算色）
+  await toggle.hover()
+  const toggleHoverColor = await toggle.evaluate((el) => getComputedStyle(el).color)
+  await expect(toggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(toggle).toHaveCSS('color', 'rgb(102, 102, 102)')
+  await githubIcon.hover()
+  const githubHoverColor = await githubIcon.evaluate((el) => getComputedStyle(el).color)
+  // 与 GitHub 图标 hover 颜色一致（同一 muted 令牌 → 同一计算色）
+  expect(toggleHoverColor).toBe(githubHoverColor)
+  // 确有可见颜色变化：hover 颜色 ≠ 基态 accent
+  expect(toggleHoverColor).not.toBe('rgb(26, 26, 26)')
+
+  // 暗色模式：muted 反色（浅灰 #9e9e9e），与 GitHub 图标同一机制
+  await page.getByRole('button', { name: '切换暗色模式' }).click()
+  await toggle.hover()
+  const toggleHoverDark = await toggle.evaluate((el) => getComputedStyle(el).color)
+  await expect(toggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(toggle).toHaveCSS('color', 'rgb(158, 158, 158)')
+  await githubIcon.hover()
+  const githubHoverDark = await githubIcon.evaluate((el) => getComputedStyle(el).color)
+  expect(toggleHoverDark).toBe(githubHoverDark)
+  expect(toggleHoverDark).not.toBe('rgb(230, 230, 230)') // ≠ 暗色基态 accent
+})
+
 test('issue #56: terminal link hover/focus-visible = transparent bg + terminal grayscale fade (theme-independent black terminal)', async ({
   page,
 }) => {
