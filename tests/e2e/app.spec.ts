@@ -477,6 +477,45 @@ test('hero terminal: reduced-motion skips all animations, full text visible, no 
   expect(pageErrors).toHaveLength(0)
 })
 
+test('hero terminal: block cursors share one geometry — glyph height (1em), centered on glyph midline (issue #53)', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const terminal = page.locator('.hero-terminal')
+
+  // 几何助手：getBoundingClientRect → 顶/底/垂直中心/高度（像素浮点）
+  const rect = (el: Element) => {
+    const r = el.getBoundingClientRect()
+    return { top: r.top, bottom: r.bottom, center: (r.top + r.bottom) / 2, height: r.height }
+  }
+
+  // 输出行行内光标（打字机行尾）：高度 = 字形高度（1em），垂直中心 = 相邻文字块
+  // 垂直中心（绝对定位于文字容器：top 50% + translateY(-50%) ⇒ 行框中心 = 字形中线）
+  const lineCursor = terminal.locator('.typewriter-text > .terminal-cursor')
+  const lineText = terminal.locator('.typewriter-text')
+  const lineFontSize = parseFloat(await lineText.evaluate((el) => getComputedStyle(el).fontSize))
+  const [cLine, tLine] = await Promise.all([lineCursor.evaluate(rect), lineText.evaluate(rect)])
+  expect(Math.abs(cLine.center - tLine.center)).toBeLessThan(1)
+  expect(Math.abs(cLine.height - lineFontSize)).toBeLessThan(0.5)
+  // 光标垂直范围落在文字行内（不遮住上下相邻行文字）
+  expect(cLine.top).toBeGreaterThanOrEqual(tLine.top - 1)
+  expect(cLine.bottom).toBeLessThanOrEqual(tLine.bottom + 1)
+
+  // 输入框停驻光标：同一几何规则——top = padding-top + 半行高余量（对齐文字行，
+  // 不再从 padding 顶边起算），垂直中心与输入框文字块一致、高度 = 字形高度
+  const parked = terminal.locator('.terminal-input-cursor')
+  const inputText = terminal.locator('.terminal-input-text').first()
+  const inputFontSize = parseFloat(await inputText.evaluate((el) => getComputedStyle(el).fontSize))
+  const [cParked, tInput] = await Promise.all([parked.evaluate(rect), inputText.evaluate(rect)])
+  expect(Math.abs(cParked.center - tInput.center)).toBeLessThan(1)
+  expect(Math.abs(cParked.height - inputFontSize)).toBeLessThan(0.5)
+  expect(cParked.top).toBeGreaterThanOrEqual(tInput.top - 1)
+  expect(cParked.bottom).toBeLessThanOrEqual(tInput.bottom + 1)
+
+  // 两处光标高度一致（共用同一套几何规则：高度 1em、字形中线垂直居中）
+  expect(Math.abs(cParked.height - cLine.height)).toBeLessThan(0.5)
+})
+
 test('post list: terminal output lines show mono date, title and #tags (no description)', async ({
   page,
 }) => {
