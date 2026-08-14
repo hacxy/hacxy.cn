@@ -215,15 +215,15 @@ test('prerendered HTML contains the full conversation text (SEO no regression)',
   expect(html).not.toContain('theme: light')
 })
 
-test('hero terminal: CSS show plays once and stops; live dot + parked cursor pulse infinitely', async ({
+test('hero terminal: CSS show plays once and stops; live dot pulses infinitely, parked cursor stays steady (issue #63)', async ({
   page,
 }) => {
   await page.goto('/')
   const terminal = page.locator('.hero-terminal')
 
   // 演出动画均播放一遍后停驻：问题行淡入 1 次、行内打字机 1 次、Thinking… 脉冲 3 次
-  // （3 × 0.3s = 与 THINK_DUR 同周期）、输入框打字（input-type）与清空（input-hide）
-  // 各 1 次且 fill both → 停驻最终态；不循环
+  // （3 × 0.3s = 与 THINK_DUR 同周期）、输入框打字（input-type，作用于文本 span）与
+  // 清空（input-hide，作用于整轮槽位）各 1 次且 fill both → 停驻最终态；不循环
   expect(
     await terminal
       .locator('.user-question')
@@ -241,18 +241,33 @@ test('hero terminal: CSS show plays once and stops; live dot + parked cursor pul
       .first()
       .evaluate((el) => getComputedStyle(el).animationIterationCount),
   ).toBe('1, 3')
+  // 输入槽位：打字揭示（input-type，在 .terminal-input-text 上）与发送清空
+  // （input-hide，在 .terminal-typed 上）各自 1 次（issue #63：clip 移到文本 span，
+  // 输入光标不再被同一 clip 裁掉）
   expect(
     await terminal
       .locator('.terminal-typed')
       .first()
       .evaluate((el) => getComputedStyle(el).animationIterationCount),
-  ).toBe('1, 1')
+  ).toBe('1')
   expect(
     await terminal
       .locator('.terminal-typed')
       .first()
       .evaluate((el) => getComputedStyle(el).animationName),
-  ).toBe('input-type, input-hide')
+  ).toBe('input-hide')
+  expect(
+    await terminal
+      .locator('.terminal-input-text')
+      .first()
+      .evaluate((el) => getComputedStyle(el).animationName),
+  ).toBe('input-type')
+  expect(
+    await terminal
+      .locator('.terminal-input-text')
+      .first()
+      .evaluate((el) => getComputedStyle(el).animationIterationCount),
+  ).toBe('1')
 
   // 仅 live 红点无限循环（软脉冲，0.9s，opacity 1↔0.35）——持续闪烁的 live 状态指示
   expect(
@@ -263,12 +278,12 @@ test('hero terminal: CSS show plays once and stops; live dot + parked cursor pul
   expect(
     await terminal.locator('.live-dot').evaluate((el) => getComputedStyle(el).animationDuration),
   ).toBe('0.9s')
-  // 停驻光标：末轮发送后出现（cursor-appear 1 次）并块状闪烁无限循环（演出停驻态）
+  // 停驻光标：末轮发送后出现（cursor-appear 1 次）并常亮停驻（issue #63：不闪烁）
   expect(
     await terminal
       .locator('.terminal-input-cursor')
       .evaluate((el) => getComputedStyle(el).animationIterationCount),
-  ).toBe('infinite, 1')
+  ).toBe('1')
 
   // 等演出播完，停在最终态：末轮回答完全可见（opacity 1）、tagline 全文揭示、
   // 输入框全部清空（每轮打字文本 opacity 0）、停驻光标出现在输入框
@@ -301,14 +316,22 @@ test('hero terminal: per-round choreography — input types, then send, then Thi
   const terminal = page.locator('.hero-terminal')
   const typed = terminal.locator('.terminal-typed')
 
-  // 每轮：输入框逐字符打字（第 0 条动画）先开始，发送（第 1 条动画 = 输入框清空）在后
+  // 每轮：输入框逐字符打字（input-type 在文本 span 上）先开始，发送
+  // （input-hide = 输入框清空，在整轮槽位上）在后（issue #63：打字 clip 移到
+  // .terminal-input-text，发送清空仍在 .terminal-typed——两类动画职责分离）
   const delays = (el: Element) =>
     getComputedStyle(el)
       .animationDelay.split(',')
       .map((d) => parseFloat(d))
-  const [typeDelay0, hideDelay0] = await typed.first().evaluate(delays)
-  expect(typeDelay0!).toBeGreaterThan(0)
-  expect(hideDelay0!).toBeGreaterThan(typeDelay0!)
+  const typeDelay0 = parseFloat(
+    await terminal
+      .locator('.terminal-input-text')
+      .first()
+      .evaluate((el) => getComputedStyle(el).animationDelay),
+  )
+  const [hideDelay0] = await typed.first().evaluate(delays)
+  expect(typeDelay0).toBeGreaterThan(0)
+  expect(hideDelay0!).toBeGreaterThan(typeDelay0)
 
   for (let r = 0; r < 3; r++) {
     const turn = terminal.locator('.hero-turn').nth(r)
@@ -316,7 +339,7 @@ test('hero terminal: per-round choreography — input types, then send, then Thi
     const questionDelay = parseFloat(
       await turn.locator('.user-question').evaluate((el) => getComputedStyle(el).animationDelay),
     )
-    const roundHide = (await typed.nth(r).evaluate(delays))[1]!
+    const roundHide = (await typed.nth(r).evaluate(delays))[0]!
     expect(questionDelay).toBe(roundHide)
 
     // 状态行与回答行依次晚于发送：Thinking… → Done. → 回答
@@ -351,10 +374,57 @@ test('hero terminal: per-round choreography — input types, then send, then Thi
   )
   expect(nextType).toBeGreaterThan(firstRoundLastAnswer)
 
-  // 停驻光标：末轮发送后出现（演出停驻态，块状闪烁继续）
-  const lastHide = (await typed.nth(2).evaluate(delays))[1]!
-  const cursorAppear = (await terminal.locator('.terminal-input-cursor').evaluate(delays))[1]!
+  // 停驻光标：末轮发送后出现（演出停驻态，常亮不闪烁，issue #63）
+  const lastHide = (await typed.nth(2).evaluate(delays))[0]!
+  const cursorAppear = (await terminal.locator('.terminal-input-cursor').evaluate(delays))[0]!
   expect(cursorAppear).toBeGreaterThan(lastHide)
+})
+
+test('hero terminal: input box cursor is visible throughout the show and stays steady (issue #63)', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const terminal = page.locator('.hero-terminal')
+  const round1Cursor = terminal.locator('.terminal-typed').nth(0).locator('.terminal-cursor')
+  const round2Cursor = terminal.locator('.terminal-typed').nth(1).locator('.terminal-cursor')
+  const parked = terminal.locator('.terminal-input-cursor')
+
+  // 真实绘制判定：取光标矩形中心用 elementsFromPoint 命中检测——光标出现在该点的
+  // 绘制栈中才算真画出来了（clip-path 裁切的内容会被移出命中测试；旧行为正是被
+  // 输入槽位 clip 裁掉 → 绘制栈中完全没有光标）。注：其余透明槽位兄弟叠于光标之上
+  // （槽位因 input-hide 的 opacity 动画形成独立层叠上下文，光标 z-index 受其容纳），
+  // 但它们在该处不绘制任何内容，用户可见的光标不受影响
+  const painted = (sel: string) =>
+    page.evaluate((s) => {
+      const el = document.querySelector(s) as HTMLElement | null
+      if (!el) return false
+      const r = el.getBoundingClientRect()
+      return document.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2).includes(el)
+    }, sel)
+
+  // 常亮（issue #63）：输入光标不闪烁——打字光标与停驻光标都不带 terminal-blink 动画；
+  // 停驻光标仅 cursor-appear 出现 1 次（无无限循环）
+  for (const cursor of [round1Cursor, round2Cursor, parked]) {
+    expect(await cursor.evaluate((el) => getComputedStyle(el).animationName)).not.toContain(
+      'terminal-blink',
+    )
+  }
+  expect(await parked.evaluate((el) => getComputedStyle(el).animationIterationCount)).toBe('1')
+
+  // 演出过程中光标一直可见（issue #63）：
+  // - 第 1 轮打字窗口中部（t≈1s，typeStart 0.25s ~ sendTime 2.1s）：round1 光标跟随
+  //   打字位置逐字符右移且 opacity 恒 1（无闪烁）
+  // - 轮次间隙（t≈4s，round1 已发送清空、round2 尚未开始）：round2 光标常驻空输入框行首
+  // 时间窗取时刻表宽窗口中部，避免 CI 启动抖动
+  await page.waitForTimeout(1000)
+  expect(await painted('.terminal-typed:nth-child(1) .terminal-cursor')).toBe(true)
+  expect(await round1Cursor.evaluate((el) => getComputedStyle(el).opacity)).toBe('1')
+  await page.waitForTimeout(3000)
+  expect(await painted('.terminal-typed:nth-child(2) .terminal-cursor')).toBe(true)
+  expect(await round2Cursor.evaluate((el) => getComputedStyle(el).opacity)).toBe('1')
+
+  // 演出播完后：停驻光标真实出现在输入框（常亮，等末轮发送后出现）
+  await expect.poll(() => painted('.terminal-input-cursor'), { timeout: 25_000 }).toBe(true)
 })
 
 test('hero terminal: reduced-motion skips all animations, full text visible, no errors', async ({
@@ -377,13 +447,14 @@ test('hero terminal: reduced-motion skips all animations, full text visible, no 
   await expect(terminal.locator('.terminal-status--done').first()).toBeVisible()
   await expect(terminal.getByText('了解真相，才能获得真正的自由')).toBeVisible()
 
-  // 全部动画禁用（animation: none）：问题行淡入 / 状态行 / 打字机 / 输入框打字与清空 /
-  // 停驻光标 / live 点脉冲 / hero 入场
+  // 全部动画禁用（animation: none）：问题行淡入 / 状态行 / 打字机 / 输入框打字
+  // （文本 span + 槽位）与清空 / 停驻光标 / live 点脉冲 / hero 入场
   for (const sel of [
     '.user-question',
     '.terminal-status',
     '.typewriter-text',
     '.terminal-typed',
+    '.terminal-input-text',
     '.terminal-input-cursor',
     '.live-dot',
     '.hero-enter',

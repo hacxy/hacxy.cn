@@ -403,8 +403,10 @@ html:not(.theme-vt) {
   height: 1em;
   background: #fff;
 }
-/* 行内块状闪烁光标：打字机行尾（终端「正在输出」状态）与输入框打字光标；
-   跟随文字末尾（容器右端 + 0.1em 间距），随容器 clip-path 一起逐字符揭示 */
+/* 行内块状闪烁光标：打字机行尾（终端「正在输出」状态）——跟随文字末尾
+   （容器右端 + 0.1em 间距），随容器 clip-path 一起逐字符揭示。
+   输入框内打字光标另见 .terminal-typed .terminal-cursor（issue #63：常亮、
+   跟随打字逐字符右移，不闪烁） */
 .terminal-cursor {
   position: absolute;
   top: 50%;
@@ -435,10 +437,16 @@ html:not(.theme-vt) {
 
 /* 输入区（issue #40）：终端底部输入框（演出用，非交互）。每轮一个 .terminal-typed
    （绝对定位叠放于同一槽位，同一时刻仅当前轮文本可见）：
-   - 打字：clip-path + steps(字符数) 逐字符揭示（input-type，延续行内打字机同一机制）
-   - 发送：opacity 淡出清空（input-hide，与问题进入 transcript 同一时刻）——
-     两条动画作用于不同属性（clip-path / opacity），互不干扰且各自 fill both
-   - 停驻光标：末轮发送后出现在输入框行首，块状闪烁无限循环（演出停驻态） */
+   - 打字：clip-path + steps(字符数) 逐字符揭示（input-type）——issue #63：clip
+     作用于文本 span（.terminal-input-text）而非槽位本身，输入光标（槽位内兄弟
+     元素）不再被同一 clip 裁切，全程可见
+   - 发送：opacity 淡出清空（input-hide，作用于槽位，与问题进入 transcript 同一
+     时刻）——clip 与 opacity 作用于不同元素不同属性，互不干扰且各自 fill both
+   - 输入光标（.terminal-typed .terminal-cursor，issue #63）：常亮不闪烁，随打字
+     逐字符右移（input-cursor-move 与 input-type 同一时刻表同步）；--delay-cursor
+     控制出现时刻——首轮即刻显示、其后每轮在上轮发送清空后立即出现，演出全程
+     输入框内光标常驻
+   - 停驻光标：末轮发送后出现在输入框行首，常亮停驻（不闪烁，issue #63） */
 .terminal-input-row {
   padding: 0 1rem 0.75rem;
 }
@@ -462,10 +470,15 @@ html:not(.theme-vt) {
   left: 0.625rem;
   white-space: nowrap;
   /* 基础态完整可见（reduced-motion / 无动画时输入框直接显示全文） */
+  animation: input-hide 0.2s ease var(--delay-hide, 30s) both;
+}
+/* 打字文本 span：clip-path 逐字符揭示（input-type，steps(字符数)）。issue #63：
+   clip 作用于文本本身而非整槽位，输入光标（槽位内兄弟元素）不被裁切 */
+.terminal-input-text {
+  display: inline-block;
   clip-path: inset(0 0 0 0);
-  animation:
-    input-type var(--type-duration, 1.5s) steps(var(--type-chars, 8)) var(--delay-type, 0s) both,
-    input-hide 0.2s ease var(--delay-hide, 30s) both;
+  animation: input-type var(--type-duration, 1.5s) steps(var(--type-chars, 8)) var(--delay-type, 0s)
+    both;
 }
 @keyframes input-type {
   from {
@@ -483,9 +496,29 @@ html:not(.theme-vt) {
     opacity: 0;
   }
 }
-/* 停驻光标：clip 隐藏直到 --delay-appear（末轮发送后），随后块状闪烁继续
-   （块状视觉与行内 .terminal-cursor 同一形态：白块 + 闪烁，几何规则见 .terminal-cursor
-   共用块——高度 1em、以字形中线垂直居中） */
+/* 输入框打字光标（issue #63）：常亮不闪烁（覆盖行内 .terminal-cursor 的闪烁），
+   随打字逐字符右移——left 0 → calc(100% + 0.1em)，steps(字符数) 与 input-type
+   同一时刻表同步（每敲一个字符光标跳到下一插入位）；cursor-appear 控制出现时刻
+   （--delay-cursor：首轮即刻、其后每轮在上轮发送清空后）→ 演出全程光标常驻。
+   z-index 1：光标（定位元素）绘制于槽位文本之上，不被同槽文本压盖 */
+.terminal-typed .terminal-cursor {
+  z-index: 1;
+  animation:
+    cursor-appear 0.01s linear var(--delay-cursor, 60s) both,
+    input-cursor-move var(--type-duration, 1.5s) steps(var(--type-chars, 8)) var(--delay-type, 0s)
+      both;
+}
+@keyframes input-cursor-move {
+  from {
+    left: 0;
+  }
+  to {
+    left: calc(100% + 0.1em);
+  }
+}
+/* 停驻光标：clip 隐藏直到 --delay-appear（末轮发送后），随后常亮停驻
+   （issue #63：不再闪烁；块状视觉与行内 .terminal-cursor 同一形态，几何规则见
+   .terminal-cursor 共用块——高度 1em、以字形中线垂直居中） */
 .terminal-input-cursor {
   position: absolute;
   /* 对齐文字行：padding-top + 半行高余量（(line-height − 1em)/2，line-height 1.5
@@ -493,9 +526,7 @@ html:not(.theme-vt) {
   top: calc(var(--input-pad-y) + (var(--input-line-height) - 1) * 0.5em);
   left: 0.625rem;
   clip-path: inset(0 0 0 0);
-  animation:
-    terminal-blink 1.1s steps(1) infinite,
-    cursor-appear 0.01s linear var(--delay-appear, 60s) both;
+  animation: cursor-appear 0.01s linear var(--delay-appear, 60s) both;
 }
 @keyframes cursor-appear {
   from {
@@ -1206,6 +1237,7 @@ html.dark .drawer-panel {
   .hero-line,
   .typewriter-text,
   .terminal-typed,
+  .terminal-input-text,
   .terminal-input-cursor,
   .live-dot,
   .terminal-cursor,

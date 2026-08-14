@@ -10,7 +10,8 @@ import siteMeta from 'virtual:site-meta'
  *
  * 每轮演出（全部数据驱动）：输入框自动逐字符打字输入问题 → 发送（问题进入
  * transcript 成为用户行、输入框清空）→ Thinking… → Done. → 回答。
- * 演出播放一遍后停驻最终态（不循环）：输入框为空、块状闪烁光标继续。
+ * 演出播放一遍后停驻最终态（不循环）：输入框为空、常亮光标停驻（issue #63：
+ * 输入光标演出全程常亮显示、不闪烁）。
  *
  * 设计决策：
  * - 数据模型为「轮次」（TerminalTurn：question + lines），不再区分
@@ -26,8 +27,10 @@ import siteMeta from 'virtual:site-meta'
  *   属性互不干扰）；Thinking… 状态行带灰阶脉冲（3 次后停驻）；回答行淡入，
  *   行内 typewriter 行逐字符揭示
  * - 输入区：三轮问题各一个 .terminal-typed（绝对定位叠放于同一槽位，clip 动画
- *   使同一时刻仅当前轮文本可见）；停驻光标 .terminal-input-cursor 在末轮发送后
- *   出现（块状闪烁无限循环）；reduced-motion 时输入框全文直接可见
+ *   使同一时刻仅当前轮文本可见）；输入光标常亮不闪烁（issue #63：随打字逐字符
+ *   右移，--delay-cursor 控制出现——首轮即刻、其后每轮在上轮发送清空后，演出
+ *   全程输入框内光标常驻）；停驻光标 .terminal-input-cursor 在末轮发送后出现
+ *   （常亮停驻，不闪烁）；reduced-motion 时输入框全文直接可见
  *   （问题行内排布、不重叠），全部动画禁用
  * - 预渲染 HTML 含演出全文（输入框文本 + Thinking…/Done. + 回答 + 状态栏），
  *   爬虫不执行 JS 可读，无 hydration mismatch
@@ -50,6 +53,9 @@ const ANSWER_IN = 0.2 // Done. 到第一条回答的间隔
 const ANSWER_GAP = 0.25 // 回答行之间错开
 const LINE_IN = 0.3 // 行淡入时长
 const PARK_IN = 0.25 // 停驻光标在末轮发送后的出现延迟
+/** 输入框发送清空时长（与 CSS input-hide 0.2s 保持一致，issue #63：下一轮输入光标
+ *  在上一轮发送清空完成后立即出现，演出全程输入框内光标常驻） */
+const INPUT_HIDE = 0.2
 
 /** 终端输出行：agent 状态行（Thinking…/Done.）或回答行（文本或任意节点） */
 export type TerminalLine =
@@ -254,8 +260,9 @@ export default function HeroTerminal({
         ────
       </div>
 
-      {/* 输入区：每轮一个 .terminal-typed（绝对定位叠放，clip 打字揭示 → 发送时
-          opacity 清空）；停驻光标末轮发送后出现，块状闪烁无限循环 */}
+      {/* 输入区：每轮一个 .terminal-typed（绝对定位叠放，文本 clip 打字揭示 → 发送时
+          opacity 清空）；输入光标常亮不闪烁并随打字右移（issue #63，--delay-cursor
+          控制出现时刻，演出全程光标常驻）；停驻光标末轮发送后出现，常亮停驻 */}
       <div className="terminal-input-row">
         <div className="terminal-input">
           {turns.map((turn, i) => {
@@ -270,6 +277,11 @@ export default function HeroTerminal({
                     '--type-duration': `${t.typeDuration}s`,
                     '--delay-type': `${t.typeStart}s`,
                     '--delay-hide': `${t.sendTime}s`,
+                    // 输入光标出现时刻：首轮即显示；其后每轮在上一轮发送清空完成后
+                    // 立即出现（+ INPUT_HIDE = CSS input-hide 时长）→ 演出全程光标常驻
+                    '--delay-cursor': `${
+                      i === 0 ? 0 : timeline.rounds[i - 1]!.sendTime + INPUT_HIDE
+                    }s`,
                   } as CSSProperties
                 }
               >
