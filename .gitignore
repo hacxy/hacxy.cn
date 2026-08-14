@@ -32,3 +32,6 @@ pnpm-debug.log*
 .sandcastle/logs/
 .sandcastle/worktrees/
 .sandcastle/pi-home/
+
+# pi-workspace 运行时产物
+.workspace/
