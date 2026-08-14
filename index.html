@@ -20,6 +20,15 @@
         }
       })()
     </script>
+    <script>
+      // 主题过渡能力标记（issue #54）：支持 View Transitions API 时给 <html> 挂 .vt-supported，
+      // CSS 以该标记门控兜底过渡（避免与整页交叉淡化双重动画）；不支持时无标记 → CSS 过渡兜底
+      ;(function () {
+        if ('startViewTransition' in document) {
+          document.documentElement.classList.add('vt-supported')
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -153,6 +153,51 @@ html.dark .shiki span {
   background-color: var(--shiki-dark-bg) !important;
 }
 
+/* 主题切换按钮（issue #54）：图标按钮，替换原「主题」文字；图标为 currentColor
+   线性符号（public/icons.svg#moon-icon / #sun-icon），随主题灰度自动反色；
+   hover 反白沿用全站链接机制（accent 令牌），键盘焦点保留默认 outline */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border: none;
+  border-radius: 0.25rem;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-accent);
+}
+.theme-toggle:hover {
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+/* 主题切换过渡（issue #54）：
+   - 支持 View Transitions API（html.vt-supported 由入口脚本标记）：startViewTransition
+     整页交叉淡化，背景纹理（.bg-texture）与点阵 canvas（.bg-dots）均在快照内，不瞬间变白/变黑
+   - 不支持该 API：CSS 过渡兜底（背景/文字/边框色随 .dark 平滑渐变）——CSS 以
+     html:not(.vt-supported) 门控，与整页交叉淡化不双重动画
+   - prefers-reduced-motion：JS 侧跳过 View Transition、此处整体禁用，瞬时切换 */
+@media (prefers-reduced-motion: no-preference) {
+  /* 整页交叉淡化时长与兜底过渡一致（默认 250ms 提至 300ms，双路径同节奏） */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.3s;
+  }
+  /* 兜底：无 View Transitions API 的浏览器，元素级过渡（含 opacity：不覆盖既有
+     .post-row-prompt 淡入等单属性过渡） */
+  html:not(.vt-supported),
+  html:not(.vt-supported) *,
+  html:not(.vt-supported) *::before,
+  html:not(.vt-supported) *::after {
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease,
+      border-color 0.3s ease,
+      opacity 0.3s ease;
+  }
+}
+
 /* 全站背景纹理垫底图层：fixed 铺满视口、z-index 最低、不拦截指针事件，
    挂在 Layout 中作用于全部页面；背景为内联 SVG data-URI 平铺（零外部资源） */
 .bg-texture {

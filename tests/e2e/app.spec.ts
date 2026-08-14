@@ -958,6 +958,11 @@ test('dark mode toggles via button and persists after reload', async ({ page }) 
   const initialDark = ((await html.getAttribute('class')) ?? '').includes('dark')
 
   await page.getByRole('button', { name: '切换暗色模式' }).click()
+  // class 切换由 View Transition 回调异步落地（点击后首帧内），自动等待翻转完成
+  await page.waitForFunction(
+    (initialDark) => document.documentElement.classList.contains('dark') !== initialDark,
+    initialDark,
+  )
   const afterDark = ((await html.getAttribute('class')) ?? '').includes('dark')
   expect(afterDark).not.toBe(initialDark)
 
@@ -965,6 +970,70 @@ test('dark mode toggles via button and persists after reload', async ({ page }) 
   await page.reload()
   const persistedDark = ((await html.getAttribute('class')) ?? '').includes('dark')
   expect(persistedDark).toBe(afterDark)
+})
+
+test('theme toggle icon: light=moon, dark=sun; html transition marker; final bg after cross-fade (issue #54)', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const html = page.locator('html')
+  const toggle = page.getByRole('button', { name: '切换暗色模式' })
+
+  // 入口脚本在支持 View Transitions API 的浏览器给 <html> 挂 .vt-supported（CSS 门控标记）
+  await expect(html).toHaveClass(/vt-supported/)
+
+  // 归一化亮色（初始主题由环境决定，先切到已知状态）
+  if (((await html.getAttribute('class')) ?? '').includes('dark')) {
+    await toggle.click()
+  }
+  await expect(html).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+
+  // 亮色 = 月亮（点击进入暗色）→ 切到暗色 = 太阳（点击进入亮色）
+  await expect(toggle.locator('use')).toHaveAttribute('href', '/icons.svg#moon-icon')
+  await toggle.click()
+  await expect(toggle.locator('use')).toHaveAttribute('href', '/icons.svg#sun-icon')
+
+  // 切换确实走整页交叉淡化（View Transition 动画在根快照上），且最终态为暗色黑底
+  const vtActive = await page.evaluate(() =>
+    document
+      .getAnimations()
+      .some((a) => (a.effect as KeyframeEffect | null)?.pseudoElement?.includes('view-transition')),
+  )
+  expect(vtActive).toBe(true)
+  await expect(html).toHaveCSS('background-color', 'rgb(10, 10, 10)')
+
+  // 切回亮色 → 月亮 + 白底最终态
+  await toggle.click()
+  await expect(toggle.locator('use')).toHaveAttribute('href', '/icons.svg#moon-icon')
+  await expect(html).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+})
+
+test('theme toggle: prefers-reduced-motion switches instantly, no view transition (issue #54)', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/')
+  const html = page.locator('html')
+  const toggle = page.getByRole('button', { name: '切换暗色模式' })
+
+  // 归一化亮色
+  if (((await html.getAttribute('class')) ?? '').includes('dark')) {
+    await toggle.click()
+  }
+  await expect(html).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+
+  await toggle.click()
+  // 瞬时切换：类与背景色同步到位（computed style 直接读取即为最终态，无过渡）
+  expect(await html.getAttribute('class')).toContain('dark')
+  expect(await html.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(10, 10, 10)')
+  // JS 侧跳过 View Transition：根上无交叉淡化动画
+  const vtActive = await page.evaluate(() =>
+    document
+      .getAnimations()
+      .some((a) => (a.effect as KeyframeEffect | null)?.pseudoElement?.includes('view-transition')),
+  )
+  expect(vtActive).toBe(false)
+  await expect(toggle.locator('use')).toHaveAttribute('href', '/icons.svg#sun-icon')
 })
 
 test('prerendered HTML ships the inline no-flash theme script', async ({ request }) => {
@@ -1440,8 +1509,8 @@ test('background texture adapts to theme: light dark-gray, dark light-gray (gray
   const layer = page.locator('.bg-texture')
   const lightBg = await layer.evaluate((el) => getComputedStyle(el).backgroundImage)
   await page.getByRole('button', { name: '切换暗色模式' }).click()
-  const darkBg = await layer.evaluate((el) => getComputedStyle(el).backgroundImage)
-  expect(darkBg).not.toBe(lightBg)
+  // class 切换由 View Transition 回调异步落地 → 等待纹理变体更新（自动等待）
+  await expect(layer).not.toHaveCSS('background-image', lightBg)
 })
 
 test('geek-style OG images are generated and referenced', async ({ request }) => {
