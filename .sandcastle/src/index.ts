@@ -5,7 +5,7 @@ import { existsSync, readdirSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { z } from 'zod'
 
-import { DELIVERY, IMAGE, MODEL, SKIP_LABELS, THINKING, WORKTREES_DIR } from './constants'
+import { DELIVERY, IMAGE, MODEL, SKIP_LABELS, THINKING, WORKTREES_DIR } from './constants.js'
 
 /** 清理上次异常中断可能残留的沙箱容器（docker）与 worktree 目录 */
 export function cleanupResidue(): void {
@@ -107,7 +107,13 @@ export function recentCommits(): string {
 export function baseSandbox(env?: Record<string, string>): sandcastle.SandboxProvider {
   return docker({
     imageName: IMAGE,
-    mounts: [{ hostPath: '~/.pi', sandboxPath: '/home/agent/.pi' }],
+    mounts: [
+      { hostPath: '~/.pi', sandboxPath: '/home/agent/.pi' },
+      // 修复 sandcastle #855/#854：worktree 反向 gitdir 链接在容器内不可见，
+      // 容器内 git prune 会把 worktree 管理目录误删（双向挂载直接删到宿主）。
+      // 把 .sandcastle/worktrees 挂到容器内的宿主路径，使指针目标可见。
+      { hostPath: '.sandcastle/worktrees', sandboxPath: resolve('.sandcastle/worktrees') },
+    ],
     env,
   })
 }

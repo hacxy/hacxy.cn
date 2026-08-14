@@ -21,8 +21,14 @@
  */
 import * as sandcastle from '@ai-hero/sandcastle'
 
-import { baseSandbox, cleanupResidue, implement, planSchema, registerSignalHandlers } from './src'
-import { MAX_ITERATIONS, MAX_PARALLEL, PLANNER_MODEL, THINKING } from './src/constants'
+import { MAX_ITERATIONS, MAX_PARALLEL, PLANNER_MODEL, THINKING } from './src/constants.js'
+import {
+  baseSandbox,
+  cleanupResidue,
+  implement,
+  planSchema,
+  registerSignalHandlers,
+} from './src/index.js'
 
 const originalToISOString = Date.prototype.toISOString
 Date.prototype.toISOString = function (): string {

@@ -1,6 +1,6 @@
-# ISSUES
+# 问题（ISSUES）
 
-Here are the open issues in the repo:
+以下是仓库中未解决的问题：
 
 <issues-json>
 
@@ -8,28 +8,28 @@ Here are the open issues in the repo:
 
 </issues-json>
 
-# TASK
+# 任务（TASK）
 
-Analyze the open issues and build a dependency graph. For each issue, determine whether it **blocks** or **is blocked by** any other open issue.
+分析未解决的问题并构建依赖关系图。针对每个问题，判断它是否**阻塞（blocks）**或**被阻塞（is blocked by）**其他未解决的问题。
 
-An issue B is **blocked by** issue A if:
+如果满足以下任一条件，则问题 B **被**问题 A **阻塞**：
 
-- B requires code or infrastructure that A introduces
-- B and A modify overlapping files or modules, making concurrent work likely to produce merge conflicts
-- B's requirements depend on a decision or API shape that A will establish
+- B 需要 A 引入的代码或基础设施
+- B 与 A 修改重叠的文件或模块，导致并行开发可能产生合并冲突
+- B 的需求依赖于 A 将确定的决策或 API 形态
 
-An issue is **unblocked** if it has zero blocking dependencies on other open issues.
+如果一个问题对其他未解决问题没有任何阻塞依赖，则它是**无阻塞的（unblocked）**。
 
-For each unblocked issue, assign a branch name using the format `sandcastle/issue-{number}-{slug}`.
+为每个无阻塞的问题分配一个分支名，格式为 `sandcastle/issue-{number}-{slug}`。
 
-If the issue appears to be a PRD and it has implementation issues which link to it, the PRD cannot be worked on.
+如果某个问题看起来是 PRD（产品需求文档），且存在链接到它的实现类问题，则该 PRD 不可作为工作项处理。
 
-# OUTPUT
+# 输出（OUTPUT）
 
-Output your plan as a JSON object wrapped in `<plan>` tags:
+将你的计划以 JSON 对象形式输出，包裹在 `<plan>` 标签中：
 
 <plan>
-{"issues": [{"number": 42, "title": "Fix auth bug", "branch": "sandcastle/issue-42-fix-auth-bug"}]}
+{"issues": [{"number": 42, "title": "修复认证漏洞", "branch": "sandcastle/issue-42-fix-auth-bug"}]}
 </plan>
 
-Include only unblocked issues. If every issue is blocked, include the single highest-priority candidate (the one with the fewest or weakest dependencies).
+只包含无阻塞的问题。如果所有问题都被阻塞，则包含唯一一个优先级最高的候选问题（即依赖最少或最弱的那一个）。
