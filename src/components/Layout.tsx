@@ -34,11 +34,11 @@ export default function Layout() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub"
-              className="text-accent"
+              className="icon-link text-accent"
             >
               <Icon name="github-icon" />
             </a>
-            <a href="/feed.xml" aria-label="RSS 订阅" className="text-accent">
+            <a href="/feed.xml" aria-label="RSS 订阅" className="icon-link text-accent">
               <Icon name="rss-icon" />
             </a>
           </span>
