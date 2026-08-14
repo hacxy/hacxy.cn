@@ -429,6 +429,70 @@ test('hero terminal: per-round choreography — input types, then send, then Thi
   expect(cursorAppear).toBeGreaterThan(lastHide)
 })
 
+test('hero terminal: block cursors share geometry — 1em height, glyph-midline centered (issue #53)', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const terminal = page.locator('.hero-terminal')
+
+  // 等演出播完停在最终态（停驻光标已出现、末轮打字机行完全揭示）
+  await expect
+    .poll(
+      () =>
+        terminal
+          .locator('.hero-line')
+          .last()
+          .evaluate((el) => getComputedStyle(el).opacity),
+      { timeout: 25_000 },
+    )
+    .toBe('1')
+
+  // getBoundingClientRect 几何断言（沿用现有 e2e 断言风格）：
+  // 光标与相邻文字块——垂直中心一致、高度一致
+  const geom = (el: Element) => {
+    const r = el.getBoundingClientRect()
+    return { top: r.top, height: r.height, center: r.top + r.height / 2 }
+  }
+  const parked = await terminal.locator('.terminal-input-cursor').evaluate(geom)
+  const inline = await terminal.locator('.typewriter-text .terminal-cursor').evaluate(geom)
+
+  // 1em = 字形高度（输入区计算字号；终端正文同为 0.875rem）
+  const em = parseFloat(
+    await terminal.locator('.terminal-input').evaluate((el) => getComputedStyle(el).fontSize),
+  )
+
+  // 共用同一套几何规则：输出行行内光标与输入框停驻光标高度一致 = 1em
+  // （字形高度，不再 1.05em 高出字形、遮住文字）
+  expect(parked.height).toBeCloseTo(em, 1)
+  expect(inline.height).toBeCloseTo(em, 1)
+
+  // 输入框停驻光标按「padding-top + 半行高余量」公式对齐文字行（不再从 padding
+  // 顶边起算）：top = 边框 + padding-top + (line-height − 1em)/2；
+  // 光标 em 盒中线与行盒中线重合
+  const input = await terminal.locator('.terminal-input').evaluate((el) => {
+    const cs = getComputedStyle(el)
+    return {
+      top: el.getBoundingClientRect().top,
+      borderTop: parseFloat(cs.borderTopWidth),
+      paddingTop: parseFloat(cs.paddingTop),
+      lineHeight: parseFloat(cs.lineHeight),
+    }
+  })
+  const expectedTop = input.top + input.borderTop + input.paddingTop + (input.lineHeight - em) / 2
+  expect(parked.top).toBeCloseTo(expectedTop, 1)
+
+  // 垂直中心一致：停驻光标中线 = 相邻文字块（末轮 .terminal-typed 行盒）中线
+  const lastTyped = await terminal.locator('.terminal-typed').last().evaluate(geom)
+  expect(parked.center).toBeCloseTo(lastTyped.center, 0)
+
+  // 垂直中心一致：输出行行内光标中线 = 相邻文字块（所在 .hero-line 行盒）中线
+  const typewriterLine = await terminal
+    .locator('.hero-line')
+    .filter({ has: page.locator('.typewriter-text') })
+    .evaluate(geom)
+  expect(inline.center).toBeCloseTo(typewriterLine.center, 0)
+})
+
 test('hero terminal: reduced-motion skips all animations, full text visible, no errors', async ({
   page,
 }) => {
