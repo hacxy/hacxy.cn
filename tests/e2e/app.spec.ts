@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 
-import { currentGitStats } from './git-helper.ts'
 import {
   expectedNeighbors,
   expectedDirectory,
@@ -133,7 +132,7 @@ test('hero terminal: transcript → divider (────) → input → status 
   await expect(input.locator('.terminal-typed')).toHaveCount(3)
   await expect(input.locator('.terminal-input-cursor')).toHaveCount(1)
 
-  // 底部 caption = 终端状态栏（issue #42）：● live · v<版本> · theme · git
+  // 底部 caption = 终端状态栏（issue #55 精简）：● live · v<版本>，无 theme / git 段
   const caption = terminal.locator('.hero-terminal-caption')
   await expect(caption).toBeVisible()
   await expect(caption.getByText('live', { exact: true })).toBeVisible()
@@ -148,10 +147,14 @@ test('hero terminal: transcript → divider (────) → input → status 
   await expect(dot).toBeVisible()
   expect(await dot.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(239, 68, 68)')
 
-  // 状态段真实信息各自存在（内容由专门用例从源计算断言）：版本 / 主题 / git
+  // 状态段真实信息各自存在（内容由专门用例从源计算断言）：版本
   await expect(caption.locator('.status-item').filter({ hasText: /^v\d/ })).toBeVisible()
-  await expect(caption.locator('[data-theme]')).toBeVisible()
-  await expect(caption.locator('[data-git-branch]')).toBeVisible()
+
+  // issue #55 精简：theme 段与 git 段不再渲染（DOM 不存在）
+  await expect(caption.locator('[data-theme]')).toHaveCount(0)
+  await expect(caption.getByText(/^theme: /)).toHaveCount(0)
+  await expect(caption.locator('[data-git-branch]')).toHaveCount(0)
+  await expect(caption.getByText(/commits$/)).toHaveCount(0)
 
   // 无 mac 装饰圆点窗口栏（issue #18 移除；文章卡片的 ●●● 标题栏不受影响）
   await expect(terminal.locator('.hero-terminal-bar')).toHaveCount(0)
@@ -180,81 +183,6 @@ test('status bar: site version injected from package.json at build time (issue #
   expect(html).toContain(expected)
 })
 
-test('status bar: theme segment updates instantly when toggling (issue #42)', async ({ page }) => {
-  await page.goto('/')
-  const themeItem = page.locator('.hero-terminal-caption [data-theme]')
-  await expect(themeItem).toBeVisible()
-
-  // 归一化亮色（初始主题由环境决定，先切到已知状态）
-  if ((await themeItem.getAttribute('data-theme')) === 'dark') {
-    await page.getByRole('button', { name: '切换暗色模式' }).click()
-  }
-  await expect(themeItem).toHaveAttribute('data-theme', 'light')
-  await expect(themeItem).toHaveText('theme: light')
-
-  // 切换主题 → 状态栏即时更新（MutationObserver 监听 html class，无需刷新）
-  await page.getByRole('button', { name: '切换暗色模式' }).click()
-  await expect(themeItem).toHaveAttribute('data-theme', 'dark')
-  await expect(themeItem).toHaveText('theme: dark')
-
-  await page.getByRole('button', { name: '切换暗色模式' }).click()
-  await expect(themeItem).toHaveText('theme: light')
-})
-
-test('status bar: SSR ships deterministic theme value, hydrates to actual theme without mismatch (issue #42)', async ({
-  page,
-  request,
-}) => {
-  const consoleErrors: string[] = []
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') consoleErrors.push(msg.text())
-  })
-  page.on('pageerror', (err) => consoleErrors.push(err.message))
-
-  // SSR 确定性输出 'light'（与 hydration 首帧一致 → 无 mismatch）；
-  // 先剥离 React SSR 的 <!-- --> 注释分隔符再断言
-  const html = (await (await request.get('/')).text()).replaceAll('<!-- -->', '')
-  expect(html).toContain('theme: light')
-
-  // 暗色偏好：首帧前 inline 防闪烁脚本置 .dark → 水合后状态栏更新为实际主题 dark
-  await page.addInitScript(() => localStorage.setItem('theme', 'dark'))
-  await page.goto('/')
-  const themeItem = page.locator('.hero-terminal-caption [data-theme]')
-  await expect(themeItem).toHaveText('theme: dark')
-
-  // 全程无 hydration/mismatch 报错（React 对 useSyncExternalStore 用服务端快照水合）
-  expect(consoleErrors.filter((e) => /hydrat|mismatch/i.test(e))).toHaveLength(0)
-})
-
-test('status bar: git stats computed from the real repository (issue #42)', async ({
-  page,
-  request,
-}) => {
-  // 期望值从真实仓库计算（与构建期注入同一契约：分支 / 短 SHA / 提交数 / 脏标记）
-  const git = currentGitStats()
-  test.skip(!git, '非 git 目录：git 段优雅省略（省略逻辑由单测覆盖）')
-
-  await page.goto('/')
-  const gitItem = page.locator('.hero-terminal-caption [data-git-branch]')
-  await expect(gitItem).toBeVisible()
-  await expect(gitItem).toHaveAttribute('data-git-branch', git?.branch ?? '')
-  await expect(gitItem).toHaveAttribute('data-git-sha', git?.sha ?? '')
-  await expect(gitItem).toHaveAttribute('data-git-count', String(git?.commitCount))
-  await expect(gitItem).toHaveAttribute('data-git-dirty', String(git?.dirty))
-
-  // 展示形态：git: branch[@dirty]@shortsha · N commits（与 formatGitStats 同一契约）
-  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const branch = esc(git?.branch ?? '')
-  await expect(gitItem).toHaveText(
-    new RegExp(`^git: ${branch}\\*?@${git?.sha} · ${git?.commitCount} commits$`),
-  )
-
-  // 构建期注入 → 预渲染 HTML 已含 git 段（爬虫不执行 JS 可读）；先剥离 SSR 注释分隔符；
-  // 脏工作区分支带 * 后缀（与 formatGitStats 同一契约）
-  const html = (await (await request.get('/')).text()).replaceAll('<!-- -->', '')
-  expect(html).toContain(`git: ${git?.branch}${git?.dirty ? '*' : ''}@${git?.sha}`)
-})
-
 test('prerendered HTML contains the full conversation text (SEO no regression)', async ({
   request,
 }) => {
@@ -277,14 +205,14 @@ test('prerendered HTML contains the full conversation text (SEO no regression)',
   expect(html).toContain('https://github.com/hacxy')
   // 分隔线（────）
   expect(html).toContain('────')
-  // 状态栏（issue #40 + #42）：live + 文章数·标签数 + 版本 + theme: light
+  // 状态栏（issue #40 + #55 精简）：live + 文章数·标签数 + 版本（无 theme / git 段）
   expect(html).toContain('live')
   expect(html).toContain('篇文章')
   const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
     version: string
   }
   expect(html).toContain(`v${pkg.version}`)
-  expect(html).toContain('theme: light')
+  expect(html).not.toContain('theme: light')
 })
 
 test('hero terminal: CSS show plays once and stops; live dot + parked cursor pulse infinitely', async ({
@@ -477,6 +405,45 @@ test('hero terminal: reduced-motion skips all animations, full text visible, no 
   expect(pageErrors).toHaveLength(0)
 })
 
+test('hero terminal: block cursors share one geometry — glyph height (1em), centered on glyph midline (issue #53)', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const terminal = page.locator('.hero-terminal')
+
+  // 几何助手：getBoundingClientRect → 顶/底/垂直中心/高度（像素浮点）
+  const rect = (el: Element) => {
+    const r = el.getBoundingClientRect()
+    return { top: r.top, bottom: r.bottom, center: (r.top + r.bottom) / 2, height: r.height }
+  }
+
+  // 输出行行内光标（打字机行尾）：高度 = 字形高度（1em），垂直中心 = 相邻文字块
+  // 垂直中心（绝对定位于文字容器：top 50% + translateY(-50%) ⇒ 行框中心 = 字形中线）
+  const lineCursor = terminal.locator('.typewriter-text > .terminal-cursor')
+  const lineText = terminal.locator('.typewriter-text')
+  const lineFontSize = parseFloat(await lineText.evaluate((el) => getComputedStyle(el).fontSize))
+  const [cLine, tLine] = await Promise.all([lineCursor.evaluate(rect), lineText.evaluate(rect)])
+  expect(Math.abs(cLine.center - tLine.center)).toBeLessThan(1)
+  expect(Math.abs(cLine.height - lineFontSize)).toBeLessThan(0.5)
+  // 光标垂直范围落在文字行内（不遮住上下相邻行文字）
+  expect(cLine.top).toBeGreaterThanOrEqual(tLine.top - 1)
+  expect(cLine.bottom).toBeLessThanOrEqual(tLine.bottom + 1)
+
+  // 输入框停驻光标：同一几何规则——top = padding-top + 半行高余量（对齐文字行，
+  // 不再从 padding 顶边起算），垂直中心与输入框文字块一致、高度 = 字形高度
+  const parked = terminal.locator('.terminal-input-cursor')
+  const inputText = terminal.locator('.terminal-input-text').first()
+  const inputFontSize = parseFloat(await inputText.evaluate((el) => getComputedStyle(el).fontSize))
+  const [cParked, tInput] = await Promise.all([parked.evaluate(rect), inputText.evaluate(rect)])
+  expect(Math.abs(cParked.center - tInput.center)).toBeLessThan(1)
+  expect(Math.abs(cParked.height - inputFontSize)).toBeLessThan(0.5)
+  expect(cParked.top).toBeGreaterThanOrEqual(tInput.top - 1)
+  expect(cParked.bottom).toBeLessThanOrEqual(tInput.bottom + 1)
+
+  // 两处光标高度一致（共用同一套几何规则：高度 1em、字形中线垂直居中）
+  expect(Math.abs(cParked.height - cLine.height)).toBeLessThan(0.5)
+})
+
 test('post list: terminal output lines show mono date, title and #tags (no description)', async ({
   page,
 }) => {
@@ -532,7 +499,11 @@ test('clicking a post row opens the post page (whole row is clickable)', async (
 test('post row hover feedback: terminal prompt fades in + title underline, no background inversion (light & dark)', async ({
   page,
 }) => {
+  // issue #54：禁用平滑滚动——主题切换点击时 Playwright 会把滚动条平滑滚回顶部（按钮在顶部），
+  // 与后续 hover() 的滚动/VT 竞态，导致行漂出鼠标下方。本用例只验证 hover 视觉反馈，
+  // 不禁滚动不影响断言语义（真实鼠标不受此影响）。须在 goto 之后注入（导航会清除注入样式）
   await page.goto('/')
+  await page.addStyleTag({ content: 'html { scroll-behavior: auto !important; }' })
   const row = page.locator('.post-row').first()
   const prompt = row.locator('.post-row-prompt')
   const title = row.locator('.post-row-title')
@@ -958,13 +929,132 @@ test('dark mode toggles via button and persists after reload', async ({ page }) 
   const initialDark = ((await html.getAttribute('class')) ?? '').includes('dark')
 
   await page.getByRole('button', { name: '切换暗色模式' }).click()
-  const afterDark = ((await html.getAttribute('class')) ?? '').includes('dark')
-  expect(afterDark).not.toBe(initialDark)
+  // issue #54：class 切换在 startViewTransition 回调内异步执行（整页交叉淡化），
+  // 用轮询等待翻转（同一用例断言，适配异步过渡机制，不改变验收语义）
+  const afterDark = !initialDark
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.classList.contains('dark')))
+    .toBe(afterDark)
 
   // 刷新后偏好保持（inline 防闪烁脚本在首帧前读 localStorage 恢复 .dark）
   await page.reload()
   const persistedDark = ((await html.getAttribute('class')) ?? '').includes('dark')
   expect(persistedDark).toBe(afterDark)
+})
+
+test('theme toggle: action icon follows theme (light=moon, dark=sun) + html transition marker class (issue #54)', async ({
+  page,
+  request,
+}) => {
+  // SSR 确定性：预渲染 HTML 输出 moon（服务端快照恒为亮色，水合后更新为实际主题）
+  const prerendered = await (await request.get('/')).text()
+  expect(prerendered).toContain('icons.svg#moon-icon')
+
+  await page.goto('/')
+  const html = page.locator('html')
+  const button = page.getByRole('button', { name: '切换暗色模式' })
+  const icon = button.locator('use')
+
+  // Chromium 支持 View Transitions API：入口脚本首帧前给 <html> 挂过渡标记类
+  // （CSS 以标记门控——标记存在时视觉过渡交给 View Transition，不双重动画）
+  await expect(html).toHaveClass(/theme-vt/)
+
+  // 归一化亮色（初始主题由环境决定，先切到已知状态）
+  if (((await html.getAttribute('class')) ?? '').includes('dark')) {
+    await button.click()
+  }
+  // 亮色 = 月亮图标（动作语义：点击进入暗色）
+  await expect(icon).toHaveAttribute('href', '/icons.svg#moon-icon')
+  await expect(html).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+
+  // 点击 → 暗色：图标变太阳（动作语义：点击进入亮色），背景到达最终态（近黑）
+  await button.click()
+  await expect(icon).toHaveAttribute('href', '/icons.svg#sun-icon')
+  await expect(html).toHaveClass(/dark/)
+  await expect(html).toHaveCSS('background-color', 'rgb(10, 10, 10)')
+
+  // 再点回亮色：图标回月亮，背景回最终态（纯白）
+  await button.click()
+  await expect(icon).toHaveAttribute('href', '/icons.svg#moon-icon')
+  await expect(html).not.toHaveClass(/dark/)
+  await expect(html).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+})
+
+test('theme toggle: class switch is wrapped in startViewTransition when supported (issue #54)', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const html = page.locator('html')
+  const initialDark = ((await html.getAttribute('class')) ?? '').includes('dark')
+
+  // 覆盖 document.startViewTransition 记录调用次数（返回原实现，不影响真实过渡）
+  await page.evaluate(() => {
+    const orig = Document.prototype.startViewTransition.bind(document)
+    let calls = 0
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: (cb: () => void) => {
+        calls++
+        return orig(cb)
+      },
+    })
+    ;(window as unknown as { __vtCalls: () => number }).__vtCalls = () => calls
+  })
+
+  await page.getByRole('button', { name: '切换暗色模式' }).click()
+  // startViewTransition 在点击处理器内同步调用（class 切换在其回调内异步执行）
+  expect(
+    await page.evaluate(() => (window as unknown as { __vtCalls: () => number }).__vtCalls()),
+  ).toBe(1)
+  // 整页交叉淡化后 class 翻转到达最终态
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.classList.contains('dark')))
+    .toBe(!initialDark)
+  await expect(html).toHaveCSS(
+    'background-color',
+    initialDark ? 'rgb(255, 255, 255)' : 'rgb(10, 10, 10)',
+  )
+})
+
+test('theme toggle: prefers-reduced-motion switches instantly without startViewTransition (issue #54)', async ({
+  page,
+}) => {
+  const pageErrors: string[] = []
+  page.on('pageerror', (err) => pageErrors.push(err.message))
+
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/')
+  const html = page.locator('html')
+
+  // 覆盖 document.startViewTransition 记录调用次数（返回原实现）
+  await page.evaluate(() => {
+    const orig = Document.prototype.startViewTransition.bind(document)
+    let calls = 0
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: (cb: () => void) => {
+        calls++
+        return orig(cb)
+      },
+    })
+    ;(window as unknown as { __vtCalls: () => number }).__vtCalls = () => calls
+  })
+
+  const initialDark = ((await html.getAttribute('class')) ?? '').includes('dark')
+  await page.getByRole('button', { name: '切换暗色模式' }).click()
+  // 瞬时切换：点击返回后 class 已翻转（无 View Transition 异步回调等待）
+  const afterDark = ((await html.getAttribute('class')) ?? '').includes('dark')
+  expect(afterDark).not.toBe(initialDark)
+  // reduce 下跳过 startViewTransition（JS 侧不发起过渡）
+  expect(
+    await page.evaluate(() => (window as unknown as { __vtCalls: () => number }).__vtCalls()),
+  ).toBe(0)
+  // 背景色到达最终态（瞬时无动画）
+  await expect(html).toHaveCSS(
+    'background-color',
+    afterDark ? 'rgb(10, 10, 10)' : 'rgb(255, 255, 255)',
+  )
+  expect(pageErrors).toHaveLength(0)
 })
 
 test('prerendered HTML ships the inline no-flash theme script', async ({ request }) => {
@@ -1638,13 +1728,15 @@ test('background texture adapts to theme: light dark-gray, dark light-gray (gray
   expect(css).toContain('%231a1a1a')
   expect(css).toContain('%23e6e6e6')
 
-  // 切换主题后纹理 background-image 随之更新（沿用 dark mode toggle 模式，不依赖初始主题）
+  // 切换主题后纹理 background-image 随之更新（沿用 dark mode toggle 模式，不依赖初始主题）。
+  // issue #54：class 切换在 startViewTransition 回调内异步执行，用轮询等待纹理更新
   await page.goto('/')
   const layer = page.locator('.bg-texture')
   const lightBg = await layer.evaluate((el) => getComputedStyle(el).backgroundImage)
   await page.getByRole('button', { name: '切换暗色模式' }).click()
-  const darkBg = await layer.evaluate((el) => getComputedStyle(el).backgroundImage)
-  expect(darkBg).not.toBe(lightBg)
+  await expect
+    .poll(() => layer.evaluate((el) => getComputedStyle(el).backgroundImage))
+    .not.toBe(lightBg)
 })
 
 test('geek-style OG images are generated and referenced', async ({ request }) => {

@@ -31,3 +31,8 @@ pnpm-debug.log*
 .sandcastle/.env
 .sandcastle/logs/
 .sandcastle/worktrees/
+.sandcastle/pi-home/
+
+
+*/afk/sessions
+*/afk/worktrees
