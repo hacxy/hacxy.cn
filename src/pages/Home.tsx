@@ -2,11 +2,12 @@ import BackgroundDots from '../components/BackgroundDots.tsx'
 import HeroTerminal, { type TerminalTurn } from '../components/HeroTerminal.tsx'
 import PostRow from '../components/PostRow.tsx'
 import { posts } from '../content/index.ts'
-import { authorBio, githubUrl, siteName, tagline } from '../site.ts'
+import { authorBio, githubUrl, tagline } from '../site.ts'
 
 /**
  * 首页 = 连续终端流（父 PRD #16「一台恒黑底的连续终端流」收尾）：
- * hero（大号站点名 h1 + pi 风格 AI 编码 agent 会话演出终端）+ 文章列表（终端输出行）。
+ * hero（pi 风格 AI 编码 agent 会话演出终端；issue #67：不再展示大号站点名 h1）
+ * + 文章列表（终端输出行）。
  * 终端为「会话 transcript → 输入区 → 状态栏」结构（issue #40；分隔线 ──── 已删除于
  * issue #64）：
  * 每轮问答经输入框演出（自动逐字符打字 → 发送进 transcript → Thinking… → Done. →
@@ -67,7 +68,6 @@ export default function Home() {
       <div className="home-stream mx-auto max-w-2xl">
         {/* hero 区：克制的入场动画（淡入 + 轻微上移，纯 CSS，reduced-motion 禁用） */}
         <section className="hero-enter">
-          <h1 className="font-mono text-4xl font-bold tracking-tight">{siteName}</h1>
           <HeroTerminal turns={turns} siteStats={{ postCount, tagCount }} />
         </section>
         <ul className="post-row-list">
