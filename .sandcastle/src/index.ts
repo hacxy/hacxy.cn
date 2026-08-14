@@ -162,7 +162,9 @@ export function baseSandbox(env?: Record<string, string>): sandcastle.SandboxPro
       // 把 .sandcastle/worktrees 挂到容器内的宿主路径，使指针目标可见。
       { hostPath: '.sandcastle/worktrees', sandboxPath: resolve('.sandcastle/worktrees') },
     ],
-    env: key ? { DEEPSEEK_API_KEY: key, ...env } : env,
+    // CI=true：pnpm 在无 TTY 下要 purge macOS→Linux 的 node_modules 时会 abort
+    // （ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY）；CI 模式下自动 purge 重装
+    env: { CI: 'true', ...(key ? { DEEPSEEK_API_KEY: key } : {}), ...env },
   })
 }
 
