@@ -31,6 +31,7 @@ import {
   baseSandbox,
   cleanupResidue,
   implement,
+  mergeToMain,
   planSchema,
   registerSignalHandlers,
   type PlannedIssue,
@@ -53,6 +54,33 @@ if (!process.env.GH_TOKEN) {
 // 启动前清理残留 + 注册信号处理（宿主中断时杀容器）
 cleanupResidue()
 registerSignalHandlers()
+
+// ---------------------------------------------------------------------------
+// Merge-only 模式：跳过 plan/implement，直接合并指定分支（DELIVERY=push 观测轮之后的收尾）
+// 用法：MERGE_ONLY_BRANCHES=sandcastle/issue-52-xxx,sandcastle/issue-53-xxx npx tsx .sandcastle/main.ts
+// ---------------------------------------------------------------------------
+const mergeOnly = (process.env.MERGE_ONLY_BRANCHES ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+if (mergeOnly.length > 0) {
+  console.log('→ Merge-only 模式：跳过 plan/implement，直接合并指定分支')
+  const completed: PlannedIssue[] = []
+  for (const branch of mergeOnly) {
+    const number = Number(branch.match(/issue-(\d+)/)?.[1])
+    if (!number) {
+      console.error(`  ✗ 无法从分支名解析 issue 号：${branch}（期望格式 sandcastle/issue-N-slug）`)
+      continue
+    }
+    const title = execSync(`gh issue view ${number} --json title --jq .title`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+    completed.push({ number, title, branch })
+  }
+  await mergeToMain(completed)
+  process.exit(0)
+}
 
 for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   console.log(`\n========== Iteration ${iteration}/${MAX_ITERATIONS} ==========`)
@@ -137,37 +165,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   }
 
   if (DELIVERY === 'merge') {
-    console.log('\n→ Merger：合并分支到 main…')
-    try {
-      await sandcastle.run({
-        sandbox: baseSandbox({ GH_TOKEN: process.env.GH_TOKEN ?? '' }),
-        name: 'Merger',
-        agent: sandcastle.pi(PLANNER_MODEL, { thinking: THINKING }),
-        maxIterations: 10,
-        // merge-to-head：临时分支上合并 + 验证 + 关 issue，完成后 sandcastle 合回宿主 main（本地），宿主再 push
-        branchStrategy: { type: 'merge-to-head' },
-        copyToWorktree: ['node_modules'],
-        hooks: {
-          sandbox: {
-            onSandboxReady: [
-              { command: 'pnpm install --frozen-lockfile' },
-              { command: 'pnpm playwright install chromium' },
-            ],
-          },
-        },
-        promptFile: './.sandcastle/merge-prompt.md',
-        promptArgs: {
-          BRANCHES: completedBranches.map((b) => `- ${b}`).join('\n'),
-          ISSUES: completed.map((i) => `- #${i.number}: ${i.title}`).join('\n'),
-        },
-      })
-      execSync('git push origin main', { stdio: 'inherit' })
-      console.log('  ↑ 已推送 main')
-    } catch (error) {
-      console.error(
-        `  ✗ Merge 失败：${error instanceof Error ? error.message : error}（main 未改动，分支保留）`,
-      )
-    }
+    await mergeToMain(completed)
   }
 }
 

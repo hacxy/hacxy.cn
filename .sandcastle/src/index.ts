@@ -11,6 +11,7 @@ import {
   IMAGE,
   MODEL,
   PI_HOME_DIR,
+  PLANNER_MODEL,
   REVIEW_MODEL,
   SKIP_LABELS,
   THINKING,
@@ -243,6 +244,51 @@ export async function implement(planned: PlannedIssue): Promise<number> {
 
   deliver(planned)
   return result.commits.length
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3：merger 合并分支到 main
+// ---------------------------------------------------------------------------
+
+/**
+ * S4：merger agent 把完成分支合并进 main（merge-to-head：临时分支干活，完成后合回宿主 main），宿主 push。
+ * 合并成功后由 merger 负责关 issue、删分支。失败时 main 未改动，分支保留。
+ */
+export async function mergeToMain(completed: PlannedIssue[]): Promise<boolean> {
+  const branches = completed.map((i) => i.branch)
+  console.log(`\n→ Merger：合并 ${branches.length} 个分支到 main…`)
+  try {
+    await sandcastle.run({
+      sandbox: baseSandbox({ GH_TOKEN: process.env.GH_TOKEN ?? '' }),
+      name: 'Merger',
+      agent: sandcastle.pi(PLANNER_MODEL, { thinking: THINKING }),
+      maxIterations: 10,
+      // merge-to-head：临时分支上合并 + 验证 + 关 issue，完成后 sandcastle 合回宿主 main（本地），宿主再 push
+      branchStrategy: { type: 'merge-to-head' },
+      copyToWorktree: ['node_modules'],
+      hooks: {
+        sandbox: {
+          onSandboxReady: [
+            { command: 'pnpm install --frozen-lockfile' },
+            { command: 'pnpm playwright install chromium' },
+          ],
+        },
+      },
+      promptFile: './.sandcastle/merge-prompt.md',
+      promptArgs: {
+        BRANCHES: branches.map((b) => `- ${b}`).join('\n'),
+        ISSUES: completed.map((i) => `- #${i.number}: ${i.title}`).join('\n'),
+      },
+    })
+    execSync('git push origin main', { stdio: 'inherit' })
+    console.log('  ↑ 已推送 main')
+    return true
+  } catch (error) {
+    console.error(
+      `  ✗ Merge 失败：${error instanceof Error ? error.message : error}（main 未改动，分支保留）`,
+    )
+    return false
+  }
 }
 
 function deliver(issue: PlannedIssue): void {
