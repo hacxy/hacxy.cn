@@ -4,7 +4,7 @@ import siteMeta from 'virtual:site-meta'
 /**
  * hero 终端（issue #40，父 PRD #16）：真实 AI 编码 agent 会话演出（pi 风格）。
  *
- * 结构（自上而下）：会话 transcript → 分隔线（────）→ 输入区 → 状态栏。
+ * 结构（自上而下）：会话 transcript → 输入区 → 状态栏。
  * 终端框架恒黑底白字（亮暗模式均如此，与页面 chrome 主题色解耦）、四角括号
  * 装饰（┌┐└┘，不占文档流、不进可访问性树）。
  *
@@ -225,7 +225,7 @@ function TurnRow({ turn, timing }: { turn: TerminalTurn; timing: TurnTiming }) {
   )
 }
 
-/** hero 终端（pi 风格 AI 编码 agent 会话演出）：transcript → 分隔线 → 输入区 → 状态栏 */
+/** hero 终端（pi 风格 AI 编码 agent 会话演出）：transcript → 输入区 → 状态栏 */
 export default function HeroTerminal({
   turns,
   siteStats,
@@ -253,11 +253,6 @@ export default function HeroTerminal({
             <TurnRow key={i} turn={turn} timing={timeline.rounds[i]!} />
           ))}
         </div>
-      </div>
-
-      {/* 分隔线（────）：transcript 与输入区的分界（装饰性） */}
-      <div className="terminal-divider" aria-hidden="true">
-        ────
       </div>
 
       {/* 输入区：每轮一个 .terminal-typed（绝对定位叠放，文本 clip 打字揭示 → 发送时

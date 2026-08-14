@@ -256,7 +256,7 @@ html:not(.theme-vt) {
 
 /* 终端框架（pi.dev 风格）：恒黑底白字，与页面 chrome 主题色解耦——亮暗模式均为
    黑底白字（不随 .dark 切换）；四角括号装饰（┌┐└┘）；移除 mac 装饰圆点窗口栏。
-   结构（issue #40）自上而下：会话 transcript → 分隔线（────）→ 输入区 → 状态栏。
+   结构（issue #40，分隔线 ──── 已删除于 issue #64）：会话 transcript → 输入区 → 状态栏。
    overflow 移到内部 .hero-terminal-scroll（横向滚动不影响四角括号）；
    演出编排为行级纯 CSS 动画：每条行与输入框打字各带 --delay（组件按数据计算，
    确定性输出），播放一遍后停驻最终态、不循环 */
@@ -423,16 +423,6 @@ html:not(.theme-vt) {
   100% {
     opacity: 0;
   }
-}
-
-/* 分隔线（────）：会话 transcript 与输入区之间的分界（issue #40，装饰性） */
-.terminal-divider {
-  padding: 0.125rem 0 0.375rem;
-  text-align: center;
-  font-size: 0.75rem;
-  line-height: 1;
-  color: #555;
-  user-select: none;
 }
 
 /* 输入区（issue #40）：终端底部输入框（演出用，非交互）。每轮一个 .terminal-typed

@@ -90,7 +90,7 @@ test('hero terminal: always black background with white text in light and dark t
   await expect(terminal).toHaveCSS('color', 'rgb(255, 255, 255)')
 })
 
-test('hero terminal: transcript → divider (────) → input → status bar structure (issue #40)', async ({
+test('hero terminal: transcript → input → status bar structure, no divider line (issue #40 + #64)', async ({
   page,
 }) => {
   await page.goto('/')
@@ -101,30 +101,18 @@ test('hero terminal: transcript → divider (────) → input → status 
   await expect(corners).toHaveCount(4)
   expect((await corners.allTextContents()).sort()).toEqual(['┌', '┐', '└', '┘'].sort())
 
-  // 终端内部结构自上而下：会话 transcript → 分隔线（────）→ 输入区 → 状态栏
+  // 终端内部结构自上而下：会话 transcript → 输入区 → 状态栏（issue #64：分隔线 ──── 已删除）
   const order = await page.evaluate(() => {
-    const sels = [
-      '.hero-terminal-body',
-      '.terminal-divider',
-      '.terminal-input-row',
-      '.hero-terminal-caption',
-    ]
+    const sels = ['.hero-terminal-body', '.terminal-input-row', '.hero-terminal-caption']
     const nodes = sels.map((sel) => document.querySelector(sel))
     const follows = (a: Element, b: Element) =>
       !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
-    return [
-      follows(nodes[0]!, nodes[1]!),
-      follows(nodes[1]!, nodes[2]!),
-      follows(nodes[2]!, nodes[3]!),
-    ]
+    return [follows(nodes[0]!, nodes[1]!), follows(nodes[1]!, nodes[2]!)]
   })
-  expect(order).toEqual([true, true, true])
+  expect(order).toEqual([true, true])
 
-  // 分隔线 = ────（box-drawing 字符，装饰性不进可访问性树）
-  const divider = terminal.locator('.terminal-divider')
-  await expect(divider).toBeVisible()
-  await expect(divider).toHaveText('────')
-  expect(await divider.getAttribute('aria-hidden')).toBe('true')
+  // issue #64：终端窗口上方不再有分隔线横线（────，装饰性、意义不明）——DOM 中不存在
+  await expect(terminal.locator('.terminal-divider')).toHaveCount(0)
 
   // 输入区 = 输入框（演出用，非交互）：三轮问题各一个打字文本 + 停驻光标
   const input = terminal.locator('.terminal-input')
@@ -187,7 +175,7 @@ test('prerendered HTML contains the full conversation text (SEO no regression)',
   request,
 }) => {
   // 站点名 h1 + 三轮问答全文（输入框打字文本 + transcript 问题行 + Thinking…/Done. +
-  // 回答 + 分隔线 + 状态栏）都在预渲染源码中（爬虫不执行 JS 即可读）。注：React SSR
+  // 回答 + 状态栏）都在预渲染源码中（爬虫不执行 JS 即可读）。注：React SSR
   // 会在混合静态文本与表达式的节点间插入 <!-- --> 注释（文本本身连续），先剥离再断言全文
   const html = (await (await request.get('/')).text()).replaceAll('<!-- -->', '')
 
@@ -203,8 +191,8 @@ test('prerendered HTML contains the full conversation text (SEO no regression)',
   expect(html).toContain('前端工程师')
   expect(html).toContain('了解真相，才能获得真正的自由')
   expect(html).toContain('https://github.com/hacxy')
-  // 分隔线（────）
-  expect(html).toContain('────')
+  // issue #64：分隔线（────）已删除，不再出现在预渲染源码
+  expect(html).not.toContain('────')
   // 状态栏（issue #40 + #55 精简）：live + 文章数·标签数 + 版本（无 theme / git 段）
   expect(html).toContain('live')
   expect(html).toContain('篇文章')

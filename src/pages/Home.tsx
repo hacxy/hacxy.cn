@@ -7,7 +7,8 @@ import { authorBio, githubUrl, siteName, tagline } from '../site.ts'
 /**
  * 首页 = 连续终端流（父 PRD #16「一台恒黑底的连续终端流」收尾）：
  * hero（大号站点名 h1 + pi 风格 AI 编码 agent 会话演出终端）+ 文章列表（终端输出行）。
- * 终端为「会话 transcript → 分隔线 → 输入区 → 状态栏」结构（issue #40）：
+ * 终端为「会话 transcript → 输入区 → 状态栏」结构（issue #40；分隔线 ──── 已删除于
+ * issue #64）：
  * 每轮问答经输入框演出（自动逐字符打字 → 发送进 transcript → Thinking… → Done. →
  * 回答），三轮全部经输入框、信息不缩水（简介 + tagline / 文章数·标签数 / GitHub 外链）。
  * 演出文本全部数据驱动（turns 数组 + 构建期计算的文章数/标签数）：新增内容
