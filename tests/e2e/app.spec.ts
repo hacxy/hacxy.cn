@@ -975,7 +975,7 @@ test('prerendered HTML ships the inline no-flash theme script', async ({ request
   expect(html).toContain('prefers-color-scheme')
 })
 
-test('geek-style design: mono fonts; links are bold+underline with inverted hover, nav active shares mechanism', async ({
+test('geek-style design: mono fonts; links are bold+underline with transparent hover (color+underline), nav active shares mechanism', async ({
   page,
 }) => {
   await page.goto('/')
@@ -997,7 +997,7 @@ test('geek-style design: mono fonts; links are bold+underline with inverted hove
   await expect(page.locator('html')).toHaveCSS('color', 'rgb(26, 26, 26)')
 
   // 全站链接样式 = 下划线 + 加粗（不再依赖颜色区分：链接与同上下文文本同色）
-  // 页脚链接继承 footer 的 muted 灰（与页脚正文同色），hover 反白用 accent 令牌覆盖
+  // 页脚链接继承 footer 的 muted 灰（与页脚正文同色），hover 用 accent 令牌覆盖
   const ccLink = page.getByRole('link', { name: 'CC BY-NC-SA 4.0' })
   expect(await ccLink.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
   expect(await ccLink.evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain(
@@ -1005,18 +1005,36 @@ test('geek-style design: mono fonts; links are bold+underline with inverted hove
   )
   expect(await ccLink.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(102, 102, 102)')
 
-  // hover 反白：亮色 = 黑底白字
+  // hover（issue #52）：背景保持透明（不再黑白反白块）、颜色变 accent（亮色近黑）、
+  // 下划线保留；muted 灰 → accent 为页脚链接可见的 hover 反馈
   await ccLink.hover()
-  await expect(ccLink).toHaveCSS('background-color', 'rgb(26, 26, 26)')
-  await expect(ccLink).toHaveCSS('color', 'rgb(255, 255, 255)')
+  await expect(ccLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(ccLink).toHaveCSS('color', 'rgb(26, 26, 26)')
+  await expect(ccLink).toHaveCSS('text-decoration-line', 'underline')
 
-  // 暗色 = 黑底白字反色（背景近黑、文字近白），hover 反白 = 白底黑字
+  // 顶部导航 hover（issue #52）：加粗 + 下划线 + accent 色，无背景色块；
+  // 灰阶下 accent 与正文同色属设计系统固有，加粗/下划线承担主要反馈。
+  // 悬停非 active 的「关于」（首页当前页 = 文章，避免与 nav-active 混淆）
+  const aboutNavHover = page.getByRole('link', { name: '关于' })
+  await aboutNavHover.hover()
+  await expect(aboutNavHover).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(aboutNavHover).toHaveCSS('color', 'rgb(26, 26, 26)')
+  await expect(aboutNavHover).toHaveCSS('font-weight', '700')
+  await expect(aboutNavHover).toHaveCSS('text-decoration-line', 'underline')
+
+  // 暗色 = 黑底白字反色（背景近黑、文字近白），同一机制：hover 背景透明 + accent（近白）
   await page.getByRole('button', { name: '切换暗色模式' }).click()
   await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(10, 10, 10)')
   await expect(page.locator('html')).toHaveCSS('color', 'rgb(230, 230, 230)')
   await ccLink.hover()
-  await expect(ccLink).toHaveCSS('background-color', 'rgb(230, 230, 230)')
-  await expect(ccLink).toHaveCSS('color', 'rgb(0, 0, 0)')
+  await expect(ccLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(ccLink).toHaveCSS('color', 'rgb(230, 230, 230)')
+  await expect(ccLink).toHaveCSS('text-decoration-line', 'underline')
+  await aboutNavHover.hover()
+  await expect(aboutNavHover).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(aboutNavHover).toHaveCSS('color', 'rgb(230, 230, 230)')
+  await expect(aboutNavHover).toHaveCSS('font-weight', '700')
+  await expect(aboutNavHover).toHaveCSS('text-decoration-line', 'underline')
 
   // 导航高亮沿用同一机制（加粗 + 下划线，不再依赖颜色区分）
   await page.getByRole('link', { name: '关于' }).click()
@@ -1033,6 +1051,56 @@ test('geek-style design: mono fonts; links are bold+underline with inverted hove
   expect(await postsNav.evaluate((el) => getComputedStyle(el).textDecorationLine)).not.toContain(
     'underline',
   )
+})
+
+test('nav & footer links focus-visible matches hover: transparent bg + accent color + underline + bold (keyboard Tab, issue #52)', async ({
+  page,
+}) => {
+  await page.goto('/')
+
+  // 归一化亮色（focus-visible 颜色断言用）后重置焦点（主题切换点击会聚焦按钮，
+  // 否则后续 Tab 链整体偏移一位）
+  const html = page.locator('html')
+  if (((await html.getAttribute('class')) ?? '').includes('dark')) {
+    await page.getByRole('button', { name: '切换暗色模式' }).click()
+  }
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.())
+
+  // 等水合完成（点阵 canvas 仅客户端挂载）再按 Tab，避免快速 Tab 落在水合期间被吞
+  await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
+
+  // 基线：首页非 active 的「关于」导航项为普通文本外观（无下划线、不加粗）
+  const aboutNav = page.getByRole('link', { name: '关于' })
+  await expect(aboutNav).toHaveCSS('font-weight', '400')
+  await expect(aboutNav).toHaveCSS('text-decoration-line', 'none')
+
+  // Tab 1 → 「文章」导航项（首页 active 项，加粗/下划线既有；背景/颜色不回归）
+  await page.keyboard.press('Tab')
+  const postsNav = page.getByRole('link', { name: '文章', exact: true })
+  await expect(postsNav).toBeFocused()
+  await expect(postsNav).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+
+  // Tab 2 → 「关于」导航项（非 active）：focus-visible 与 hover 同一视觉机制
+  // （背景透明 + accent 色 + 加粗 + 下划线，无背景色块）
+  await page.keyboard.press('Tab')
+  await expect(aboutNav).toBeFocused()
+  await expect(aboutNav).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(aboutNav).toHaveCSS('color', 'rgb(26, 26, 26)')
+  await expect(aboutNav).toHaveCSS('font-weight', '700')
+  await expect(aboutNav).toHaveCSS('text-decoration-line', 'underline')
+
+  // 页脚 CC 链接：Tab 顺延至页脚（主题 → GitHub → RSS → hero GitHub 外链 →
+  // 全部文章行 → CC），焦点反馈与 hover 一致（背景透明 + accent 色 + 下划线 + 加粗）
+  const ccLink = page.getByRole('link', { name: 'CC BY-NC-SA 4.0' })
+  // 距「关于」之后还需：主题(1) + GitHub(2) + RSS(3) + hero GitHub(4) + 文章行(N) + CC(1)
+  for (let i = 0; i < 5 + publishedPosts().length; i++) {
+    await page.keyboard.press('Tab')
+  }
+  await expect(ccLink).toBeFocused()
+  await expect(ccLink).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(ccLink).toHaveCSS('color', 'rgb(26, 26, 26)')
+  await expect(ccLink).toHaveCSS('text-decoration-line', 'underline')
+  await expect(ccLink).toHaveCSS('font-weight', '700')
 })
 
 test('fonts are self-hosted: woff2 on same origin, no external font requests', async ({
