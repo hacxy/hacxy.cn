@@ -3,17 +3,12 @@ import type { TocItem } from '../content/types.ts'
 import { useEffect, useState } from 'react'
 
 /**
- * 文章页右栏锚点目录（issue #30）：h2/h3 两级 + scroll-spy。
- * 点击目录项 = 原生 hash 跳转（<a href="#id">，平滑滚动由
- * html { scroll-behavior: smooth } 提供、标题 scroll-margin-top 保证定位偏移）。
+ * 文章页右栏锚点目录：h2/h3 两级 + scroll-spy。
  * 当前章节高亮三路兜底：
  * 1. onClick 点击瞬间置为当前章节（即时反馈）；
- * 2. 挂载/路由切换时读 location.hash 同步（原生锚点平滑滚动不派发 IO 回调，
- *    且水合前点击 onClick 尚未挂载——hash 是最可靠的事实来源，同时覆盖深链）；
- * 3. IntersectionObserver scroll-spy：观察标题（观察带 = 视口顶部 40%），
- *    每次回调按文档序重算当前章节 = 顶边位于观察带底线之上的最后一个标题——
- *    双向滚动一致、长章节阅读（观察带内无标题）时保持当前章节不闪烁。
- * 仅 ≥1024px 显示（CSS）；toc 为空时父级不渲染本组件（布局退化为两栏）。
+ * 2. 挂载/路由切换时读 location.hash 同步（覆盖深链与前进后退）；
+ * 3. IntersectionObserver scroll-spy：文档序中最后一个顶边位于观察带（视口顶部
+ *    40%）之上的标题为当前章节——双向滚动一致、长章节阅读时不闪烁。
  */
 
 /** 观察带底线 = 视口高度的 40%（与 rootMargin '0px 0px -60% 0px' 一致） */

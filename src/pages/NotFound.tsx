@@ -1,6 +1,5 @@
 import { Link } from 'react-router'
 
-/** 404 兜底 */
 export default function NotFound() {
   return (
     <div>

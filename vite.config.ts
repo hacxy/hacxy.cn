@@ -10,8 +10,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), postsPlugin(), postAssetsPlugin(), siteMetaPlugin()],
   server: {
     watch: {
-      // pi-afk 运行时产物(.pi/afk/worktrees 等)不在模块图内,但 worktree 里的
-      // index.html 等 .html 文件会触发整页 reload;直接排除,避免无谓热更新
+      // 排除 pi-afk 运行时产物（.pi/afk/worktrees 等），避免 .html 文件触发整页 reload
       ignored: ['**/.pi/**', '**/.sandcastle/**'],
     },
   },

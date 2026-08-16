@@ -2,15 +2,14 @@ import { useEffect, useRef, useSyncExternalStore } from 'react'
 
 /**
  * 首页背景点阵动画（antfu.me ArtDots 风格改编，纯 canvas 2D）：
- * - 细点随自实现 2D 值噪声流场缓慢漂移、透明度闪烁（点距更疏、透明度更低）
+ * - 细点随自实现 2D 值噪声流场缓慢漂移、透明度闪烁
  * - devicePixelRatio 上限 2；visibilitychange 切后台暂停、回前台继续
- * - prefers-reduced-motion 时完全不渲染（无 canvas、无报错）
- * - 颜色随明暗主题切换：读 CSS 令牌 --color-dot（暗色浅灰 / 亮色深灰，纯灰阶）
+ * - prefers-reduced-motion 时完全不渲染；颜色随明暗主题切换（--color-dot）
  * - 仅首页挂载、仅客户端执行：SSR 输出 null，避免 hydration mismatch
  * - data-dots-color / data-animation-state 为外部可观察状态（E2E 断言用）
  */
 
-/* ---------- 轻量 2D 值噪声（自实现，不引入 PixiJS / simplex-noise 等运行时依赖） ---------- */
+/* ---------- 轻量 2D 值噪声（自实现，零运行时依赖） ---------- */
 
 /** 整数坐标哈希 → [0,1)：值噪声的晶格随机值 */
 function hash2(x: number, y: number): number {
@@ -40,20 +39,20 @@ function noise2(x: number, y: number): number {
   )
 }
 
-/* ---------- 动画参数（issue #27 克制度：点阵退为若有若无的底噪；同时控制 CPU 与视觉克制度） ---------- */
+/* ---------- 动画参数：克制度控制（点阵退为若有若无的底噪，同时控制 CPU 占用） ---------- */
 
-/** 点距（CSS px）：更疏的稀疏网格，避免高密度点阵的 CPU 高占用（antfu/antfu.me#86 教训） */
+/** 点距（CSS px）：更疏的稀疏网格，避免 CPU 高占用 */
 export const SPACING = 44
 /** 噪声空间缩放：越小越平缓 */
 const NOISE_SCALE = 0.005
 /** 时间缩放：漂移速度 */
 const TIME_SCALE = 0.0008
-/** 漂移振幅上限（CSS px）：32→20，更克制的漂移 */
+/** 漂移振幅上限（CSS px） */
 export const AMPLITUDE = 20
-/** 点直径范围（CSS px）：1.5–3→1–1.8，更细 */
+/** 点直径范围（CSS px） */
 export const MIN_SIZE = 1
 export const MAX_SIZE = 1.8
-/** 透明度范围（0.1–0.5→0.06–0.22）：上限显著压低，肉眼为暗点而非光斑 */
+/** 透明度范围（CSS px）：上限压低，肉眼为暗点而非光斑 */
 export const MIN_ALPHA = 0.06
 export const MAX_ALPHA = 0.22
 
@@ -98,7 +97,7 @@ export default function BackgroundDots() {
     let running = false
     let color = ''
 
-    /** 重建点阵：按视口尺寸铺稀疏网格（基点带微小随机抖动，避免呆板） */
+    /** 重建点阵：按视口尺寸铺稀疏网格 */
     const buildDots = (w: number, h: number) => {
       dots.length = 0
       for (let x = SPACING / 2; x < w; x += SPACING) {
@@ -152,7 +151,7 @@ export default function BackgroundDots() {
       rafId = 0
     }
 
-    /** 主题色：读 CSS 令牌 --color-dot（单一来源在 index.css，随 html.dark 切换） */
+    /** 主题色：读 CSS 令牌 --color-dot（随 html.dark 切换） */
     const readColor = () => {
       const value = getComputedStyle(document.documentElement)
         .getPropertyValue('--color-dot')
@@ -160,13 +159,13 @@ export default function BackgroundDots() {
       return value || (document.documentElement.classList.contains('dark') ? '#e6e6e6' : '#1a1a1a')
     }
 
-    // 主题切换（html.dark class 变化）→ 更新点色（MutationObserver 监听 class 属性）
+    // 主题切换（html.dark class 变化）→ 更新点色
     const observer = new MutationObserver(() => {
       color = readColor()
       canvas.dataset.dotsColor = color
     })
 
-    /** 标签页切后台暂停、回前台继续（不消耗后台资源，PRD 用户故事 11） */
+    /** 标签页切后台暂停、回前台继续（不消耗后台资源） */
     const onVisibility = () => {
       const hidden = document.visibilityState === 'hidden'
       canvas.dataset.animationState = hidden ? 'paused' : 'running'

@@ -11,11 +11,9 @@ import { siteName, siteUrl, tagline } from '../src/site.ts'
 
 // 构建期预渲染：对每个路由执行 renderToString（StaticRouter 与客户端
 // BrowserRouter 同为声明式路由，输出可水合），把渲染结果注入 dist/index.html
-// 模板的 <div id="root">，产出纯静态 HTML（PRD「构建时预渲染」决策）。
-// 输出布局：/<route> 同时产出 <route>.html 与 <route>/index.html，适配
-// vite preview（/<route> → <route>.html）与常规静态服务器（目录 index）。
-// 每页 head（title / canonical / OG / JSON-LD）在此一并注入——爬虫不执行 JS
-// 也能读到完整元数据（PRD 用户故事 20-23）。
+// 的 <div id="root">，产出纯静态 HTML。
+// /<route> 同时产出 <route>.html 与 <route>/index.html（适配 vite preview
+// 与常规静态服务器）；每页 head（title / canonical / OG / JSON-LD）一并注入。
 
 function escapeHtml(value: string): string {
   return value
@@ -69,11 +67,8 @@ function wrapTitle(title: string, maxChars = 20): string[] {
   return lines.slice(0, 3)
 }
 
-/**
- * 极客风 OG 图模板（issue #17：黑白灰阶）——近黑底 + 白色强调竖条 +
- * mono 站点名/标题，1200x630，构建期生成 SVG。
- * 注：SVG 文本由爬虫端按字体栈渲染，PNG 栅格化留作后续优化。
- */
+/** 极客风 OG 图模板（黑白灰阶）：近黑底 + 白色强调竖条 + mono 站点名/标题，
+ *  1200x630，构建期生成 SVG。 */
 function renderOgImage(siteLabel: string, title: string): string {
   const titleLines = wrapTitle(title)
   const lineHeight = 60
@@ -207,7 +202,7 @@ ${sitemapUrls.map((path) => `  <url>\n    <loc>${siteUrl}${path}</loc>\n  </url>
 `
 writeFileSync(join(distDir, 'sitemap.xml'), sitemap)
 
-// robots.txt：允许全站抓取，并声明 sitemap
+// robots.txt：允许全站抓取并声明 sitemap
 const robots = `User-agent: *
 Allow: /
 
@@ -215,8 +210,7 @@ Sitemap: ${siteUrl}/sitemap.xml
 `
 writeFileSync(join(distDir, 'robots.txt'), robots)
 
-// feed.xml：RSS 2.0，条目含全文（content:encoded）+ 正确标题/日期/链接；
-// draft 已由内容清单过滤，不进入 feed（PRD 用户故事 24/25）
+// feed.xml：RSS 2.0，条目含全文（content:encoded）；draft 已由内容清单过滤，不进入 feed
 function escapeXml(value: string): string {
   return value
     .replaceAll('&', '&amp;')
@@ -259,7 +253,7 @@ ${feedItems}
 `
 writeFileSync(join(distDir, 'feed.xml'), feed)
 
-// 极客风 OG 图模板：首页 + 每篇非 draft 文章各生成一张（黑白灰阶 + mono + 标题）
+// 极客风 OG 图：首页 + 每篇非 draft 文章各生成一张（黑白灰阶 + mono + 标题）
 const ogDir = join(distDir, 'og', 'posts')
 mkdirSync(ogDir, { recursive: true })
 writeFileSync(join(distDir, 'og', 'home.svg'), renderOgImage(siteName, tagline))

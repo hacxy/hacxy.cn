@@ -31,9 +31,8 @@ export function collectConfigFiles(postsDir: string): string[] {
 }
 
 /**
- * 构建期求值目录配置（issue #45）：Node 原生 type stripping 直接动态导入 .ts
- * 配置文件（Node ≥ 23.6，零新依赖；配置文件经相对路径 + 显式 .ts 扩展名导入
- * 共享模块，与仓库 allowImportingTsExtensions 风格一致）。
+ * 构建期求值目录配置：Node 原生 type stripping 直接动态导入 .ts 配置文件
+ * （Node ≥ 23.6，零新依赖）。
  *
  * 契约：
  * - 配置文件 default 导出 defineDirConfig((ctx) => ({ showSubdirs }))；

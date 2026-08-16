@@ -1,7 +1,6 @@
 import { email, socialLinks, tagline } from '../site.ts'
 
-/** 关于页：简介 + 社交链接 + 联系方式（PRD 用户故事 10）
- *  内层 max-w-2xl 收窄居中：全站容器放宽为 max-w-6xl 后视觉零回归（issue #28） */
+/** 关于页：简介 + 社交链接 + 联系方式 */
 export default function About() {
   return (
     <div className="mx-auto max-w-2xl">
