@@ -7,24 +7,17 @@ import { dirConfigs, posts } from '../content/index.ts'
 import { ancestorPaths, buildPostTree } from '../content/tree.ts'
 
 /**
- * 文章页左栏层级树（issue #44）：根层文章 + 各级文件夹（可折叠抽屉）。
- * 树由内容清单平铺列表派生（buildPostTree，同一来源）；桌面侧栏与移动端
- * 覆盖式抽屉复用同一组件（PostIndex 包裹，<768px「文章」按钮抽屉内容相同）。
- *
- * 行为契约：
- * - 当前文章所在分支自动展开至所在层（挂载与客户端导航时按祖先文件夹路径补充）；
- * - 子文件夹为可折叠抽屉：按钮 aria-expanded 标记可见状态，点击展开/收起；
- * - 同层内文件夹字母序在前、文章日期倒序在后（递归同规则，由 buildPostTree 保证）；
- * - 当前文章沿用全站 nav-active 高亮（加粗 + 下划线，NavLink 自动注入
- *   aria-current="page"）。
+ * 文章页左栏层级树：根层文章 + 各级文件夹（可折叠抽屉），由内容清单派生。
+ * - 当前文章所在分支自动展开至所在层；
+ * - 子文件夹为可折叠抽屉：aria-expanded 标记可见状态，点击展开/收起；
+ * - 同层内文件夹字母序在前、文章日期倒序在后（由 buildPostTree 保证）；
+ * - 当前文章沿用全站 nav-active 高亮（NavLink 自动注入 aria-current="page"）。
  */
 
 /** 构建期一次派生：树 = 清单 + 目录配置之上的派生结构（同一来源，纯函数、确定性） */
 const TREE = buildPostTree(posts, dirConfigs)
 
-/** 索引行类名：行形态复用首页终端行（.post-row），当前文章追加 nav-active——
- *  全站导航高亮机制（加粗 + 下划线，见 index.css .post-index a.nav-active，
- *  与顶部导航 .site-nav a.nav-active 同一令牌） */
+/** 行类名：复用首页终端行形态（.post-row），当前文章追加全站导航高亮 nav-active */
 const indexLinkClass = ({ isActive }: { isActive: boolean }) =>
   `post-row${isActive ? ' nav-active' : ''}`
 
@@ -63,7 +56,6 @@ export default function PostTree() {
   return <TreeBranch nodes={TREE} expanded={expanded} onToggle={toggle} />
 }
 
-/** 递归渲染层级树的一层：文件夹（可折叠抽屉按钮）+ 文章（终端行 NavLink） */
 function TreeBranch({
   nodes,
   expanded,

@@ -20,7 +20,7 @@ const MIME: Record<string, string> = {
 }
 
 /**
- * 文章资源 URL 路径 → 磁盘文件（issue #43）：/assets/<path> 的 <path> 部分映射到
+ * 文章资源 URL 路径 → 磁盘文件：/assets/<path> 的 <path> 部分映射到
  * content/posts/<目录>/assets/<文件名>——根层文章（无目录）→ content/posts/assets/，
  * 嵌套文章按所在目录路径化（如 pi-agent/x.png → content/posts/pi-agent/assets/x.png）。
  * 防路径穿越：join 规范化后解析结果必须仍在 content/posts 内，否则返回 null。
@@ -32,12 +32,10 @@ export function resolveAssetFile(name: string): string | null {
 }
 
 /**
- * 文章图片资源插件（PRD 用户故事 9「图片放文章同目录 assets/」）：
+ * 文章图片资源插件：文章同目录 assets/ 按相对目录路径提供。
  * - dev：中间件把 content/posts 下全部 assets/ 目录挂到 /assets/<目录路径>/
- *   （根层 = /assets/，嵌套 = /assets/<目录>/，与构建期 URL 一致）
- * - build：closeBundle 递归把各 assets/ 目录按相对目录路径复制到 dist/assets/，
- *   配合管线中 assets/ → /assets/<目录路径>/ 的引用重写，图片在产物中可访问，
- *   不同目录同名图片互不撞车
+ *   （根层 = /assets/，嵌套 = /assets/<目录>/，与构建期 URL 一致）；
+ * - build：closeBundle 递归复制各 assets/ 目录到 dist/assets/（同名图片不撞车）。
  */
 export function postAssetsPlugin(): Plugin {
   return {
@@ -61,8 +59,7 @@ export function postAssetsPlugin(): Plugin {
     closeBundle() {
       if (!existsSync(POSTS_ROOT)) return
       const outDir = join(process.cwd(), 'dist', 'assets')
-      // 递归收集 content/posts 下所有 assets/ 目录：根层 → dist/assets/，
-      // 嵌套 → dist/assets/<相对目录路径>/（按目录路径复制，同名文件不撞车）
+      // 递归收集所有 assets/ 目录并按目录路径复制（同名文件不撞车）
       const walk = (dir: string, prefix: string) => {
         for (const entry of readdirSync(dir)) {
           const full = join(dir, entry)

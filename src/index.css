@@ -26,17 +26,13 @@
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* 设计基调：正文 = 系统无衬线栈（PingFang SC / Microsoft YaHei / Noto Sans SC）；
-   代码与元数据 = JetBrains Mono；全站配色为纯黑白灰阶（issue #17）：
-   亮色 = 白底黑字 + 灰阶过渡，暗色 = 黑底白字反色，无任何彩色系残留。
-   链接不再依赖颜色区分（见 @layer base 全站链接样式）：下划线 + 加粗，
-   hover/focus 背景保持透明 + 颜色/下划线反馈（issue #52，不再黑白反白块）；
-   图标链接/抽屉按钮/终端链接等表面同样无背景反白（issue #56）。 */
+/* 设计基调：正文 = 系统无衬线栈（PingFang SC / Microsoft YaHei / Noto Sans SC），
+   代码与元数据 = JetBrains Mono；全站配色为纯黑白灰阶（亮色白底黑字、暗色黑底白字）。 */
 @theme {
   --font-sans:
     system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  /* 亮色：白底黑字。强调色 = 近黑（链接与正文同色，靠下划线/加粗区分） */
+  /* 亮色：强调色 = 近黑（链接与正文同色，靠下划线/加粗区分） */
   --color-accent: #1a1a1a;
   /* 终端输出：亮色近黑 */
   --color-terminal: #111111;
@@ -69,26 +65,20 @@ html.dark {
 
 @layer base {
   html {
-    /* 亮色 = 白底黑字（纯灰阶） */
     background-color: #ffffff;
     color: #1a1a1a;
   }
   html.dark {
-    /* 暗色 = 黑底白字反色（纯灰阶） */
     background-color: #0a0a0a;
     color: #e6e6e6;
   }
   body {
     font-family: var(--font-sans);
   }
-  /* 全站链接样式（issue #17）：下划线 + 加粗，不再依赖颜色区分；
-     hover / focus-visible（issue #52）：背景保持透明（不再黑白反白块），
-     颜色变 accent + 下划线（页脚等 muted 上下文可见颜色变化；灰阶下 accent
-     与正文同色属设计系统固有，下划线/加粗承担主要反馈）。键盘 Tab 聚焦与
-     鼠标 hover 同一视觉机制。
-     导航高亮沿用同一机制：active 导航项 = 加粗 + 下划线（见 .site-nav a.nav-active）。
-     例外：文章列表行（.post-row）为终端输出行形态——常规字重、无下划线，
-     hover/键盘焦点仅标题 accent + 下划线（issue #25，见下）。 */
+  /* 全站链接样式：下划线 + 加粗，不依赖颜色区分；
+     hover / focus-visible：背景保持透明、颜色变 accent + 下划线。
+     导航高亮沿用同一机制（active = 加粗 + 下划线）；
+     例外：文章列表行（.post-row）为终端输出行形态（见下）。 */
   a {
     font-weight: 700;
     text-decoration: underline;
@@ -100,8 +90,7 @@ html.dark {
     color: var(--color-accent);
   }
   /* 顶部导航：菜单项为普通文本外观（不加粗、无下划线）；
-     hover/focus（issue #52）= 加粗 + 下划线 + accent 色（与 active 高亮
-     同一视觉机制，无背景色块）；active 项用链接机制高亮（加粗 + 下划线） */
+     hover/focus = 加粗 + 下划线 + accent 色（与 active 高亮同一机制） */
   .site-nav a {
     font-weight: 400;
     text-decoration: none;
@@ -132,10 +121,9 @@ html.dark {
   }
 }
 
-/* 导航图标链接（GitHub/RSS，纯图形元素，issue #56）：无文字下划线（svg-only 不适用
-   文字下划线）；hover/focus-visible 背景保持透明（不再反白色块）+ 颜色降阶 muted
-   （灰度可见反馈，随亮暗主题反色）。放在层外（非 @layer base）：图标链接基色来自
-   Tailwind text-accent 工具类（utilities 层），同层/内层规则无法覆盖工具类颜色 */
+/* 导航图标链接（GitHub/RSS，纯图形元素）：无文字下划线；hover/focus-visible
+   背景保持透明 + 颜色降阶 muted。放在层外：基色来自 Tailwind text-accent
+   工具类（utilities 层），同层/内层规则无法覆盖工具类颜色 */
 .icon-link {
   text-decoration: none;
 }
@@ -146,18 +134,13 @@ html.dark {
   text-decoration: none;
 }
 
-/* 全站平滑滚动（issue #30）：目录锚点点击 = 原生 hash 跳转 + CSS 平滑滚动
-   （标题 scroll-margin-top 保证定位偏移，见 .post-body h2/h3/h4）；
+/* 全站平滑滚动：目录锚点点击 = 原生 hash 跳转 + CSS 平滑滚动；
    prefers-reduced-motion 下回退瞬时跳转（见底部 reduce 块） */
 html {
   scroll-behavior: smooth;
 }
 
-/* 高分屏根字号阶梯缩放（issue #26）：视口 ≥1920px 根字号升至 18px（1.125rem），
-   ≥2560px 升至 20px（1.25rem）——正文/终端/文章行/导航全部随根字号等比放大，
-   内容列宽随 rem 自然变宽（max-w-2xl = 42rem：672→756→840px，中文行宽仍在舒适区）；
-   1920px 以下保持浏览器默认 16px 基准。纯 CSS 媒体查询：无 JS/组件改动、
-   SSR 与 hydration 不受影响（html 基础样式在 @layer base，此处非层内规则优先）。 */
+/* 高分屏根字号阶梯缩放：≥1920px → 18px，≥2560px → 20px（全部尺寸随 rem 等比放大） */
 @media (min-width: 1920px) {
   html {
     font-size: 18px;
@@ -179,24 +162,23 @@ html.dark .shiki span {
   background-color: var(--shiki-dark-bg) !important;
 }
 
-/* 全站背景纹理垫底图层：fixed 铺满视口、z-index 最低、不拦截指针事件，
-   挂在 Layout 中作用于全部页面；背景为内联 SVG data-URI 平铺（零外部资源） */
+/* 全站背景纹理垫底图层：fixed 铺满视口、不拦截指针事件；
+   背景为内联 SVG data-URI 平铺（零外部资源） */
 .bg-texture {
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  /* 亮色变体：深灰低干扰（内联 SVG data-URI 平铺：24px 网格 + 代码字符，零外部资源） */
+  /* 亮色变体：深灰低干扰（24px 网格 + 代码字符） */
   background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width='120'%20height='120'%20viewBox='0%200%20120%20120'%3E%0A%20%20%3Cg%20fill='none'%20stroke='%231a1a1a'%20stroke-width='1'%20opacity='0.06'%3E%0A%20%20%20%20%3Cpath%20d='M24%200v120M48%200v120M72%200v120M96%200v120M0%2024h120M0%2048h120M0%2072h120M0%2096h120'%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill='%231a1a1a'%20font-family='monospace'%20font-size='11'%20opacity='0.05'%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='18'%3E0x%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='66'%20y='18'%3E%7B%20%7D%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='30'%20y='42'%3E=%3E%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='90'%20y='42'%3Efn%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='66'%3E%2F%2F%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='60'%20y='66'%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='36'%20y='90'%3E0xff%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='96'%20y='90'%3E%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='12'%20y='114'%3E=%26gt%3B%3C%2Ftext%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
 }
 
-/* 暗色变体：浅灰低干扰（#e6e6e6 低透明度，黑底白字反色，不再绿调），随 .dark 切换 */
+/* 暗色变体：浅灰低干扰，随 .dark 切换 */
 html.dark .bg-texture {
   background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width='120'%20height='120'%20viewBox='0%200%20120%20120'%3E%0A%20%20%3Cg%20fill='none'%20stroke='%23e6e6e6'%20stroke-width='1'%20opacity='0.06'%3E%0A%20%20%20%20%3Cpath%20d='M24%200v120M48%200v120M72%200v120M96%200v120M0%2024h120M0%2048h120M0%2072h120M0%2096h120'%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill='%23e6e6e6'%20font-family='monospace'%20font-size='11'%20opacity='0.05'%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='18'%3E0x%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='66'%20y='18'%3E%7B%20%7D%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='30'%20y='42'%3E=%3E%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='90'%20y='42'%3Efn%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='6'%20y='66'%3E%2F%2F%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='60'%20y='66'%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='36'%20y='90'%3E0xff%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='96'%20y='90'%3E%3B%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x='12'%20y='114'%3E=%26gt%3B%3C%2Ftext%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
 }
 
-/* 首页背景点阵画布（ArtDots 改编，见 BackgroundDots.tsx）：fixed 铺满视口、
-   垫底、不拦截指针事件；仅首页挂载、仅客户端渲染（SSR 无 canvas 结构） */
+/* 首页背景点阵画布（见 BackgroundDots.tsx）：fixed 铺满视口、不拦截指针事件 */
 .bg-dots {
   position: fixed;
   inset: 0;
@@ -204,12 +186,11 @@ html.dark .bg-texture {
   pointer-events: none;
 }
 
-/* ===== 主题切换按钮与过渡（issue #54） ===== */
+/* ===== 主题切换按钮与过渡 ===== */
 
 /* 图标按钮：月亮（亮色，点击进入暗色）/ 太阳（暗色，点击进入亮色）——动作语义
    图标（一眼看出切换后进入的主题）；currentColor 线性符号（icons.svg 精灵），
-   颜色 = --color-accent（亮色近黑 / 暗色近白，随主题灰阶自动反色），与导航
-   GitHub/RSS 图标同一视觉层级；hover/focus 无背景色块（issue #52 机制） */
+   颜色 = --color-accent（随主题灰阶自动反色） */
 .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -225,19 +206,16 @@ html.dark .bg-texture {
   color: var(--color-accent);
 }
 
-/* 主题切换过渡：支持 View Transitions API 的浏览器由入口脚本给 <html> 挂 .theme-vt
-   标记类（见 index.html）——整页交叉淡化交给 View Transition（旧/新快照交叉淡化，
-   背景纹理与点阵 canvas 均被快照覆盖），此时禁用 CSS 过渡（不双重动画）；
-   无标记（不支持该 API）时 CSS 过渡兜底——html 背景/文字颜色平滑渐变
-   （color 为继承属性，正文各元素随 html 动画值逐帧跟随）。
-   prefers-reduced-motion：JS 侧跳过 View Transition、CSS 侧禁用过渡（见底部 reduce 块） */
+/* 主题切换过渡：支持 View Transitions API 时由入口脚本给 <html> 挂 .theme-vt
+   标记类，整页交叉淡化交给 View Transition（此时禁用 CSS 过渡）；无标记时
+   CSS 过渡兜底。prefers-reduced-motion：JS 跳过 View Transition、CSS 禁用过渡 */
 html:not(.theme-vt) {
   transition:
     background-color 0.3s ease,
     color 0.3s ease;
 }
 
-/* ===== hero 终端（issue #18）：pi.dev 风格 AI 会话演出 ===== */
+/* ===== hero 终端：pi.dev 风格 AI 会话演出 ===== */
 
 /* hero 区入场动画：克制（淡入 + 轻微上移 8px，纯 CSS） */
 .hero-enter {
@@ -254,12 +232,9 @@ html:not(.theme-vt) {
   }
 }
 
-/* 终端框架（pi.dev 风格）：恒黑底白字，与页面 chrome 主题色解耦——亮暗模式均为
-   黑底白字（不随 .dark 切换）；四角括号装饰（┌┐└┘）；移除 mac 装饰圆点窗口栏。
-   结构（issue #40，分隔线 ──── 已删除于 issue #64）：会话 transcript → 输入区 → 状态栏。
-   overflow 移到内部 .hero-terminal-scroll（横向滚动不影响四角括号）；
-   演出编排为行级纯 CSS 动画：每条行与输入框打字各带 --delay（组件按数据计算，
-   确定性输出），播放一遍后停驻最终态、不循环 */
+/* 终端框架（pi.dev 风格）：恒黑底白字（亮暗模式一致，不随 .dark 切换）；
+   结构 = 会话 transcript → 输入区 → 状态栏；演出编排为行级纯 CSS 动画
+   （每条行与输入框打字各带 --delay，确定性输出），播放一遍后停驻最终态、不循环 */
 .hero-terminal {
   position: relative;
   margin-top: 1.25rem;
@@ -306,7 +281,7 @@ html:not(.theme-vt) {
   padding: 1rem 1rem 0.75rem;
 }
 
-/* 对话轮次容器：结构分组（无容器入场动画——行级动画负责逐行揭示编排） */
+/* 对话轮次容器：结构分组（行级动画负责逐行揭示编排） */
 .hero-turn {
   display: block;
 }
@@ -321,8 +296,7 @@ html:not(.theme-vt) {
   }
 }
 
-/* user 提问行：❓ 前缀 + 加粗（黑白下的第一视觉层级）；发送时刻淡入
-   （--delay = 发送时刻：问题进入 transcript 与输入框清空同一时刻） */
+/* user 提问行：❓ 前缀 + 加粗（黑白下的第一视觉层级）；发送时刻淡入 */
 .user-question {
   display: block;
   font-weight: 700;
@@ -333,8 +307,8 @@ html:not(.theme-vt) {
   margin-right: 0.375rem;
 }
 
-/* agent 状态行（真实会话质感）：Thinking… / Done.——弱化灰阶，随 --delay 淡入；
-   Thinking… 带灰阶脉冲（3 × 0.3s = 与 THINK_DUR 同周期，3 次后停驻不循环） */
+/* agent 状态行：Thinking… / Done.——弱化灰阶，随 --delay 淡入；
+   Thinking… 带灰阶脉冲（3 次后停驻不循环） */
 .terminal-status {
   display: block;
   color: #d6d6d6;
@@ -356,8 +330,7 @@ html:not(.theme-vt) {
   }
 }
 
-/* assistant 回答行：随 --delay 淡入；typewriter 行由行内 .typewriter-text
-   逐字符揭示（见下）；多行之间留白 */
+/* assistant 回答行：随 --delay 淡入；typewriter 行由行内 .typewriter-text 逐字符揭示 */
 .hero-line {
   display: block;
   animation: turn-in var(--line-in, 0.3s) ease-out both;
@@ -369,9 +342,8 @@ html:not(.theme-vt) {
 
 /* 打字机文本（纯 CSS）：完整文本始终在 DOM（SEO / reduced-motion / 结束态直接可见），
    动画用 clip-path 从右向左裁切 + steps(字符数) 逐字符揭示；
-   --type-chars / --type-duration / --delay 由组件按数据驱动（issue #40：
-   打字机机制从行内揭示扩展到输入框内逐字符打字，见 .terminal-typed）；
-   position: relative 为行内光标提供定位基准（issue #53，见 .terminal-cursor） */
+   --type-chars / --type-duration / --delay 由组件数据驱动；
+   position: relative 为行内光标提供定位基准 */
 .typewriter-text {
   position: relative;
   display: inline-block;
@@ -391,22 +363,19 @@ html:not(.theme-vt) {
   }
 }
 
-/* 块状光标几何（issue #53）：打字机行尾行内光标与输入框停驻光标共用同一套规则——
-   高度 = 字形高度（1em）、以字形中线为基准垂直居中，不遮文字：
-   - 行内 .terminal-cursor：绝对定位于文字容器（.typewriter-text / .terminal-typed，
-     容器高度 = 行框高 = line-height），top 50% + translateY(-50%) ⇒ 垂直中心 =
-     行框中心 = 字形中线（与相邻文字块 rect 中心重合，不依赖字体度量）
-   - 停驻 .terminal-input-cursor：top = padding-top + 半行高余量（见输入区） */
+/* 块状光标几何：行内光标与停驻光标共用同一套规则——高度 = 1em、以字形中线为
+   基准垂直居中，不遮文字。行内 .terminal-cursor：top 50% + translateY(-50%)
+   （行框中心 = 字形中线，不依赖字体度量）；停驻 .terminal-input-cursor：
+   top = padding-top + 半行高余量（见输入区） */
 .terminal-cursor,
 .terminal-input-cursor {
   width: 0.55em;
   height: 1em;
   background: #fff;
 }
-/* 行内块状闪烁光标：打字机行尾（终端「正在输出」状态）——跟随文字末尾
-   （容器右端 + 0.1em 间距），随容器 clip-path 一起逐字符揭示。
-   输入框内打字光标另见 .terminal-typed .terminal-cursor（issue #63：常亮、
-   跟随打字逐字符右移，不闪烁） */
+/* 行内块状闪烁光标：打字机行尾（终端「正在输出」状态）——跟随文字末尾、随容器
+   clip-path 一起逐字符揭示。输入框内打字光标另见 .terminal-typed .terminal-cursor
+   （常亮、跟随打字逐字符右移，不闪烁） */
 .terminal-cursor {
   position: absolute;
   top: 50%;
@@ -425,24 +394,19 @@ html:not(.theme-vt) {
   }
 }
 
-/* 输入区（issue #40）：终端底部输入框（演出用，非交互）。每轮一个 .terminal-typed
-   （绝对定位叠放于同一槽位，同一时刻仅当前轮文本可见）：
-   - 打字：clip-path + steps(字符数) 逐字符揭示（input-type）——issue #63：clip
-     作用于文本 span（.terminal-input-text）而非槽位本身，输入光标（槽位内兄弟
-     元素）不再被同一 clip 裁切，全程可见
-   - 发送：opacity 淡出清空（input-hide，作用于槽位，与问题进入 transcript 同一
-     时刻）——clip 与 opacity 作用于不同元素不同属性，互不干扰且各自 fill both
-   - 输入光标（.terminal-typed .terminal-cursor，issue #63）：常亮不闪烁，随打字
-     逐字符右移（input-cursor-move 与 input-type 同一时刻表同步）；--delay-cursor
-     控制出现时刻——首轮即刻显示、其后每轮在上轮发送清空后立即出现，演出全程
-     输入框内光标常驻
-   - 停驻光标：末轮发送后出现在输入框行首，常亮停驻（不闪烁，issue #63） */
+/* 输入区：终端底部输入框（演出用，非交互）。每轮一个 .terminal-typed（绝对定位
+   叠放于同一槽位，同一时刻仅当前轮文本可见）：
+   - 打字：clip-path + steps(字符数) 逐字符揭示（input-type，clip 作用于文本
+     span，输入光标不被裁切）
+   - 发送：opacity 淡出清空（input-hide，与问题进入 transcript 同一时刻）
+   - 输入光标：常亮不闪烁、随打字逐字符右移（input-cursor-move 与 input-type 同步）
+   - 停驻光标：末轮发送后出现在行首，常亮停驻 */
 .terminal-input-row {
   padding: 0 1rem 0.75rem;
 }
 .terminal-input {
-  /* 输入槽位参数（issue #53）：停驻光标按「padding-top + 半行高余量」公式对齐文字行，
-     padding/行高在此单一定义、槽位与光标共用（.terminal-typed / .terminal-input-cursor） */
+  /* 输入槽位参数：停驻光标按「padding-top + 半行高余量」公式对齐文字行，
+     padding/行高在此单一定义、槽位与光标共用 */
   --input-pad-y: 0.4rem;
   --input-line-height: 1.5;
   position: relative;
@@ -462,8 +426,8 @@ html:not(.theme-vt) {
   /* 基础态完整可见（reduced-motion / 无动画时输入框直接显示全文） */
   animation: input-hide 0.2s ease var(--delay-hide, 30s) both;
 }
-/* 打字文本 span：clip-path 逐字符揭示（input-type，steps(字符数)）。issue #63：
-   clip 作用于文本本身而非整槽位，输入光标（槽位内兄弟元素）不被裁切 */
+/* 打字文本 span：clip-path 逐字符揭示（input-type，steps(字符数)）。clip 作用于
+   文本本身而非整槽位，输入光标（槽位内兄弟元素）不被裁切 */
 .terminal-input-text {
   display: inline-block;
   clip-path: inset(0 0 0 0);
@@ -486,11 +450,10 @@ html:not(.theme-vt) {
     opacity: 0;
   }
 }
-/* 输入框打字光标（issue #63）：常亮不闪烁（覆盖行内 .terminal-cursor 的闪烁），
-   随打字逐字符右移——left 0 → calc(100% + 0.1em)，steps(字符数) 与 input-type
-   同一时刻表同步（每敲一个字符光标跳到下一插入位）；cursor-appear 控制出现时刻
-   （--delay-cursor：首轮即刻、其后每轮在上轮发送清空后）→ 演出全程光标常驻。
-   z-index 1：光标（定位元素）绘制于槽位文本之上，不被同槽文本压盖 */
+/* 输入框打字光标：常亮不闪烁（覆盖行内 .terminal-cursor 的闪烁），随打字逐字符
+   右移——left 0 → calc(100% + 0.1em)，与 input-type 同一时刻表同步；
+   --delay-cursor 控制出现时刻（首轮即刻、其后每轮在上轮发送清空后）。
+   z-index 1：光标绘制于槽位文本之上 */
 .terminal-typed .terminal-cursor {
   z-index: 1;
   animation:
@@ -506,13 +469,12 @@ html:not(.theme-vt) {
     left: calc(100% + 0.1em);
   }
 }
-/* 停驻光标：clip 隐藏直到 --delay-appear（末轮发送后），随后常亮停驻
-   （issue #63：不再闪烁；块状视觉与行内 .terminal-cursor 同一形态，几何规则见
-   .terminal-cursor 共用块——高度 1em、以字形中线垂直居中） */
+/* 停驻光标：clip 隐藏直到 --delay-appear（末轮发送后），随后常亮停驻；
+   块状视觉与行内 .terminal-cursor 同一形态（高度 1em、以字形中线垂直居中） */
 .terminal-input-cursor {
   position: absolute;
   /* 对齐文字行：padding-top + 半行高余量（(line-height − 1em)/2，line-height 1.5
-     ⇒ 0.25em）——以字形中线为基准垂直居中，不再从 padding 顶边起算 */
+     ⇒ 0.25em）——以字形中线为基准垂直居中 */
   top: calc(var(--input-pad-y) + (var(--input-line-height) - 1) * 0.5em);
   left: 0.625rem;
   clip-path: inset(0 0 0 0);
@@ -527,8 +489,7 @@ html:not(.theme-vt) {
   }
 }
 
-/* 底部状态栏（issue #40 + #55 精简）：● live · 文章数 · 标签数 · v<版本>；
-   弱化 mono 文字（与正文以细线分隔）、段间以「·」分隔，多段在窄屏换行不撑破小屏 */
+/* 底部状态栏：● live · 文章数 · 标签数 · v<版本>；弱化 mono 文字、段间以「·」分隔 */
 .hero-terminal-caption {
   display: flex;
   align-items: center;
@@ -562,17 +523,15 @@ html:not(.theme-vt) {
   }
 }
 
-/* 终端内链接 hover/focus（issue #56）：恒黑底终端自闭环——背景保持透明
-   （不再白底黑字反白），颜色降阶为终端内灰阶（#8c8c8c，与状态栏弱化灰同一层级）；
-   终端恒黑底、独立于页面主题，灰阶取值固定不随亮暗切换；下划线/加粗基态保留 */
+/* 终端内链接 hover/focus：恒黑底终端自闭环——背景保持透明、颜色降阶为终端内
+   灰阶（#8c8c8c）；下划线/加粗基态保留 */
 .hero-terminal a:hover,
 .hero-terminal a:focus-visible {
   background-color: transparent;
   color: #8c8c8c;
 }
 
-/* 文章卡片（issue #14）：标题栏 ●●● 装饰圆点（亮色由浅到深、暗色由深到浅，
-   随主题切换）——仅文章卡片使用，hero 终端已移除 mac 装饰圆点窗口栏 */
+/* 文章卡片：标题栏 ●●● 装饰圆点（亮色由浅到深、暗色由深到浅，随主题切换） */
 .terminal-dot {
   width: 0.625rem;
   height: 0.625rem;
@@ -597,10 +556,9 @@ html.dark .terminal-dot--green {
   background: #6e6e6e;
 }
 
-/* ===== 文章列表（issue #19，父 PRD #16）：连续终端流最后一幕 ===== */
+/* ===== 文章列表：连续终端流最后一幕 ===== */
 
-/* 连续终端流容器：--row-start / --row-gap / --row-in 为文章行入场节奏参数
-   （issue #40：与 hero 终端演出并行开始，不再等演出播完） */
+/* 连续终端流容器：--row-start / --row-gap / --row-in 为文章行入场节奏参数 */
 .home-stream {
   --row-start: 0.4s;
   --row-gap: 0.14s;
@@ -614,8 +572,8 @@ html.dark .terminal-dot--green {
   margin-top: 1.25rem;
 }
 
-/* 行入场：与 hero 终端演出并行开始（issue #40）——入场延迟（--row-start）不再大于
-   演出末段（首行 ~0.4s 即开始，而演出末轮回答在数秒后），保留逐行错开 fade-in */
+/* 行入场：与 hero 终端演出并行开始——入场延迟（--row-start）不再大于演出末段，
+   逐行错开 fade-in */
 .post-row-enter {
   animation: row-in var(--row-in, 0.3s) ease-out both;
   animation-delay: calc(var(--row-start, 0.4s) + var(--i, 0) * var(--row-gap, 0.14s));
@@ -632,11 +590,8 @@ html.dark .terminal-dot--green {
 }
 
 /* 整行为单个链接：mono 日期 + 标题 + #标签（终端 ls 输出行形态）；
-   hover / 键盘 focus-visible 反馈（issue #25）：行首沟槽淡入「>」终端提示符 +
-   标题 accent 色 + 下划线（字重保持 400），日期/标签保持 muted，
-   整行背景保持透明、文字保持继承色（issue #52 全站链接去反白后，文章行豁免仍生效：
-   行自身不接受 accent 整行染色，仅标题 accent + 下划线）；
-   行内不渲染摘要（内容管线保留 description，文章页/SEO 继续使用） */
+   hover / 键盘 focus-visible：行首沟槽淡入「>」终端提示符 + 标题 accent 色 +
+   下划线（字重保持 400），日期/标签保持 muted；整行背景保持透明 */
 .post-row {
   display: flex;
   align-items: baseline;
@@ -649,8 +604,7 @@ html.dark .terminal-dot--green {
 }
 
 /* 行首提示符「>」：槽始终占位（预留沟槽 → 内容零位移），hover/focus 时淡入；
-   负 margin 抵消容器 column-gap（与 .post-row 的 gap 0.875rem 保持同步），
-   「>」与日期间距由槽内空隙决定（≈0.55rem，终端单空格风格） */
+   负 margin 抵消容器 column-gap（与 .post-row 的 gap 0.875rem 保持同步） */
 .post-row-prompt {
   flex: 0 0 1rem;
   margin-right: -0.875rem;
@@ -680,9 +634,8 @@ html.dark .terminal-dot--green {
   color: var(--color-muted);
 }
 
-/* 标题：常规字重（终端输出文本层级），占满剩余宽度、可换行不撑破小屏；
-   hover/focus：accent 色 + 下划线（与全站链接同风格 text-underline-offset），
-   字重保持 400 不变 */
+/* 标题：常规字重（终端输出文本层级），占满剩余宽度、可换行；
+   hover/focus：accent 色 + 下划线（字重保持 400） */
 .post-row-title {
   flex: 1 1 auto;
   font-size: 1rem;
@@ -707,10 +660,9 @@ html.dark .terminal-dot--green {
   color: var(--color-muted);
 }
 
-/* ===== 文章页排版（issue #28）：干净 prose 风格（终端美学留在首页与列表） ===== */
+/* ===== 文章页排版：干净 prose 风格（终端美学留在首页与列表） ===== */
 
-/* 头部信息区：大标题 + mono 元数据（日期/updated/#标签）+ 描述，
-   与正文以细线分隔——为未来三栏布局（左目录/中正文/右栏）的中间栏头部 */
+/* 头部信息区：大标题 + mono 元数据（日期/updated/#标签）+ 描述，与正文以细线分隔 */
 .post-header {
   margin-bottom: 2.5rem;
   padding-bottom: 1.75rem;
@@ -748,11 +700,10 @@ html.dark .terminal-dot--green {
   color: var(--color-muted);
 }
 
-/* ===== 文章页布局（issue #29 两栏 + issue #30 三栏）：左栏文章索引 + 中栏正文 + 右栏目录 ===== */
+/* ===== 文章页布局：左栏文章索引 + 中栏正文 + 右栏目录 ===== */
 
 /* 两栏网格（≥768px）：左栏 15rem 常驻文章索引 + 中栏正文（minmax 收窄）；
-   三栏（issue #30）仅 ≥1024px 且文章有目录时启用（见下），
-   目录为空（.post-layout--no-toc）维持两栏 */
+   三栏仅 ≥1024px 且文章有目录时启用，目录为空（.post-layout--no-toc）维持两栏 */
 .post-layout {
   display: grid;
   grid-template-columns: 15rem minmax(0, 1fr);
@@ -761,16 +712,15 @@ html.dark .terminal-dot--green {
   align-items: start;
 }
 
-/* 三栏（issue #30）：≥1024px 且文章有目录时，右栏 11.5rem 锚点目录常驻
-   （左 15rem 索引 + 中正文收窄至 ~600px + 右目录；无目录时右栏整栏隐藏、退化为两栏） */
+/* 三栏（≥1024px 且文章有目录时）：左 15rem 索引 + 中正文收窄至 ~600px + 右 11.5rem 目录；
+   无目录时右栏整栏隐藏、退化为两栏 */
 @media (min-width: 1024px) {
   .post-layout:not(.post-layout--no-toc) {
     grid-template-columns: 15rem minmax(0, 1fr) 11.5rem;
   }
 }
 
-/* 左栏：sticky 常驻，跟随滚动至正文末尾（top 2rem 与页内间距同节奏）；
-   列表与首页终端行同构（mono 日期 + 标题，复用 .post-row 行形态） */
+/* 左栏：sticky 常驻，跟随滚动至正文末尾；列表与首页终端行同构 */
 .post-index {
   position: sticky;
   top: 2rem;
@@ -780,16 +730,15 @@ html.dark .terminal-dot--green {
 }
 
 /* 当前文章高亮（复用全站导航高亮机制）：加粗 + 下划线；
-   行基态与 .post-row 一致（常规字重、无下划线），active 时切换。
-   NavLink 同时注入 aria-current="page"（键盘/读屏可达） */
+   NavLink 同时注入 aria-current="page" */
 .post-index a.nav-active {
   font-weight: 700;
   text-decoration: underline;
 }
 
-/* ===== 文章页左栏层级树（issue #44）：根层文章 + 各级文件夹（可折叠抽屉） ===== */
+/* ===== 文章页左栏层级树：根层文章 + 各级文件夹（可折叠抽屉） ===== */
 
-/* 树列表：与首页终端行列表同一布局（行间紧凑）；根列表无顶部留白（sticky 侧栏内） */
+/* 树列表：与首页终端行列表同一布局（行间紧凑） */
 .post-tree-list {
   display: flex;
   flex-direction: column;
@@ -808,9 +757,8 @@ html.dark .terminal-dot--green {
   border-left: 1px solid var(--color-prose-border);
 }
 
-/* 文件夹行：按钮形态（非链接），行布局与 .post-row 同构（折叠标记 + mono 名）；
-   常规字重、muted 灰（结构层弱于文章标题），hover/键盘焦点 accent + 下划线，
-   背景保持透明（与文章行同一豁免，不出现色块） */
+/* 文件夹行：按钮形态（非链接），行布局与 .post-row 同构；常规字重、muted 灰，
+   hover/键盘焦点 accent + 下划线，背景保持透明 */
 .post-tree-folder {
   display: flex;
   align-items: baseline;
@@ -857,10 +805,9 @@ html.dark .terminal-dot--green {
   max-width: 37.5rem;
 }
 
-/* ===== 右栏锚点目录（issue #30）：h2/h3 两级 + scroll-spy ===== */
+/* ===== 右栏锚点目录：h2/h3 两级 + scroll-spy ===== */
 
-/* 右栏：sticky 常驻（top 2rem 与左栏/页内间距同节奏）；<1024px 整栏隐藏
-   （仅渲染于有目录的文章；目录为空时组件不渲染，无空栏） */
+/* 右栏：sticky 常驻；<1024px 整栏隐藏（仅渲染于有目录的文章，无空栏） */
 .post-toc {
   display: none;
   position: sticky;
@@ -895,9 +842,8 @@ html.dark .terminal-dot--green {
   overflow-wrap: anywhere;
 }
 
-/* 目录链接：普通文本外观（不加粗、无下划线，与顶部导航同机制），
-   hover/focus 加下划线；active（当前章节，scroll-spy）加粗 + 下划线——
-   全站导航高亮同一机制（.site-nav a.nav-active） */
+/* 目录链接：普通文本外观（不加粗、无下划线，与顶部导航同机制），hover/focus 加下划线；
+   active（当前章节，scroll-spy）加粗 + 下划线 */
 .post-toc a {
   font-weight: 400;
   text-decoration: none;
@@ -922,11 +868,10 @@ html.dark .terminal-dot--green {
   padding-left: 1rem;
 }
 
-/* ===== 文章页抽屉导航（issue #31）：窄屏侧栏收进覆盖式抽屉 ===== */
+/* ===== 文章页抽屉导航：窄屏侧栏收进覆盖式抽屉 ===== */
 
-/* 按钮条：仅文章页渲染（PostPage 挂载）；<1024px 可见，≥1024px 整条隐藏
-   （桌面侧栏常驻、按钮 display:none 不占 Tab 序）。768–1023px 无目录文章
-   时整条隐藏：「文章」按钮该区间隐藏、目录按钮不渲染 → 空栏不占位 */
+/* 按钮条：仅文章页渲染；<1024px 可见，≥1024px 整条隐藏（不占 Tab 序）；
+   768–1023px 无目录文章时整条隐藏（「文章」按钮该区间隐藏、目录按钮不渲染） */
 .post-drawer-bar {
   display: flex;
   gap: 0.5rem;
@@ -943,7 +888,7 @@ html.dark .terminal-dot--green {
   }
 }
 
-/* 「文章」按钮：仅 <768px 可见（左栏同步收进抽屉；768–1023px 左栏仍为两栏常驻侧栏） */
+/* 「文章」按钮：仅 <768px 可见（768–1023px 左栏仍为两栏常驻侧栏） */
 .drawer-trigger--index {
   display: none;
 }
@@ -953,9 +898,8 @@ html.dark .terminal-dot--green {
   }
 }
 
-/* 触发按钮：终端风格（mono + 边框 + 灰底），hover/focus-visible（issue #56）
-   背景保持透明 + 下划线（不再反白色块）；颜色保持 accent；
-   打开的抽屉对应按钮加粗 + 下划线（[aria-expanded='true'] 见下，不回归） */
+/* 触发按钮：终端风格（mono + 边框 + 灰底），hover/focus-visible 背景保持透明 +
+   下划线；打开的抽屉对应按钮加粗 + 下划线（[aria-expanded='true']） */
 .drawer-trigger {
   align-items: center;
   padding: 0.25rem 0.75rem;
@@ -1048,8 +992,8 @@ html.dark .drawer-panel {
   }
 }
 
-/* 关闭按钮：面板右上角（flex 列末尾右对齐）；hover/focus-visible（issue #56）
-   背景保持透明 + 颜色降阶 muted（符号按钮不适用下划线） */
+/* 关闭按钮：面板右上角；hover/focus-visible 背景保持透明 + 颜色降阶 muted
+   （符号按钮不适用下划线） */
 .drawer-close {
   align-self: flex-end;
   width: 2rem;
@@ -1076,16 +1020,16 @@ html.dark .drawer-panel {
   display: block;
 }
 
-/* 标题锚点定位偏移（issue #30）：原生 hash 跳转落到标题时预留 2rem
-   （与左右 sticky 栏 top 同节奏），配合 html { scroll-behavior: smooth } */
+/* 标题锚点定位偏移：原生 hash 跳转落到标题时预留 2rem（与左右 sticky 栏 top
+   同节奏），配合 html { scroll-behavior: smooth } */
 .post-body h2,
 .post-body h3,
 .post-body h4 {
   scroll-margin-top: 2rem;
 }
 
-/* <768px：退回单栏——左栏索引隐藏（抽屉交互由后续工单接入），
-   正文居中小于 768px 视口仍保持 ~600px 可读宽度（旧 max-w-2xl 居中视觉不回归） */
+/* <768px：退回单栏——左栏索引隐藏（抽屉交互由后续工单接入），正文居中保持
+   ~600px 可读宽度 */
 @media (max-width: 767px) {
   .post-layout {
     display: block;
@@ -1098,8 +1042,7 @@ html.dark .drawer-panel {
   }
 }
 
-/* 正文：层级 + 留白节奏 + 独立成块——h2/h3、段落、列表、引用、表格、代码块、行内代码
-   各有明确层级与间距（不再全部 16px/零 margin） */
+/* 正文：层级 + 留白节奏 + 独立成块 */
 .post-body {
   font-size: 1rem;
   line-height: 1.8;
@@ -1194,9 +1137,8 @@ html.dark .drawer-panel {
   font-weight: 700;
   background-color: var(--color-prose-bg);
 }
-/* 代码块：独立成块（内边距 + 边框 + 圆角 + 灰底）。
-   Shiki 亮色背景为内联样式，需 !important 覆盖；暗色由既有
-   html.dark .shiki 规则（更高优先级）接管 --shiki-dark-bg，不受影响 */
+/* 代码块：独立成块（内边距 + 边框 + 圆角 + 灰底）。Shiki 亮色背景为内联样式，
+   需 !important 覆盖；暗色由既有 html.dark .shiki 规则接管，不受影响 */
 .post-body pre {
   margin: 1.5rem 0;
   padding: 1rem 1.125rem;
@@ -1217,9 +1159,7 @@ html.dark .drawer-panel {
   overflow-wrap: anywhere;
 }
 
-/* 无障碍：prefers-reduced-motion 下禁用全部动画，全文直接可见——问题/状态/回答行、
-   输入框打字文本（问题行内排布、不重叠不隐藏）、live 红点静止、光标静止；
-   无动画报错（演出编排为纯 CSS，无 JS 参与） */
+/* 无障碍：prefers-reduced-motion 下禁用全部动画，全文直接可见（演出编排为纯 CSS，无 JS 参与） */
 @media (prefers-reduced-motion: reduce) {
   .hero-enter,
   .user-question,
@@ -1235,7 +1175,7 @@ html.dark .drawer-panel {
     animation: none;
   }
   /* 输入区：输入框全文直接可见（问题按顺序行内排布，不再绝对定位叠放）；
-     光标闪烁同为动画 → 静止（隐藏输入区光标，避免与文本重叠） */
+     光标静止（隐藏输入区光标，避免与文本重叠） */
   .terminal-typed {
     position: static;
     display: inline-block;
@@ -1246,7 +1186,7 @@ html.dark .drawer-panel {
   .terminal-input-cursor {
     display: none;
   }
-  /* 平滑滚动回退瞬时跳转（issue #30） */
+  /* 平滑滚动回退瞬时跳转 */
   html {
     scroll-behavior: auto;
   }
@@ -1259,7 +1199,7 @@ html.dark .drawer-panel {
   .drawer-panel {
     animation: none;
   }
-  /* 主题切换过渡兜底：reduce 下禁用（瞬时切换，issue #54） */
+  /* 主题切换过渡兜底：reduce 下禁用（瞬时切换） */
   html:not(.theme-vt) {
     transition: none;
   }

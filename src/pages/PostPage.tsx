@@ -8,21 +8,14 @@ import { sameDirectoryNeighbors } from '../content/navigation.ts'
 import NotFound from './NotFound.tsx'
 
 /**
- * 文章详情页：正文为构建期渲染完成的 HTML 字符串（含 Shiki 高亮与标题锚点），
- * 客户端经 dangerouslySetInnerHTML 挂载，同一字符串服务端/客户端完全一致，
- * 从根上避免 hydration mismatch（PRD「渲染策略」决策）。
+ * 文章详情页：正文为构建期渲染完成的 HTML（含 Shiki 高亮与标题锚点），经
+ * dangerouslySetInnerHTML 挂载，同一字符串服务端/客户端完全一致，从根上避免
+ * hydration mismatch。
  *
- * 三栏布局（issue #30，≥1024px）：左栏 sticky 常驻全文章索引（PostIndex，
- * 与首页终端行同构、当前文章加粗 + 下划线高亮），中栏正文自然收窄至 ~600px
- * 阅读宽度（37.5rem，中文 ~35 字/行），右栏 sticky 锚点目录（PostToc，
- * h2/h3 两级 + IntersectionObserver scroll-spy 高亮当前章节）；
- * 文章无标题（toc 为空）时右栏整栏隐藏、退化为两栏；<1024px 右栏隐藏，
- * <768px 退回单栏（窄屏侧栏收进覆盖式抽屉，见 PostDrawerNav，issue #31）。
- * 头部信息区（issue #28）：大标题 + mono 日期/updated（有才显示）+ #标签 + 描述；正文排版为干净 prose 风格
- * （层级/留白/独立成块，见 index.css .post-body），终端美学保留在首页与列表。
- * 内嵌「目录」块已移除（issue #30），TOC 语义（aria-label="文章目录"）保留。
- * 上一篇/下一篇保留在正文底部（issue #29）：同目录内按日期倒序相邻、目录边界处
- * 停止（issue #43，不跨界跳转），根层文章互相相邻、嵌套文章仅限本目录。
+ * 三栏布局（≥1024px）：左栏 sticky 全文章索引 + 中栏正文（~600px 阅读宽度）
+ * + 右栏 sticky 锚点目录（scroll-spy）；toc 为空时右栏隐藏、退化为两栏；
+ * <1024px 右栏隐藏、<768px 退回单栏（侧栏收进覆盖式抽屉）。
+ * 上一篇/下一篇：同目录内按日期倒序相邻、目录边界处停止（不跨界）。
  */
 export default function PostPage() {
   // posts/* splat：嵌套目录 slug（pi-agent/01）原样经通配段捕获
@@ -34,21 +27,19 @@ export default function PostPage() {
     return <NotFound />
   }
 
-  // 同目录相邻（issue #43）：上一篇/下一篇限定同一目录内按日期倒序相邻、
-  // 目录边界处停止（不跨界跳转到其他目录的文章）；由内容清单按目录过滤后取相邻
+  // 上一篇/下一篇：同一目录内按日期倒序相邻、目录边界处停止（不跨界）
   const { newer, older } = sameDirectoryNeighbors(posts, slug)
 
   return (
     <>
-      {/* 抽屉导航（issue #31）：窄屏下侧栏收进覆盖式抽屉；仅文章页渲染，
-          ≥1024px 整条隐藏（桌面侧栏常驻、按钮不占 Tab 序） */}
+      {/* 抽屉导航：窄屏侧栏收进覆盖式抽屉；≥1024px 整条隐藏（不占 Tab 序） */}
       <PostDrawerNav toc={post.toc} />
       {/* toc 为空（文章无 h2/h3 标题）时右栏整栏隐藏、布局退化为两栏（--no-toc） */}
       <div className={post.toc.length > 0 ? 'post-layout' : 'post-layout post-layout--no-toc'}>
-        {/* 左栏：sticky 常驻全文章索引（issue #29）；<768px 隐藏（抽屉交互后续接入） */}
+        {/* 左栏：sticky 常驻全文章索引；<768px 隐藏 */}
         <PostIndex />
         <article className="post-main">
-          {/* 头部信息区：大标题 + mono 元数据（日期/updated/#标签）+ 描述，与正文以细线分隔 */}
+          {/* 头部信息区：大标题 + mono 元数据（日期/updated/#标签）+ 描述 */}
           <header className="post-header">
             <h1 className="post-title">{post.title}</h1>
             <div className="post-meta">
@@ -91,8 +82,7 @@ export default function PostPage() {
             </nav>
           )}
         </article>
-        {/* 右栏：sticky 锚点目录 + scroll-spy（issue #30）；仅文章有标题时渲染，
-          <1024px 由 CSS 隐藏，toc 为空时整栏不渲染（布局退化为两栏） */}
+        {/* 右栏：sticky 锚点目录 + scroll-spy；仅文章有标题时渲染，<1024px 由 CSS 隐藏 */}
         {post.toc.length > 0 && <PostToc toc={post.toc} />}
       </div>
     </>

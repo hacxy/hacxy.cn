@@ -24,7 +24,6 @@ export interface Post {
   toc: TocItem[]
 }
 
-/** 内容管线输入：原始 Markdown 源与 slug */
 export interface PostSource {
   slug: string
   raw: string

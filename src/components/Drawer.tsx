@@ -12,13 +12,11 @@ interface DrawerProps {
 }
 
 /**
- * 覆盖式抽屉容器（issue #31）：移动端侧栏收进抽屉后的通用骨架。
+ * 覆盖式抽屉容器：移动端侧栏收进抽屉后的通用骨架。
  * - 遮罩点击 / Esc / 关闭按钮均可收起；
  * - 打开时锁定正文滚动（html overflow: hidden，关闭还原）；
- * - 打开时焦点移入关闭按钮、Tab 焦点循环在抽屉内（键盘无障碍），
- *   关闭后焦点归还触发按钮；
- * - 关闭时不渲染内容（条件挂载）：抽屉内容不进可访问性树、不占 Tab 序；
- *   滑入/淡入为纯 CSS 挂载动画（prefers-reduced-motion 下禁用）。
+ * - 打开时焦点移入关闭按钮、Tab 焦点循环在抽屉内（键盘无障碍），关闭后焦点归还触发按钮；
+ * - 关闭时不渲染内容（条件挂载）：不进可访问性树、不占 Tab 序。
  */
 export default function Drawer({ open, side, label, onClose, children }: DrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null)
@@ -58,7 +56,6 @@ export default function Drawer({ open, side, label, onClose, children }: DrawerP
     }
     document.addEventListener('keydown', onKeyDown)
 
-    // 打开时焦点移入抽屉（关闭按钮）
     closeRef.current?.focus()
 
     return () => {
@@ -72,7 +69,6 @@ export default function Drawer({ open, side, label, onClose, children }: DrawerP
 
   return (
     <div className="drawer" role="dialog" aria-modal="true" aria-label={label}>
-      {/* 遮罩：点击收起（面板之下、正文之上） */}
       <div className="drawer-overlay" onClick={onClose} />
       <div ref={panelRef} className={`drawer-panel drawer-panel--${side}`}>
         <button
