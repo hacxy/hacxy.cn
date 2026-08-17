@@ -660,7 +660,7 @@ test('post rows are keyboard reachable: Tab focus, visible focus style, Enter op
 
   // 等水合完成（点阵 canvas 仅客户端挂载）再按 Tab，避免快速 Tab 落在水合期间被吞
   await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
-  // Tab 顺序：文章 → 关于 → 切换 → GitHub → RSS → hero GitHub 外链 → 第一条文章行
+  // Tab 顺序：home → about → 切换 → GitHub → RSS → hero GitHub 外链 → 第一条文章行
   for (let i = 0; i < 7; i++) await page.keyboard.press('Tab')
   // 行本身即单个链接
   const firstRowLink = page.locator('.post-row').first()
@@ -692,11 +692,11 @@ test('homepage: site-name title removed, fixture post shown (issue #67)', async 
 test('nav switches between posts list and about page', async ({ page }) => {
   await page.goto('/')
 
-  await page.getByRole('link', { name: '关于' }).click()
+  await page.getByRole('link', { name: 'about' }).click()
   await expect(page).toHaveURL(/\/about/)
   await expect(page.getByRole('heading', { name: '关于' })).toBeVisible()
 
-  await page.getByRole('link', { name: '文章' }).click()
+  await page.getByRole('link', { name: 'home' }).click()
   await expect(page).toHaveURL('/')
   // 回到首页：终端演出可见（站点名标题已移除，issue #67）
   await expect(page.locator('.hero-terminal')).toBeVisible()
@@ -1161,8 +1161,8 @@ test('geek-style design: mono fonts; links are bold+underline with transparent h
 
   // 顶部导航 hover（issue #52）：加粗 + 下划线 + accent 色，无背景色块；
   // 灰阶下 accent 与正文同色属设计系统固有，加粗/下划线承担主要反馈。
-  // 悬停非 active 的「关于」（首页当前页 = 文章，避免与 nav-active 混淆）
-  const aboutNav = page.getByRole('link', { name: '关于' })
+  // 悬停非 active 的「about」（首页当前页 = home，避免与 nav-active 混淆）
+  const aboutNav = page.getByRole('link', { name: 'about' })
   await aboutNav.hover()
   await expect(aboutNav).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
   await expect(aboutNav).toHaveCSS('color', 'rgb(26, 26, 26)')
@@ -1189,7 +1189,7 @@ test('geek-style design: mono fonts; links are bold+underline with transparent h
     'underline',
   )
   // 非 active 导航项为普通文本外观（无下划线、不加粗）
-  const postsNav = page.getByRole('link', { name: '文章' })
+  const postsNav = page.getByRole('link', { name: 'home' })
   expect(await postsNav.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('400')
   expect(await postsNav.evaluate((el) => getComputedStyle(el).textDecorationLine)).not.toContain(
     'underline',
@@ -1212,18 +1212,18 @@ test('nav & post-row links focus-visible matches hover: transparent bg + accent 
   // 等水合完成（点阵 canvas 仅客户端挂载）再按 Tab，避免快速 Tab 落在水合期间被吞
   await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
 
-  // 基线：首页非 active 的「关于」导航项为普通文本外观（无下划线、不加粗）
-  const aboutNav = page.getByRole('link', { name: '关于' })
+  // 基线：首页非 active 的「about」导航项为普通文本外观（无下划线、不加粗）
+  const aboutNav = page.getByRole('link', { name: 'about' })
   await expect(aboutNav).toHaveCSS('font-weight', '400')
   await expect(aboutNav).toHaveCSS('text-decoration-line', 'none')
 
-  // Tab 1 → 「文章」导航项（首页 active 项，加粗/下划线既有；背景/颜色不回归）
+  // Tab 1 → 「home」导航项（首页 active 项，加粗/下划线既有；背景/颜色不回归）
   await page.keyboard.press('Tab')
-  const postsNav = page.getByRole('link', { name: '文章', exact: true })
+  const postsNav = page.getByRole('link', { name: 'home', exact: true })
   await expect(postsNav).toBeFocused()
   await expect(postsNav).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
 
-  // Tab 2 → 「关于」导航项（非 active）：focus-visible 与 hover 同一视觉机制
+  // Tab 2 → 「about」导航项（非 active）：focus-visible 与 hover 同一视觉机制
   // （背景透明 + accent 色 + 加粗 + 下划线，无背景色块）
   await page.keyboard.press('Tab')
   await expect(aboutNav).toBeFocused()
@@ -1919,9 +1919,9 @@ test('nav structure keeps posts | about + theme toggle + icons', async ({ page }
   await page.goto('/')
   const nav = page.getByRole('navigation')
 
-  // 既有入口不受打扰：文章 | 关于 + 主题切换 + 图标（PRD 用户故事 26）
-  await expect(nav.getByRole('link', { name: '文章' })).toBeVisible()
-  await expect(nav.getByRole('link', { name: '关于' })).toBeVisible()
+  // 既有入口不受打扰：home | about + 主题切换 + 图标（PRD 用户故事 26）
+  await expect(nav.getByRole('link', { name: 'home' })).toBeVisible()
+  await expect(nav.getByRole('link', { name: 'about' })).toBeVisible()
   await expect(nav.getByRole('button', { name: '切换暗色模式' })).toBeVisible()
   await expect(nav.getByRole('link', { name: 'GitHub' })).toBeVisible()
   await expect(nav.getByRole('link', { name: 'RSS' })).toBeVisible()
@@ -1934,7 +1934,7 @@ test('nav icon links are keyboard focusable', async ({ page }) => {
   // 避免快速 Tab 落在水合期间被吞掉导致焦点整体偏移一位（既有偶发 flake 的根因）
   await expect(page.locator('canvas.bg-dots')).toHaveCount(1)
 
-  // Tab 顺序：文章 → 关于 → 主题切换 → GitHub → RSS（键盘无障碍验收，PRD 用户故事 33）
+  // Tab 顺序：home → about → 主题切换 → GitHub → RSS（键盘无障碍验收，PRD 用户故事 33）
   // 限定 navigation：避免与 hero 终端内 GitHub 外链（名字含 github）歧义（strict mode）
   const nav = page.getByRole('navigation')
   for (let i = 0; i < 4; i++) await page.keyboard.press('Tab')
@@ -2481,7 +2481,7 @@ test('desktop ≥1024px: drawer buttons hidden (no Tab insertion), sidebars pers
   await expect(page.getByRole('navigation', { name: '文章索引' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: '文章目录' })).toBeVisible()
 
-  // Tab 顺序无变化：文章 → 关于 → 主题 → GitHub → RSS → 左栏第一项（文件夹按钮；无抽屉按钮插队）
+  // Tab 顺序无变化：home → about → 主题 → GitHub → RSS → 左栏第一项（文件夹按钮；无抽屉按钮插队）
   const nav = page.locator('.site-nav')
   for (let i = 0; i < 4; i++) await page.keyboard.press('Tab')
   await expect(nav.getByRole('link', { name: 'GitHub' })).toBeFocused()
