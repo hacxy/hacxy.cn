@@ -91,7 +91,8 @@ export function computeTurnTimings(turns: TerminalTurn[]): TerminalTimeline {
     const statuses = turn.lines.filter(isStatus).length
     const answers = turn.lines.filter((line) => !isStatus(line))
     const thinkingSpan = statuses > 0 ? THINK_IN + (statuses - 1) * THINK_DUR : 0
-    const lastAnswerDur = answers.length > 0 ? lineDuration(answers[answers.length - 1]!) : 0
+    const lastAnswer = answers.at(-1)
+    const lastAnswerDur = lastAnswer ? lineDuration(lastAnswer) : 0
     return (
       INPUT_IN +
       typeDuration(turn.question) +
@@ -124,11 +125,10 @@ export function computeTurnTimings(turns: TerminalTurn[]): TerminalTimeline {
     return { typeStart, typeDuration: dur, sendTime, lineTimes }
   })
 
-  const showEnd =
-    rounds.length > 0
-      ? rounds[rounds.length - 1]!.lineTimes[turns[turns.length - 1]!.lines.length - 1]! +
-        lineDuration(turns[turns.length - 1]!.lines[turns[turns.length - 1]!.lines.length - 1]!)
-      : 0
+  const lastTurn = turns.at(-1)
+  const lastLine = lastTurn?.lines.at(-1)
+  const lastLineTime = lastTurn ? rounds[turns.length - 1]?.lineTimes.at(-1) : undefined
+  const showEnd = lastLineTime !== undefined && lastLine ? lastLineTime + lineDuration(lastLine) : 0
 
   return { rounds, showEnd, parkedDelay: lastSend + PARK_IN }
 }
@@ -165,7 +165,7 @@ function TurnRow({ turn, timing }: { turn: TerminalTurn; timing: TurnTiming }) {
         {turn.question}
       </div>
       {turn.lines.map((line, j) => {
-        const delay = timing.lineTimes[j]!
+        const delay = timing.lineTimes[j] ?? 0
         if (isStatus(line)) {
           return (
             <div
@@ -213,9 +213,10 @@ export default function HeroTerminal({
       {/* 会话 transcript：每轮 = 问题行 + 状态行 + 回答行，行级动画由 --delay 编排 */}
       <div className="hero-terminal-scroll">
         <div className="hero-terminal-body">
-          {turns.map((turn, i) => (
-            <TurnRow key={i} turn={turn} timing={timeline.rounds[i]!} />
-          ))}
+          {turns.map((turn, i) => {
+            const timing = timeline.rounds[i]
+            return timing ? <TurnRow key={i} turn={turn} timing={timing} /> : null
+          })}
         </div>
       </div>
 
@@ -224,7 +225,8 @@ export default function HeroTerminal({
       <div className="terminal-input-row">
         <div className="terminal-input">
           {turns.map((turn, i) => {
-            const t = timeline.rounds[i]!
+            const t = timeline.rounds[i]
+            if (!t) return null
             return (
               <span
                 key={i}
@@ -238,7 +240,7 @@ export default function HeroTerminal({
                     // 输入光标出现时刻：首轮即显示；其后每轮在上一轮发送清空完成后
                     // 立即出现（+ INPUT_HIDE = CSS input-hide 时长）→ 演出全程光标常驻
                     '--delay-cursor': `${
-                      i === 0 ? 0 : timeline.rounds[i - 1]!.sendTime + INPUT_HIDE
+                      i === 0 ? 0 : (timeline.rounds[i - 1]?.sendTime ?? 0) + INPUT_HIDE
                     }s`,
                   } as CSSProperties
                 }

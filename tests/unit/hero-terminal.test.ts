@@ -42,46 +42,61 @@ function script(): TerminalTurn[] {
   ]
 }
 
+/** 断言值已定义并收窄类型（替代非空断言，issue #74：no-non-null-assertion 警告清零） */
+function expectDefined<T>(value: T | undefined, label: string): T {
+  expect(value).toBeDefined()
+  if (value === undefined) throw new Error(`${label} 应为已定义`)
+  return value
+}
+
 describe('computeTurnTimings（issue #40 演出编排）', () => {
   it('每轮：打字在发送前完成，发送 = 问题进入 transcript 时刻，随后 Thinking… → Done. → 回答', () => {
     const timeline = computeTurnTimings(script())
-    const [round] = timeline.rounds
+    const round = expectDefined(timeline.rounds[0], 'timeline.rounds[0]')
 
     // 打字窗口：typeStart 开始、持续 typeDuration，发送在其后（打字完成后停顿）
-    expect(round!.typeStart).toBeGreaterThanOrEqual(0)
-    expect(round!.typeDuration).toBeGreaterThan(0)
-    expect(round!.sendTime).toBeGreaterThan(round!.typeStart + round!.typeDuration)
+    expect(round.typeStart).toBeGreaterThanOrEqual(0)
+    expect(round.typeDuration).toBeGreaterThan(0)
+    expect(round.sendTime).toBeGreaterThan(round.typeStart + round.typeDuration)
 
     // 输出行揭示时刻严格递增，且全部晚于发送（问题先进 transcript，再出状态行/回答）
-    for (let i = 1; i < round!.lineTimes.length; i++) {
-      expect(round!.lineTimes[i]!).toBeGreaterThan(round!.lineTimes[i - 1]!)
+    for (let i = 1; i < round.lineTimes.length; i++) {
+      const prev = expectDefined(round.lineTimes[i - 1], `lineTimes[${i - 1}]`)
+      const cur = expectDefined(round.lineTimes[i], `lineTimes[${i}]`)
+      expect(cur).toBeGreaterThan(prev)
     }
-    for (const t of round!.lineTimes) {
-      expect(t).toBeGreaterThan(round!.sendTime)
+    for (const t of round.lineTimes) {
+      expect(t).toBeGreaterThan(round.sendTime)
     }
 
     // 状态行顺序：Thinking… 先于 Done.；回答行在状态行之后
-    const [thinking, done, answer] = round!.lineTimes
-    expect(done!).toBeGreaterThan(thinking!)
-    expect(answer!).toBeGreaterThan(done!)
+    const thinking = expectDefined(round.lineTimes[0], 'lineTimes[0]')
+    const done = expectDefined(round.lineTimes[1], 'lineTimes[1]')
+    const answer = expectDefined(round.lineTimes[2], 'lineTimes[2]')
+    expect(done).toBeGreaterThan(thinking)
+    expect(answer).toBeGreaterThan(done)
   })
 
   it('轮次严格串行：下一轮打字不早于上一轮最后一行揭示（真实会话顺序）', () => {
     const timeline = computeTurnTimings(script())
-    const [r0, r1, r2] = timeline.rounds
+    const r0 = expectDefined(timeline.rounds[0], 'timeline.rounds[0]')
+    const r1 = expectDefined(timeline.rounds[1], 'timeline.rounds[1]')
+    const r2 = expectDefined(timeline.rounds[2], 'timeline.rounds[2]')
 
-    expect(r1!.typeStart).toBeGreaterThan(r0!.lineTimes[r0!.lineTimes.length - 1]!)
-    expect(r2!.typeStart).toBeGreaterThan(r1!.lineTimes[r1!.lineTimes.length - 1]!)
+    expect(r1.typeStart).toBeGreaterThan(expectDefined(r0.lineTimes.at(-1), 'r0 最后一行揭示时刻'))
+    expect(r2.typeStart).toBeGreaterThan(expectDefined(r1.lineTimes.at(-1), 'r1 最后一行揭示时刻'))
   })
 
   it('停驻光标在末轮发送后出现；演出总时长覆盖最后一行揭示完成', () => {
     const timeline = computeTurnTimings(script())
-    const last = timeline.rounds[timeline.rounds.length - 1]!
+    const last = expectDefined(timeline.rounds.at(-1), '最后一轮')
 
     // 末轮发送后输入框清空（停驻态），光标随之出现并持续闪烁
     expect(timeline.parkedDelay).toBeGreaterThan(last.sendTime)
     // 演出总时长 ≥ 最后一行揭示完成时刻（不循环，播完停驻最终态）
-    expect(timeline.showEnd).toBeGreaterThanOrEqual(last.lineTimes[last.lineTimes.length - 1]!)
+    expect(timeline.showEnd).toBeGreaterThanOrEqual(
+      expectDefined(last.lineTimes.at(-1), '最后一轮最后一行揭示时刻'),
+    )
   })
 
   it('数据驱动：新增轮次自动延长演出，渲染代码零改动', () => {
@@ -101,9 +116,11 @@ describe('computeTurnTimings（issue #40 演出编排）', () => {
     // 演出总时长随轮次增加而变长；已有轮次时刻不受影响（纯派生，无共享可变状态）
     expect(four.showEnd).toBeGreaterThan(three.showEnd)
     for (let i = 0; i < three.rounds.length; i++) {
-      expect(four.rounds[i]!.typeStart).toBe(three.rounds[i]!.typeStart)
-      expect(four.rounds[i]!.sendTime).toBe(three.rounds[i]!.sendTime)
-      expect(four.rounds[i]!.lineTimes).toEqual(three.rounds[i]!.lineTimes)
+      const threeRound = expectDefined(three.rounds[i], `three.rounds[${i}]`)
+      const fourRound = expectDefined(four.rounds[i], `four.rounds[${i}]`)
+      expect(fourRound.typeStart).toBe(threeRound.typeStart)
+      expect(fourRound.sendTime).toBe(threeRound.sendTime)
+      expect(fourRound.lineTimes).toEqual(threeRound.lineTimes)
     }
   })
 })

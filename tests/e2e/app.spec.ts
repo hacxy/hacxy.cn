@@ -109,7 +109,11 @@ test('hero terminal: transcript → input → status bar structure, no divider l
     const nodes = sels.map((sel) => document.querySelector(sel))
     const follows = (a: Element, b: Element) =>
       !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
-    return [follows(nodes[0]!, nodes[1]!), follows(nodes[1]!, nodes[2]!)]
+    const [body, inputRow, caption] = nodes
+    return [
+      body && inputRow ? follows(body, inputRow) : false,
+      inputRow && caption ? follows(inputRow, caption) : false,
+    ]
   })
   expect(order).toEqual([true, true])
 
@@ -324,7 +328,7 @@ test('hero terminal: per-round choreography — input types, then send, then Thi
   )
   const [hideDelay0] = await typed.first().evaluate(delays)
   expect(typeDelay0).toBeGreaterThan(0)
-  expect(hideDelay0!).toBeGreaterThan(typeDelay0)
+  expect(hideDelay0).toBeGreaterThan(typeDelay0)
 
   for (let r = 0; r < 3; r++) {
     const turn = terminal.locator('.hero-turn').nth(r)
@@ -332,13 +336,13 @@ test('hero terminal: per-round choreography — input types, then send, then Thi
     const questionDelay = parseFloat(
       await turn.locator('.user-question').evaluate((el) => getComputedStyle(el).animationDelay),
     )
-    const roundHide = (await typed.nth(r).evaluate(delays))[0]!
+    const roundHide = (await typed.nth(r).evaluate(delays))[0]
     expect(questionDelay).toBe(roundHide)
 
     // 状态行与回答行依次晚于发送：Thinking… → Done. → 回答
-    const thinkingDelay = (await turn
+    const thinkingDelay = await turn
       .locator('.terminal-status--thinking')
-      .evaluate((el) => getComputedStyle(el).animationDelay.split(',')[0]))!
+      .evaluate((el) => getComputedStyle(el).animationDelay.split(',')[0] ?? '')
     const doneDelay = parseFloat(
       await turn
         .locator('.terminal-status--done')
@@ -356,7 +360,7 @@ test('hero terminal: per-round choreography — input types, then send, then Thi
   }
 
   // 轮次严格串行（真实会话顺序）：下一轮输入框打字不早于上一轮最后一行揭示
-  const nextType = (await typed.nth(1).evaluate(delays))[0]!
+  const nextType = (await typed.nth(1).evaluate(delays))[0]
   const firstRoundLastAnswer = parseFloat(
     await terminal
       .locator('.hero-turn')
@@ -368,8 +372,8 @@ test('hero terminal: per-round choreography — input types, then send, then Thi
   expect(nextType).toBeGreaterThan(firstRoundLastAnswer)
 
   // 停驻光标：末轮发送后出现（演出停驻态，常亮不闪烁，issue #63）
-  const lastHide = (await typed.nth(2).evaluate(delays))[0]!
-  const cursorAppear = (await terminal.locator('.terminal-input-cursor').evaluate(delays))[0]!
+  const lastHide = Number((await typed.nth(2).evaluate(delays))[0])
+  const cursorAppear = (await terminal.locator('.terminal-input-cursor').evaluate(delays))[0]
   expect(cursorAppear).toBeGreaterThan(lastHide)
 })
 
