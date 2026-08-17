@@ -7,6 +7,7 @@ import { StaticRouter } from 'react-router'
 
 import { AppRoutes } from '../src/App.tsx'
 import { posts } from '../src/content/posts.ts'
+import { escapeXml, generateFeed } from '../src/feed.ts'
 import { siteName, siteUrl, tagline } from '../src/site.ts'
 
 // 构建期预渲染：对每个路由执行 renderToString（StaticRouter 与客户端
@@ -210,48 +211,9 @@ Sitemap: ${siteUrl}/sitemap.xml
 `
 writeFileSync(join(distDir, 'robots.txt'), robots)
 
-// feed.xml：RSS 2.0，条目含全文（content:encoded）；draft 已由内容清单过滤，不进入 feed
-function escapeXml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-}
-
-/** YYYY-MM-DD → RFC 2822（RSS pubDate，UTC） */
-function toRfc2822(date: string): string {
-  const [year, month, day] = date.split('-').map(Number)
-  return new Date(Date.UTC(year as number, (month as number) - 1, day as number))
-    .toUTCString()
-    .replace('GMT', '+0000')
-}
-
-const feedItems = posts
-  .map(
-    (post) => `  <item>
-    <title>${escapeXml(post.title)}</title>
-    <link>${siteUrl}/posts/${post.slug}</link>
-    <guid isPermaLink="true">${siteUrl}/posts/${post.slug}</guid>
-    <pubDate>${toRfc2822(post.date)}</pubDate>
-    <description>${escapeXml(post.description)}</description>
-    <content:encoded><![CDATA[${post.html}]]></content:encoded>
-  </item>`,
-  )
-  .join('\n')
-
-const feed = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
-  <channel>
-    <title>${escapeXml(siteName)}</title>
-    <link>${siteUrl}/</link>
-    <description>${escapeXml(tagline)}</description>
-    <language>zh-CN</language>
-${feedItems}
-  </channel>
-</rss>
-`
-writeFileSync(join(distDir, 'feed.xml'), feed)
+// feed.xml：RSS 2.0，条目含全文（content:encoded）；draft 已由内容清单过滤，不进入 feed。
+// 生成逻辑收敛在共享模块 src/feed.ts（与 dev 中间件同一实现，格式保证一致）。
+writeFileSync(join(distDir, 'feed.xml'), generateFeed(posts, siteUrl, siteName, tagline))
 
 // 极客风 OG 图：首页 + 每篇非 draft 文章各生成一张（黑白灰阶 + mono + 标题）
 const ogDir = join(distDir, 'og', 'posts')
