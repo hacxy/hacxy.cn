@@ -13,6 +13,7 @@
   --link: #008f62;
   --accent: #008f62;
   --accent-dim: rgba(0, 143, 98, 0.1);
+  --color-dot: #1a1a1a; /* 背景点阵：亮色深灰（暗色见 [data-theme="dark"]） */
   --max-width: 680px;
   --font-sans: "JetBrains Mono", "Fira Code", monospace;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
@@ -30,4 +31,5 @@
   --link: #00e5a0;
   --accent: #00e5a0;
   --accent-dim: rgba(0, 229, 160, 0.1);
+  --color-dot: #e6e6e6; /* 背景点阵：暗色浅灰 */
 }

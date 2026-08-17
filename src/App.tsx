@@ -4,8 +4,7 @@ import { AnimatePresence } from "motion/react";
 import classNames from "classnames";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
-import CodeStreamBg from "./components/CodeStreamBg";
-import MusicPlayer from "./components/MusicPlayer";
+import BackgroundDots from "./components/BackgroundDots";
 import PageMetaManager from "./components/PageMetaManager";
 import { getInitialTheme, applyTheme } from "./utils/theme";
 import styles from "./App.module.scss";
@@ -31,7 +30,7 @@ export default function App() {
   return (
     <div className={classNames("app-wrapper", styles.appWrapper)}>
       <PageMetaManager />
-      <CodeStreamBg />
+      <BackgroundDots />
       <Header theme={theme} onToggleTheme={toggleTheme} />
       <main>
         <Suspense>
@@ -47,7 +46,6 @@ export default function App() {
         </Suspense>
       </main>
       <Footer />
-      <MusicPlayer />
     </div>
   );
 }

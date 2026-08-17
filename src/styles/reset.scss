@@ -52,6 +52,14 @@ body {
 }
 
 /* ============ Layout ============ */
+/* 背景点阵画布（BackgroundDots.tsx）：fixed 铺满视口、不拦截指针事件 */
+.bg-dots {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
 .app-wrapper {
   min-height: 100vh;
   display: flex;

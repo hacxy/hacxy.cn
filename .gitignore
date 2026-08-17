@@ -144,3 +144,13 @@ vite.config.ts.timestamp-*
 
 # Playwright MCP
 .playwright-mcp/
+
+# Playwright 测试产物
+test-results/
+playwright-report/
+blob-report/
+
+# >>> afk init 自动维护：afk 运行时产物忽略 + config.json 入库 <<<
+.pi/afk/*
+!.pi/afk/config.json
+# <<< afk end >>>
