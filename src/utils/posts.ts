@@ -1,4 +1,5 @@
 import rawPosts from 'virtual:blog-posts'
+
 import { parseFrontmatter } from './frontmatter'
 
 export type { FrontmatterData } from './frontmatter'
@@ -23,11 +24,11 @@ export function getAllPosts(): Post[] {
 }
 
 export function getPostBySlug(slug: string): Post | undefined {
-  return rawPosts.find(p => p.slug === slug)
+  return rawPosts.find((p) => p.slug === slug)
 }
 
 export function getPostsByTag(tag: string): Post[] {
-  return getAllPosts().filter(p => p.tags.includes(tag))
+  return getAllPosts().filter((p) => p.tags.includes(tag))
 }
 
 export function getAllTags(): { tag: string; count: number }[] {

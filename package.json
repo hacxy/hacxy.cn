@@ -8,10 +8,19 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src blog.config.ts vite.config.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "lint-staged": {
-    "*.{ts,tsx}": "eslint --max-warnings=0"
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write",
+      "eslint --max-warnings=0"
+    ],
+    "*.{json,md,mdx,scss,css,html}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@iconify/react": "^6.0.2",
@@ -33,18 +42,22 @@
     "vite": "^8.0.0"
   },
   "devDependencies": {
-    "@eslint-react/eslint-plugin": "^5.7.5",
     "@eslint/js": "^10.0.1",
+    "@hacxy/eslint-config": "^0.14.0",
+    "@hacxy/prettier-config": "^0.14.0",
+    "@hacxy/tsconfig": "^0.14.0",
     "@playwright/test": "^1.61.1",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.6.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "latest",
-    "eslint": "^10.3.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.4",
+    "prettier": "^3.9.6",
     "typescript": "^5.8.0",
     "typescript-eslint": "^8.59.2"
   }

@@ -181,7 +181,10 @@ export default function BackgroundDots() {
     resize()
     document.addEventListener('visibilitychange', onVisibility)
     window.addEventListener('resize', resize)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
     start()
 
     return () => {

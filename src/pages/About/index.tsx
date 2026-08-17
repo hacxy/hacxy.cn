@@ -1,23 +1,24 @@
-import { Icon } from "@iconify/react";
-import PageTransition from "../../components/PageTransition";
-import { SOCIAL_META, getLinkHref, type SocialLink } from "../../utils/social";
-import blogConfig from "virtual:blog-config";
-import pages from "virtual:blog-pages";
-import common from "../../styles/common.module.scss";
-import styles from "./index.module.scss";
+import { Icon } from '@iconify/react'
+import blogConfig from 'virtual:blog-config'
+import pages from 'virtual:blog-pages'
 
-const allTechItems = (blogConfig.techStack ?? []).flatMap((g) => g.items);
+import PageTransition from '../../components/PageTransition'
+import common from '../../styles/common.module.scss'
+import { SOCIAL_META, getLinkHref, type SocialLink } from '../../utils/social'
+import styles from './index.module.scss'
+
+const allTechItems = (blogConfig.techStack ?? []).flatMap((g) => g.items)
 
 export default function About() {
-  const homeData = pages.home?.[0];
-  const contact = (homeData?.contact as SocialLink[] | undefined) ?? [];
+  const homeData = pages.home?.[0]
+  const contact = (homeData?.contact as SocialLink[] | undefined) ?? []
 
   return (
     <PageTransition>
       <div className={common.pageContent}>
         <div
           className={`${common.homeIntro} slide-enter`}
-          style={{ "--enter-stage": 1 } as React.CSSProperties}
+          style={{ '--enter-stage': 1 } as React.CSSProperties}
         >
           <h1>{blogConfig.author}</h1>
           <p>全栈开发者 · 开源项目作者</p>
@@ -25,22 +26,37 @@ export default function About() {
 
         <section
           className={`${styles.section} slide-enter`}
-          style={{ "--enter-stage": 2 } as React.CSSProperties}
+          style={{ '--enter-stage': 2 } as React.CSSProperties}
         >
           <p className={common.sectionHeading}>关于我</p>
           <div className={styles.bio}>
-            <p>
-              热衷于用代码构建有价值的数字产品。
-            </p>
+            <p>热衷于用代码构建有价值的数字产品。</p>
             <p>
               目前在维护的开源项目：
-              <a href="https://github.com/hacxy/l2d-widget" target="_blank" rel="noopener noreferrer">l2d-widget</a>（网页 Live2D 看板娘）、
-              <a href="https://github.com/hacxy/l2d" target="_blank" rel="noopener noreferrer">l2d</a>（Live2D 模型加载库）、
-              <a href="https://github.com/hacxy/l2d-models" target="_blank" rel="noopener noreferrer">l2d-models</a>（Live2D 模型仓库）。
+              <a
+                href="https://github.com/hacxy/l2d-widget"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                l2d-widget
+              </a>
+              （网页 Live2D 看板娘）、
+              <a href="https://github.com/hacxy/l2d" target="_blank" rel="noopener noreferrer">
+                l2d
+              </a>
+              （Live2D 模型加载库）、
+              <a
+                href="https://github.com/hacxy/l2d-models"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                l2d-models
+              </a>
+              （Live2D 模型仓库）。
             </p>
             <p>
-              最近在系统地学习 AI 相关知识，同时也在搭建自己的 AI 工作流，
-              尝试把 AI 融入开发的各个环节。
+              最近在系统地学习 AI 相关知识，同时也在搭建自己的 AI 工作流， 尝试把 AI
+              融入开发的各个环节。
             </p>
           </div>
         </section>
@@ -48,13 +64,15 @@ export default function About() {
         {allTechItems.length > 0 && (
           <section
             className={`${styles.section} slide-enter`}
-            style={{ "--enter-stage": 3 } as React.CSSProperties}
+            style={{ '--enter-stage': 3 } as React.CSSProperties}
           >
             <p className={common.sectionHeading}>技术栈</p>
             <div className={styles.techGrid}>
               {allTechItems.map((item) => {
-                const Tag = item.url ? "a" : "span";
-                const linkProps = item.url ? { href: item.url, target: "_blank", rel: "noopener noreferrer" } : {};
+                const Tag = item.url ? 'a' : 'span'
+                const linkProps = item.url
+                  ? { href: item.url, target: '_blank', rel: 'noopener noreferrer' }
+                  : {}
                 return (
                   <Tag key={item.name} className={styles.techTag} {...linkProps}>
                     <Icon
@@ -65,7 +83,7 @@ export default function About() {
                     />
                     {item.name}
                   </Tag>
-                );
+                )
               })}
             </div>
           </section>
@@ -73,7 +91,7 @@ export default function About() {
 
         <section
           className={`${styles.section} slide-enter`}
-          style={{ "--enter-stage": 4 } as React.CSSProperties}
+          style={{ '--enter-stage': 4 } as React.CSSProperties}
         >
           <p className={common.sectionHeading}>兴趣爱好</p>
           <div className={styles.hobbyList}>
@@ -95,7 +113,7 @@ export default function About() {
         {contact.length > 0 && (
           <section
             className={`${styles.section} slide-enter`}
-            style={{ "--enter-stage": 5 } as React.CSSProperties}
+            style={{ '--enter-stage': 5 } as React.CSSProperties}
           >
             <p className={common.sectionHeading}>联系我</p>
             <div className={styles.contactList}>
@@ -103,8 +121,8 @@ export default function About() {
                 <a
                   key={`${link.type}-${link.url}`}
                   href={getLinkHref(link)}
-                  target={link.type === "email" ? undefined : "_blank"}
-                  rel={link.type === "email" ? undefined : "noopener noreferrer"}
+                  target={link.type === 'email' ? undefined : '_blank'}
+                  rel={link.type === 'email' ? undefined : 'noopener noreferrer'}
                   className={styles.contactLink}
                 >
                   <Icon icon={SOCIAL_META[link.type].icon} width={16} height={16} />
@@ -116,5 +134,5 @@ export default function About() {
         )}
       </div>
     </PageTransition>
-  );
+  )
 }

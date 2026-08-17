@@ -36,14 +36,16 @@ async function fetchSkills(): Promise<SkillData[]> {
         if (fileRes.ok) {
           markdownBody = stripFrontmatter(await fileRes.text())
         }
-      } catch { /* use empty body */ }
+      } catch {
+        /* use empty body */
+      }
       return {
         name: item.name,
         description: cleanDescription(item.description),
         markdownBody,
         url: `https://github.com/${REPO}/tree/main/skills/${item.name}`,
       }
-    })
+    }),
   )
 }
 

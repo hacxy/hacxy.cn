@@ -1,5 +1,6 @@
-import blogConfig from "virtual:blog-config";
-import styles from "./index.module.scss";
+import blogConfig from 'virtual:blog-config'
+
+import styles from './index.module.scss'
 
 export default function Footer() {
   return (
@@ -8,5 +9,5 @@ export default function Footer() {
         <span>{blogConfig.copyright}</span>
       </div>
     </footer>
-  );
+  )
 }

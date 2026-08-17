@@ -1,26 +1,13 @@
-import js from "@eslint/js";
-import eslintReact from "@eslint-react/eslint-plugin";
-import reactHooks from "eslint-plugin-react-hooks";
-import tseslint from "typescript-eslint";
+import { hacxy } from '@hacxy/eslint-config'
 
-export default tseslint.config(
-  { ignores: ["**/dist/**", "**/node_modules/**", "**/bin/**"] },
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
+export default [
+  ...hacxy({ react: true, node: true }),
   {
-    files: ["**/*.{ts,tsx}"],
-    ...eslintReact.configs["recommended-typescript"],
-  },
-  {
-    files: ["**/*.{ts,tsx}"],
-    plugins: {
-      "react-hooks": reactHooks,
-    },
     rules: {
-      ...reactHooks.configs.recommended.rules,
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
-      "@eslint-react/dom-no-dangerously-set-innerhtml": "off",
+      // 项目组件目录使用 PascalCase 惯例（AISummary/CodeStreamBg 等）
+      'unicorn/filename-case': 'off',
+      // 项目大量使用非空断言（getElementById/Map.get 等），保持旧配置行为
+      '@typescript-eslint/no-non-null-assertion': 'off',
     },
   },
-);
+]

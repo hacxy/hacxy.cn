@@ -7,7 +7,7 @@ export type LogoConfig =
 export interface NavItem {
   text?: string
   link: string
-  icon?: string  // iconify icon name; if set with no text, renders icon-only
+  icon?: string // iconify icon name; if set with no text, renders icon-only
 }
 
 export interface BlogConfig {

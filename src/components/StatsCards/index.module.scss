@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
-  
+
   @media (max-width: 480px) {
     gap: 0.75rem;
   }
@@ -17,7 +17,7 @@
   border-radius: 6px;
   background: var(--bg);
   transition: border-color 0.15s ease;
-  
+
   &:hover {
     border-color: var(--accent);
   }

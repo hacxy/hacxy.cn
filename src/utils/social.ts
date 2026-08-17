@@ -1,7 +1,16 @@
 export type SocialType =
-  | 'github' | 'email' | 'twitter' | 'x'
-  | 'bilibili' | 'youtube' | 'linkedin'
-  | 'mastodon' | 'rss' | 'telegram' | 'discord' | 'website'
+  | 'github'
+  | 'email'
+  | 'twitter'
+  | 'x'
+  | 'bilibili'
+  | 'youtube'
+  | 'linkedin'
+  | 'mastodon'
+  | 'rss'
+  | 'telegram'
+  | 'discord'
+  | 'website'
 
 export interface SocialLink {
   type: SocialType
@@ -10,18 +19,18 @@ export interface SocialLink {
 }
 
 export const SOCIAL_META: Record<SocialType, { icon: string; label: string }> = {
-  github:   { icon: 'lucide:github',           label: 'GitHub'   },
-  email:    { icon: 'lucide:mail',             label: 'Email'    },
-  twitter:  { icon: 'simple-icons:twitter',    label: 'Twitter'  },
-  x:        { icon: 'simple-icons:x',          label: 'X'        },
-  bilibili: { icon: 'simple-icons:bilibili',   label: 'Bilibili' },
-  youtube:  { icon: 'lucide:youtube',          label: 'YouTube'  },
-  linkedin: { icon: 'simple-icons:linkedin',   label: 'LinkedIn' },
-  mastodon: { icon: 'simple-icons:mastodon',   label: 'Mastodon' },
-  rss:      { icon: 'lucide:rss',              label: 'RSS'      },
-  telegram: { icon: 'simple-icons:telegram',   label: 'Telegram' },
-  discord:  { icon: 'simple-icons:discord',    label: 'Discord'  },
-  website:  { icon: 'lucide:globe',            label: 'Website'  },
+  github: { icon: 'lucide:github', label: 'GitHub' },
+  email: { icon: 'lucide:mail', label: 'Email' },
+  twitter: { icon: 'simple-icons:twitter', label: 'Twitter' },
+  x: { icon: 'simple-icons:x', label: 'X' },
+  bilibili: { icon: 'simple-icons:bilibili', label: 'Bilibili' },
+  youtube: { icon: 'lucide:youtube', label: 'YouTube' },
+  linkedin: { icon: 'simple-icons:linkedin', label: 'LinkedIn' },
+  mastodon: { icon: 'simple-icons:mastodon', label: 'Mastodon' },
+  rss: { icon: 'lucide:rss', label: 'RSS' },
+  telegram: { icon: 'simple-icons:telegram', label: 'Telegram' },
+  discord: { icon: 'simple-icons:discord', label: 'Discord' },
+  website: { icon: 'lucide:globe', label: 'Website' },
 }
 
 export function getLinkHref(link: SocialLink): string {

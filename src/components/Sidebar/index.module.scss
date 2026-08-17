@@ -71,15 +71,21 @@
   border-radius: 3px;
   line-height: 1.4;
   word-break: break-word;
-  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease;
 
   &::before {
-    content: "›";
+    content: '›';
     color: var(--fg);
     opacity: 0.3;
     flex-shrink: 0;
     font-size: 0.9em;
-    transition: color 0.12s ease, opacity 0.12s ease, transform 0.12s ease;
+    transition:
+      color 0.12s ease,
+      opacity 0.12s ease,
+      transform 0.12s ease;
   }
 
   &:hover {

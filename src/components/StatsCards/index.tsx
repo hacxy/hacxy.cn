@@ -1,35 +1,36 @@
-import { useEffect, useState } from 'react';
-import { Icon } from '@iconify/react';
-import { fetchGitHubStats } from '../../utils/github';
-import styles from './index.module.scss';
+import { Icon } from '@iconify/react'
+import { useEffect, useState } from 'react'
+
+import { fetchGitHubStats } from '../../utils/github'
+import styles from './index.module.scss'
 
 interface StatsCardsProps {
-  postCount: number;
+  postCount: number
 }
 
 interface GitHubStats {
-  stars: number;
-  repos: number;
+  stars: number
+  repos: number
 }
 
 export default function StatsCards({ postCount }: StatsCardsProps) {
-  const [githubStats, setGithubStats] = useState<GitHubStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [githubStats, setGithubStats] = useState<GitHubStats | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const stats = await fetchGitHubStats();
-        setGithubStats(stats);
+        const stats = await fetchGitHubStats()
+        setGithubStats(stats)
       } catch (err) {
-        console.error('Failed to load GitHub stats:', err);
+        console.error('Failed to load GitHub stats:', err)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    loadStats();
-  }, []);
+    loadStats()
+  }, [])
 
   return (
     <div className={styles.container}>
@@ -48,12 +49,10 @@ export default function StatsCards({ postCount }: StatsCardsProps) {
           <Icon icon="lucide:star" width={20} height={20} />
         </div>
         <div className={styles.content}>
-          <span className={styles.value}>
-            {loading ? '...' : githubStats?.stars ?? 0}
-          </span>
+          <span className={styles.value}>{loading ? '...' : (githubStats?.stars ?? 0)}</span>
           <span className={styles.label}>Stars</span>
         </div>
       </div>
     </div>
-  );
+  )
 }

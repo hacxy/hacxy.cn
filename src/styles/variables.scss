@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap');
 
 /* ============ Variables ============ */
 :root {
@@ -15,11 +15,11 @@
   --accent-dim: rgba(0, 143, 98, 0.1);
   --color-dot: #1a1a1a; /* 背景点阵：亮色深灰（暗色见 [data-theme="dark"]） */
   --max-width: 680px;
-  --font-sans: "JetBrains Mono", "Fira Code", monospace;
-  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --font-sans: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-[data-theme="dark"] {
+[data-theme='dark'] {
   --bg: #111111;
   --fg: #d8d8d8;
   --muted: rgba(216, 216, 216, 0.35);

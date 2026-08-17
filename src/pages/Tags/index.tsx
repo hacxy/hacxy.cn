@@ -1,22 +1,23 @@
-import { Link } from "react-router";
-import PageTransition from "../../components/PageTransition";
-import NotFound from "../NotFound";
-import { getAllTags } from "../../utils/posts";
-import pages from "virtual:blog-pages";
-import styles from "../../styles/common.module.scss";
+import { Link } from 'react-router'
+import pages from 'virtual:blog-pages'
+
+import PageTransition from '../../components/PageTransition'
+import styles from '../../styles/common.module.scss'
+import { getAllTags } from '../../utils/posts'
+import NotFound from '../NotFound'
 
 export default function Tags() {
   if (!pages.tags?.length) {
-    return <NotFound />;
+    return <NotFound />
   }
-  const tags = getAllTags();
+  const tags = getAllTags()
 
   return (
     <PageTransition>
       <div className={styles.pageContent}>
         <p
           className={`${styles.sectionHeading} slide-enter`}
-          style={{ "--enter-stage": 1 } as React.CSSProperties}
+          style={{ '--enter-stage': 1 } as React.CSSProperties}
         >
           Tags
         </p>
@@ -25,7 +26,7 @@ export default function Tags() {
             <li
               key={item.tag}
               className="slide-enter"
-              style={{ "--enter-stage": i + 2 } as React.CSSProperties}
+              style={{ '--enter-stage': i + 2 } as React.CSSProperties}
             >
               <Link to={`/tags/${item.tag}`} className={styles.tagItemLink}>
                 <span>{item.tag}</span>
@@ -34,10 +35,8 @@ export default function Tags() {
             </li>
           ))}
         </ul>
-        {tags.length === 0 && (
-          <p style={{ opacity: 0.5, fontSize: "0.9rem" }}>No tags yet.</p>
-        )}
+        {tags.length === 0 && <p style={{ opacity: 0.5, fontSize: '0.9rem' }}>No tags yet.</p>}
       </div>
     </PageTransition>
-  );
+  )
 }

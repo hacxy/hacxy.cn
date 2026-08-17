@@ -1,78 +1,82 @@
-import { useEffect, useState } from 'react';
-import { ActivityCalendar } from 'react-activity-calendar';
-import { fetchGitHubContributions, transformContributionsForCalendar } from '../../utils/github';
-import styles from './index.module.scss';
+import { useEffect, useState } from 'react'
+import { ActivityCalendar } from 'react-activity-calendar'
+
+import { fetchGitHubContributions, transformContributionsForCalendar } from '../../utils/github'
+import styles from './index.module.scss'
 
 interface CalendarData {
-  date: string;
-  count: number;
-  level: 0 | 1 | 2 | 3 | 4;
+  date: string
+  count: number
+  level: 0 | 1 | 2 | 3 | 4
 }
 
 function useTheme() {
-  const [theme, setTheme] = useState<"light" | "dark">(() => 
-    typeof document !== 'undefined' 
-      ? (document.documentElement.getAttribute('data-theme') as "light" | "dark") || 'light'
-      : 'light'
-  );
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    typeof document !== 'undefined'
+      ? (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light'
+      : 'light',
+  )
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
-      const t = document.documentElement.getAttribute('data-theme') as "light" | "dark";
-      if (t) setTheme(t);
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => observer.disconnect();
-  }, []);
+      const t = document.documentElement.getAttribute('data-theme') as 'light' | 'dark'
+      if (t) setTheme(t)
+    })
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
+    return () => observer.disconnect()
+  }, [])
 
-  return theme;
+  return theme
 }
 
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() => 
-    typeof window !== 'undefined' ? window.innerWidth < 480 : false
-  );
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 480 : false,
+  )
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 480);
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    const checkMobile = () => setIsMobile(window.innerWidth < 480)
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
-  return isMobile;
+  return isMobile
 }
 
 export default function GitHubCalendar() {
-  const [data, setData] = useState<CalendarData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const isMobile = useIsMobile();
-  const theme = useTheme();
+  const [data, setData] = useState<CalendarData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const isMobile = useIsMobile()
+  const theme = useTheme()
 
   useEffect(() => {
     const loadContributions = async () => {
       try {
-        setLoading(true);
-        const contributions = await fetchGitHubContributions();
-        const transformed = transformContributionsForCalendar(contributions);
-        setData(transformed);
+        setLoading(true)
+        const contributions = await fetchGitHubContributions()
+        const transformed = transformContributionsForCalendar(contributions)
+        setData(transformed)
       } catch (err) {
-        setError('Failed to load contributions');
-        console.error(err);
+        setError('Failed to load contributions')
+        console.error(err)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    loadContributions();
-  }, []);
+    loadContributions()
+  }, [])
 
   if (loading) {
     return (
       <div className={styles.card}>
         <div className={styles.loading}>Loading contributions...</div>
       </div>
-    );
+    )
   }
 
   if (error || data.length === 0) {
@@ -80,7 +84,7 @@ export default function GitHubCalendar() {
       <div className={styles.card}>
         <div className={styles.error}>Unable to load contributions</div>
       </div>
-    );
+    )
   }
 
   return (
@@ -98,7 +102,9 @@ export default function GitHubCalendar() {
           blockRadius={2}
           fontSize={14}
           labels={{
-            totalCount: isMobile ? '{{count}} contributions' : '{{count}} contributions in the last year',
+            totalCount: isMobile
+              ? '{{count}} contributions'
+              : '{{count}} contributions in the last year',
             legend: {
               less: 'Less',
               more: 'More',
@@ -112,5 +118,5 @@ export default function GitHubCalendar() {
         />
       </div>
     </div>
-  );
+  )
 }

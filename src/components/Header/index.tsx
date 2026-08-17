@@ -1,52 +1,65 @@
-import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
-import { NavLink } from "react-router";
-import { Icon } from "@iconify/react";
-import classNames from "classnames";
-import blogConfig from "virtual:blog-config";
-import styles from "./index.module.scss";
+import { Icon } from '@iconify/react'
+import classNames from 'classnames'
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react'
+import { NavLink } from 'react-router'
+import blogConfig from 'virtual:blog-config'
+
+import styles from './index.module.scss'
 
 interface HeaderProps {
-  theme: "light" | "dark";
-  onToggleTheme: () => void;
+  theme: 'light' | 'dark'
+  onToggleTheme: () => void
 }
 
 export default function Header({ theme, onToggleTheme }: HeaderProps) {
-  const [scrolled, setScrolled] = useState(() => window.scrollY > 0);
-  const headerRef = useRef<HTMLElement>(null);
+  const [scrolled, setScrolled] = useState(() => window.scrollY > 0)
+  const headerRef = useRef<HTMLElement>(null)
 
   const updateHeaderHeight = useCallback(() => {
     if (headerRef.current) {
       document.documentElement.style.setProperty(
-        "--header-height",
-        `${headerRef.current.offsetHeight}px`
-      );
+        '--header-height',
+        `${headerRef.current.offsetHeight}px`,
+      )
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 0);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    const onScroll = () => setScrolled(window.scrollY > 0)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   useLayoutEffect(() => {
-    updateHeaderHeight();
-  }, [updateHeaderHeight]);
+    updateHeaderHeight()
+  }, [updateHeaderHeight])
 
   useEffect(() => {
-    window.addEventListener("resize", updateHeaderHeight);
-    return () => window.removeEventListener("resize", updateHeaderHeight);
-  }, [updateHeaderHeight]);
+    window.addEventListener('resize', updateHeaderHeight)
+    return () => window.removeEventListener('resize', updateHeaderHeight)
+  }, [updateHeaderHeight])
 
   return (
-    <header ref={headerRef} className={classNames(styles.headerEl, { [styles.scrolled]: scrolled })}>
+    <header
+      ref={headerRef}
+      className={classNames(styles.headerEl, { [styles.scrolled]: scrolled })}
+    >
       <div className={styles.header}>
         <NavLink to="/" className={styles.logo} aria-label="Home">
           <div className={styles.logoIcon}>
-            {blogConfig.logo && typeof blogConfig.logo === "object" ? (
-              <img src={blogConfig.logo.src} alt={blogConfig.logo.alt ?? "logo"} width={28} height={28} />
+            {blogConfig.logo && typeof blogConfig.logo === 'object' ? (
+              <img
+                src={blogConfig.logo.src}
+                alt={blogConfig.logo.alt ?? 'logo'}
+                width={28}
+                height={28}
+              />
             ) : (
-              <Icon icon={(blogConfig.logo as string) ?? "simple-icons:hackster"} width={28} height={28} />
+              <Icon
+                icon={(blogConfig.logo as string) ?? 'simple-icons:hackster'}
+                width={28}
+                height={28}
+              />
             )}
           </div>
           <span className={styles.logoName}>{blogConfig.author.toLowerCase()}</span>
@@ -54,13 +67,13 @@ export default function Header({ theme, onToggleTheme }: HeaderProps) {
         </NavLink>
         <nav className={styles.nav}>
           {(blogConfig.nav ?? []).map((item) => {
-            const isExternal = /^https?:\/\//.test(item.link);
+            const isExternal = /^https?:\/\//.test(item.link)
             const content = (
               <>
                 {item.icon && <Icon icon={item.icon} width={18} height={18} />}
                 {item.text && <span>{item.text}</span>}
               </>
-            );
+            )
             return isExternal ? (
               <a
                 key={item.link}
@@ -82,23 +95,17 @@ export default function Header({ theme, onToggleTheme }: HeaderProps) {
               >
                 {content}
               </NavLink>
-            );
+            )
           })}
           <button
             className={styles.themeToggle}
             onClick={onToggleTheme}
-            aria-label={
-              theme === "dark" ? "切换到浅色模式" : "切换到深色模式"
-            }
+            aria-label={theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'}
           >
-            <Icon
-              icon={theme === "dark" ? "lucide:sun" : "lucide:moon"}
-              width={18}
-              height={18}
-            />
+            <Icon icon={theme === 'dark' ? 'lucide:sun' : 'lucide:moon'} width={18} height={18} />
           </button>
         </nav>
       </div>
     </header>
-  );
+  )
 }

@@ -1,14 +1,16 @@
-import type { Plugin, ViteDevServer } from 'vite'
 import type { BlogConfig } from '../define'
+import type { FrontmatterData } from '../utils/frontmatter'
+import type { Plugin, ViteDevServer } from 'vite'
+
+import { execSync } from 'child_process'
+import { build as esbuild } from 'esbuild'
+import fg from 'fast-glob'
 import fs from 'fs'
+import { createRequire } from 'module'
 import path from 'path'
 import { pathToFileURL } from 'url'
-import { createRequire } from 'module'
-import { execSync } from 'child_process'
-import fg from 'fast-glob'
-import { build as esbuild } from 'esbuild'
+
 import { parseFrontmatter } from '../utils/frontmatter'
-import type { FrontmatterData } from '../utils/frontmatter'
 
 const VIRTUAL_CONFIG = 'virtual:blog-config'
 const VIRTUAL_POSTS = 'virtual:blog-posts'
@@ -67,12 +69,15 @@ function extractDescription(content: string, maxLen = 160): string {
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/[*_`~]/g, '')
     .trim()
-  const firstPara = cleaned.split(/\n\n+/).find(p => p.trim().length > 20) ?? ''
+  const firstPara = cleaned.split(/\n\n+/).find((p) => p.trim().length > 20) ?? ''
   const text = firstPara.replace(/\s+/g, ' ').trim()
   return text.length > maxLen ? text.slice(0, maxLen - 1) + '…' : text
 }
 
-function injectSeoMeta(html: string, meta: { title: string; description: string; url: string }): string {
+function injectSeoMeta(
+  html: string,
+  meta: { title: string; description: string; url: string },
+): string {
   const { title, description, url } = meta
   const escaped = {
     title: escapeHtml(title),
@@ -90,8 +95,7 @@ function injectSeoMeta(html: string, meta: { title: string; description: string;
   ].join('\n    ')
 
   // 替换 <title> 并注入 meta（保留原有 title 标签位置）
-  return html
-    .replace(/<title>[^<]*<\/title>/, tags)
+  return html.replace(/<title>[^<]*<\/title>/, tags)
 }
 
 function parseDate(raw: string | Date | undefined): string | null {
@@ -149,7 +153,13 @@ interface ResolvedSidebarItem {
   isolated?: boolean
 }
 
-function readDirMeta(dir: string): { title?: string; sort?: number; exclude?: string[]; isolated?: boolean; series?: string } {
+function readDirMeta(dir: string): {
+  title?: string
+  sort?: number
+  exclude?: string[]
+  isolated?: boolean
+  series?: string
+} {
   const indexPath = path.join(dir, 'index.md')
   if (!fs.existsSync(indexPath)) return {}
   const raw = fs.readFileSync(indexPath, 'utf-8')
@@ -180,13 +190,16 @@ function scanDirForSidebar(
 
     if (localExclude.has(entry.name)) continue
 
-    if (exclude.some(pattern => {
-      const p = pattern
-        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-        .replace(/\*\*/g, '.*')
-        .replace(/(?<!\.)\*/g, '[^/]*')
-      return new RegExp(`^${p}$`).test(relPath)
-    })) continue
+    if (
+      exclude.some((pattern) => {
+        const p = pattern
+          .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+          .replace(/\*\*/g, '.*')
+          .replace(/(?<!\.)\*/g, '[^/]*')
+        return new RegExp(`^${p}$`).test(relPath)
+      })
+    )
+      continue
 
     if (entry.isDirectory()) {
       const children = scanDirForSidebar(absPath, contentDir, exclude)
@@ -219,7 +232,7 @@ function scanDirForSidebar(
     return b.date.localeCompare(a.date)
   })
 
-  return [...dirItems.map(d => d.item), ...fileItems.map(f => f.item)]
+  return [...dirItems.map((d) => d.item), ...fileItems.map((f) => f.item)]
 }
 
 function buildSidebar(contentDir: string, config: BlogConfig): ResolvedSidebarItem[] {
@@ -240,8 +253,8 @@ function buildPostsData(contentDir: string, config: BlogConfig): string {
   const pageFileSet = new Set(getPageFiles(contentDir))
 
   const posts = files
-    .filter(absPath => !pageFileSet.has(absPath))
-    .map(absPath => {
+    .filter((absPath) => !pageFileSet.has(absPath))
+    .map((absPath) => {
       const rawContent = fs.readFileSync(absPath, 'utf-8')
       const { data, content } = parseFrontmatter(rawContent)
       const slug = filePathToSlug(absPath, contentDir)
@@ -263,7 +276,7 @@ function readHomeFrontmatter(contentDir: string): { github?: string; projects?: 
   try {
     const { data } = parseFrontmatter(fs.readFileSync(homePath, 'utf-8'))
     return {
-      github:   typeof data.github === 'string' ? data.github : undefined,
+      github: typeof data.github === 'string' ? data.github : undefined,
       projects: Array.isArray(data.projects) ? (data.projects as string[]) : undefined,
     }
   } catch {
@@ -276,7 +289,7 @@ async function fetchGithubProject(github: string, name: string) {
   try {
     const res = await fetch(`https://profile.hacxy.cn/api/public/repo/${name}`)
     if (!res.ok) throw new Error(`Profile API ${res.status}`)
-    const data = await res.json() as { description: string | null; stars: number }
+    const data = (await res.json()) as { description: string | null; stars: number }
     return {
       name,
       description: data.description ?? '',
@@ -308,7 +321,13 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       const code = result.outputFiles[0].text
       const mod: { exports: { default?: BlogConfig } } = { exports: {} }
       const fn = new Function('module', 'exports', 'require', '__dirname', '__filename', code)
-      fn(mod, mod.exports, createRequire(pathToFileURL(configFile).href), path.dirname(configFile), configFile)
+      fn(
+        mod,
+        mod.exports,
+        createRequire(pathToFileURL(configFile).href),
+        path.dirname(configFile),
+        configFile,
+      )
       const loaded = mod.exports.default ?? (mod.exports as unknown as BlogConfig)
       if (loaded) {
         resolvedConfig = loaded
@@ -341,7 +360,10 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
           !url.match(/\.\w{1,8}(\?.*)?$/)
 
         if (isNavigation) {
-          const html = await server.transformIndexHtml(url, buildInlineHtml(resolvedConfig.title ?? 'Blog'))
+          const html = await server.transformIndexHtml(
+            url,
+            buildInlineHtml(resolvedConfig.title ?? 'Blog'),
+          )
           res.setHeader('Content-Type', 'text/html; charset=utf-8')
           res.end(html)
           return
@@ -410,9 +432,7 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
         if (!github || !projects?.length) {
           return `export default []`
         }
-        const fetched = await Promise.all(
-          projects.map(name => fetchGithubProject(github, name))
-        )
+        const fetched = await Promise.all(projects.map((name) => fetchGithubProject(github, name)))
         return `export default ${JSON.stringify(fetched)}`
       }
     },
@@ -430,15 +450,16 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
       const files = fg.sync(include, { cwd: resolvedContentDir, ignore: exclude, absolute: true })
       const pageFileSet = new Set(getPageFiles(resolvedContentDir))
       const posts = files
-        .filter(f => !pageFileSet.has(f))
-        .map(absPath => {
+        .filter((f) => !pageFileSet.has(f))
+        .map((absPath) => {
           const raw = fs.readFileSync(absPath, 'utf-8')
           const { data, content } = parseFrontmatter(raw)
           const slug = filePathToSlug(absPath, resolvedContentDir)
           const fileName = path.basename(absPath, '.md')
           const title = (data.title as string | undefined) || extractH1(content) || fileName
           const summary = (data.summary as string | undefined) ?? extractDescription(content)
-          const date = parseDate(data.date as string | Date | undefined) ?? getGitDate(absPath) ?? null
+          const date =
+            parseDate(data.date as string | Date | undefined) ?? getGitDate(absPath) ?? null
           return { slug, title, summary, date }
         })
 
@@ -463,11 +484,19 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
         { path: '', title: siteTitle, description: resolvedConfig.bio ?? '' },
         { path: 'posts', title: `Posts | ${siteTitle}`, description: '所有文章' },
         { path: 'about', title: `About | ${siteTitle}`, description: '' },
-        { path: 'skills', title: `Skills | ${siteTitle}`, description: 'Agent skill collection for Claude Code and other AI coding assistants' },
+        {
+          path: 'skills',
+          title: `Skills | ${siteTitle}`,
+          description: 'Agent skill collection for Claude Code and other AI coding assistants',
+        },
       ]
       for (const page of staticPages) {
         const url = page.path ? `${siteUrl}/${page.path}` : siteUrl
-        const html = injectSeoMeta(templateHtml, { title: page.title, description: page.description, url })
+        const html = injectSeoMeta(templateHtml, {
+          title: page.title,
+          description: page.description,
+          url,
+        })
         if (page.path) {
           const outDir = path.join(distDir, page.path)
           fs.mkdirSync(outDir, { recursive: true })
@@ -484,8 +513,9 @@ export function blogPlugin(userConfig: BlogConfig): Plugin {
           `  <url><loc>${siteUrl}/</loc><lastmod>${now}</lastmod></url>`,
           `  <url><loc>${siteUrl}/posts</loc><lastmod>${now}</lastmod></url>`,
           `  <url><loc>${siteUrl}/tags</loc><lastmod>${now}</lastmod></url>`,
-          ...posts.map(p =>
-            `  <url><loc>${siteUrl}/${p.slug}</loc>${p.date ? `<lastmod>${p.date}</lastmod>` : ''}</url>`
+          ...posts.map(
+            (p) =>
+              `  <url><loc>${siteUrl}/${p.slug}</loc>${p.date ? `<lastmod>${p.date}</lastmod>` : ''}</url>`,
           ),
         ]
         const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`

@@ -44,7 +44,9 @@
   padding: 0.3rem 0.65rem;
   border: 1px solid var(--border);
   border-radius: 4px;
-  transition: opacity 0.15s ease, border-color 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    border-color 0.15s ease;
 
   &:hover {
     opacity: 1;
@@ -84,7 +86,9 @@
   color: var(--fg);
   text-decoration: none;
   opacity: 0.55;
-  transition: opacity 0.15s ease, color 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease;
 
   &:hover {
     opacity: 1;

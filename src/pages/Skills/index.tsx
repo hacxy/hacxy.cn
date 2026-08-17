@@ -1,88 +1,91 @@
-import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router";
-import { motion, AnimatePresence } from "motion/react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
-import { Icon } from "@iconify/react";
-import remarkIconify from "../../plugins/remark-iconify";
-import classNames from "classnames";
-import "../../styles/markdown.scss";
-import PageTransition from "../../components/PageTransition";
-import CodeBlock from "../../components/CodeBlock";
-import { getSkills, REPO, type SkillData } from "../../utils/skills";
-import styles from "./Skills.module.scss";
+import { Icon } from '@iconify/react'
+import classNames from 'classnames'
+import { motion, AnimatePresence } from 'motion/react'
+import { useState, useEffect, useCallback } from 'react'
+import ReactMarkdown from 'react-markdown'
+import { useSearchParams } from 'react-router'
+import rehypeRaw from 'rehype-raw'
+import remarkGfm from 'remark-gfm'
+
+import CodeBlock from '../../components/CodeBlock'
+import '../../styles/markdown.scss'
+import PageTransition from '../../components/PageTransition'
+import remarkIconify from '../../plugins/remark-iconify'
+import { getSkills, REPO, type SkillData } from '../../utils/skills'
+import styles from './Skills.module.scss'
 
 function CopyCommand({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(false)
 
   const copy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch { /* fallback: user-select: all on code */ }
-  }, [text]);
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      /* fallback: user-select: all on code */
+    }
+  }, [text])
 
   return (
     <span className={styles.installCmd}>
       <code>{text}</code>
       <button type="button" className={styles.copyBtn} onClick={copy} aria-label="Copy">
-        <Icon icon={copied ? "lucide:check" : "lucide:copy"} width={13} height={13} />
+        <Icon icon={copied ? 'lucide:check' : 'lucide:copy'} width={13} height={13} />
       </button>
     </span>
-  );
+  )
 }
 
 function extractFirstSentence(text: string): string {
-  if (!text) return "";
-  const match = text.match(/^[^.!?。！？]+[.!?。！？]/);
-  return match ? match[0] : text.slice(0, 80) + (text.length > 80 ? "..." : "");
+  if (!text) return ''
+  const match = text.match(/^[^.!?。！？]+[.!?。！？]/)
+  return match ? match[0] : text.slice(0, 80) + (text.length > 80 ? '...' : '')
 }
 
 export default function Skills() {
-  const [skills, setSkills] = useState<SkillData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const selected = searchParams.get("skill");
+  const [skills, setSkills] = useState<SkillData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const selected = searchParams.get('skill')
 
   useEffect(() => {
     getSkills()
       .then((data) => setSkills(data))
       .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => setLoading(false))
+  }, [])
 
   useEffect(() => {
-    if (skills.length === 0) return;
-    const current = searchParams.get("skill");
-    if (current && skills.some((s) => s.name === current)) return;
+    if (skills.length === 0) return
+    const current = searchParams.get('skill')
+    if (current && skills.some((s) => s.name === current)) return
     setSearchParams(
       (prev) => {
-        const next = new URLSearchParams(prev);
-        next.set("skill", skills[0].name);
-        return next;
+        const next = new URLSearchParams(prev)
+        next.set('skill', skills[0].name)
+        return next
       },
       { replace: true },
-    );
-  }, [skills, searchParams, setSearchParams]);
+    )
+  }, [skills, searchParams, setSearchParams])
 
-  const activeSkill = skills.find((s) => s.name === selected);
+  const activeSkill = skills.find((s) => s.name === selected)
 
   const selectSkill = useCallback(
     (name: string) => {
       setSearchParams(
         (prev) => {
-          const next = new URLSearchParams(prev);
-          next.set("skill", name);
-          return next;
+          const next = new URLSearchParams(prev)
+          next.set('skill', name)
+          return next
         },
         { replace: false },
-      );
+      )
     },
     [setSearchParams],
-  );
+  )
 
   return (
     <PageTransition>
@@ -126,9 +129,7 @@ export default function Skills() {
                       onClick={() => selectSkill(skill.name)}
                     >
                       <span className={styles.skillCardName}>
-                        <span className={styles.skillCardIndex}>
-                          {String(i).padStart(2, "0")}
-                        </span>
+                        <span className={styles.skillCardIndex}>{String(i).padStart(2, '0')}</span>
                         {skill.name}
                       </span>
                       {skill.description && (
@@ -161,16 +162,16 @@ export default function Skills() {
           {loading && (
             <div className={styles.skeletonContent}>
               <div className={styles.skeletonTitle} />
-              <div className={styles.skeletonLine} style={{ width: "90%" }} />
-              <div className={styles.skeletonLine} style={{ width: "75%" }} />
-              <div className={styles.skeletonLine} style={{ width: "85%" }} />
-              <div className={styles.skeletonLine} style={{ width: "60%" }} />
+              <div className={styles.skeletonLine} style={{ width: '90%' }} />
+              <div className={styles.skeletonLine} style={{ width: '75%' }} />
+              <div className={styles.skeletonLine} style={{ width: '85%' }} />
+              <div className={styles.skeletonLine} style={{ width: '60%' }} />
             </div>
           )}
 
           {!loading && !error && !activeSkill && (
             <div className={styles.emptyState}>
-              <span>{"// select a skill from the list"}</span>
+              <span>{'// select a skill from the list'}</span>
             </div>
           )}
 
@@ -208,7 +209,9 @@ export default function Skills() {
                     rehypePlugins={[rehypeRaw]}
                     components={{
                       pre: CodeBlock,
-                      iconify: (props: { icon?: string }) => <Icon icon={props.icon ?? ""} style={{ verticalAlign: "-0.125em" }} />,
+                      iconify: (props: { icon?: string }) => (
+                        <Icon icon={props.icon ?? ''} style={{ verticalAlign: '-0.125em' }} />
+                      ),
                     }}
                   >
                     {activeSkill.markdownBody}
@@ -232,5 +235,5 @@ export default function Skills() {
         </div>
       </div>
     </PageTransition>
-  );
+  )
 }

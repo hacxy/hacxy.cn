@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router'
-import { getPostBySlug } from '../../utils/posts'
-import { parseFrontmatter } from '../../utils/frontmatter'
 import blogConfig from 'virtual:blog-config'
+
+import { parseFrontmatter } from '../../utils/frontmatter'
+import { getPostBySlug } from '../../utils/posts'
 
 const SITE_TITLE = blogConfig.title ?? "Hacxy's Blog"
 const SITE_BIO = blogConfig.bio ?? ''
@@ -22,7 +23,7 @@ function extractFirstParagraph(content: string, maxLen = 160): string {
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/[*_`~]/g, '')
     .trim()
-  const firstPara = cleaned.split(/\n\n+/).find(p => p.trim().length > 20) ?? ''
+  const firstPara = cleaned.split(/\n\n+/).find((p) => p.trim().length > 20) ?? ''
   const text = firstPara.replace(/\s+/g, ' ').trim()
   return text.length > maxLen ? text.slice(0, maxLen - 1) + '…' : text
 }

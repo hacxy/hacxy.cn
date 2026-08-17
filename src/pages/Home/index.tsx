@@ -1,20 +1,30 @@
-import type React from "react";
-import { Link } from "react-router";
-import { motion } from "motion/react";
-import { Icon } from "@iconify/react";
-import PageTransition from "../../components/PageTransition";
-import Typewriter from "../../components/Typewriter";
-import GitHubCalendar from "../../components/GitHubCalendar";
-import NotFound from "../NotFound";
-import { getAllPosts } from "../../utils/posts";
-import { preloadSkills } from "../../utils/skills";
-import { SOCIAL_META, getLinkHref, type SocialLink } from "../../utils/social";
-import projectsData from "virtual:github-projects";
-import blogConfig from "virtual:blog-config";
-import pages from "virtual:blog-pages";
-import styles from "../../styles/common.module.scss";
+import type React from 'react'
 
-function Row({ index, children, style }: { index: number; children: React.ReactNode; style?: React.CSSProperties }) {
+import { Icon } from '@iconify/react'
+import { motion } from 'motion/react'
+import { Link } from 'react-router'
+import blogConfig from 'virtual:blog-config'
+import pages from 'virtual:blog-pages'
+import projectsData from 'virtual:github-projects'
+
+import GitHubCalendar from '../../components/GitHubCalendar'
+import PageTransition from '../../components/PageTransition'
+import Typewriter from '../../components/Typewriter'
+import styles from '../../styles/common.module.scss'
+import { getAllPosts } from '../../utils/posts'
+import { preloadSkills } from '../../utils/skills'
+import { SOCIAL_META, getLinkHref, type SocialLink } from '../../utils/social'
+import NotFound from '../NotFound'
+
+function Row({
+  index,
+  children,
+  style,
+}: {
+  index: number
+  children: React.ReactNode
+  style?: React.CSSProperties
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -24,34 +34,34 @@ function Row({ index, children, style }: { index: number; children: React.ReactN
     >
       {children}
     </motion.div>
-  );
+  )
 }
 
-preloadSkills();
+preloadSkills()
 
 export default function Home() {
-  const homeData = pages.home?.[0];
+  const homeData = pages.home?.[0]
   if (!homeData) {
-    return <NotFound />;
+    return <NotFound />
   }
 
-  const bio = (homeData.bio as string | undefined) ?? blogConfig.bio ?? '';
-  const contact = (homeData.contact as SocialLink[] | undefined) ?? [];
+  const bio = (homeData.bio as string | undefined) ?? blogConfig.bio ?? ''
+  const contact = (homeData.contact as SocialLink[] | undefined) ?? []
 
-  const allPosts = getAllPosts();
-  const recentPosts = allPosts.slice(0, 5);
+  const allPosts = getAllPosts()
+  const recentPosts = allPosts.slice(0, 5)
 
-  const postsStart = 3;
-  const allPostsRow = postsStart + recentPosts.length;
-  const projectsHeadingRow = allPostsRow + 1;
-  const projectsStart = projectsHeadingRow + 1;
-  const projectsEnd = projectsStart + projectsData.length + 1;
-  const socialRow = projectsEnd;
+  const postsStart = 3
+  const allPostsRow = postsStart + recentPosts.length
+  const projectsHeadingRow = allPostsRow + 1
+  const projectsStart = projectsHeadingRow + 1
+  const projectsEnd = projectsStart + projectsData.length + 1
+  const socialRow = projectsEnd
 
   return (
     <PageTransition>
       <div className={styles.pageContent}>
-        <Row index={0} style={{ marginBottom: "3rem" }}>
+        <Row index={0} style={{ marginBottom: '3rem' }}>
           <div className={styles.homeIntro}>
             <p>
               <Typewriter text={bio} speed={60} delay={300} />
@@ -59,12 +69,12 @@ export default function Home() {
           </div>
         </Row>
 
-        <Row index={1} style={{ marginBottom: "3rem" }}>
+        <Row index={1} style={{ marginBottom: '3rem' }}>
           <p className={styles.sectionHeading}>Contributions</p>
           <GitHubCalendar />
         </Row>
 
-        <div style={{ marginTop: "3rem" }}>
+        <div style={{ marginTop: '3rem' }}>
           <Row index={2}>
             <p className={styles.sectionHeading}>Recent Posts</p>
           </Row>
@@ -84,7 +94,7 @@ export default function Home() {
               </motion.li>
             ))}
           </ul>
-          <Row index={allPostsRow} style={{ marginTop: "1.5rem" }}>
+          <Row index={allPostsRow} style={{ marginTop: '1.5rem' }}>
             <Link to="/posts" className={styles.navLink}>
               All posts →
             </Link>
@@ -92,7 +102,7 @@ export default function Home() {
         </div>
 
         {projectsData.length > 0 && (
-          <div style={{ marginTop: "3rem" }}>
+          <div style={{ marginTop: '3rem' }}>
             <Row index={projectsHeadingRow}>
               <p className={styles.sectionHeading}>Projects</p>
             </Row>
@@ -120,7 +130,7 @@ export default function Home() {
                 </motion.li>
               ))}
             </ul>
-            <Row index={projectsStart + projectsData.length} style={{ marginTop: "1.5rem" }}>
+            <Row index={projectsStart + projectsData.length} style={{ marginTop: '1.5rem' }}>
               <a
                 href={`${(homeData.github as string) ?? ''}?tab=repositories`}
                 target="_blank"
@@ -134,7 +144,7 @@ export default function Home() {
         )}
 
         {contact.length > 0 && (
-          <div style={{ marginTop: "3rem" }}>
+          <div style={{ marginTop: '3rem' }}>
             <Row index={socialRow}>
               <p className={styles.sectionHeading}>Contact</p>
             </Row>
@@ -144,8 +154,8 @@ export default function Home() {
                   <a
                     key={`${link.type}-${link.url}`}
                     href={getLinkHref(link)}
-                    target={link.type === 'email' ? undefined : "_blank"}
-                    rel={link.type === 'email' ? undefined : "noopener noreferrer"}
+                    target={link.type === 'email' ? undefined : '_blank'}
+                    rel={link.type === 'email' ? undefined : 'noopener noreferrer'}
                     className={styles.navLink}
                     aria-label={link.label ?? SOCIAL_META[link.type].label}
                   >
@@ -158,5 +168,5 @@ export default function Home() {
         )}
       </div>
     </PageTransition>
-  );
+  )
 }

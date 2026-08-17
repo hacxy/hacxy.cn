@@ -1,5 +1,5 @@
-import PageTransition from "../../components/PageTransition";
-import styles from "../../styles/common.module.scss";
+import PageTransition from '../../components/PageTransition'
+import styles from '../../styles/common.module.scss'
 
 export default function NotFound() {
   return (
@@ -11,5 +11,5 @@ export default function NotFound() {
         </div>
       </div>
     </PageTransition>
-  );
+  )
 }
