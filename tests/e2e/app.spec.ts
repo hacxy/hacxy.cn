@@ -703,10 +703,42 @@ test('nav switches between posts list and about page', async ({ page }) => {
   await expect(page.getByText('你好，世界')).toBeVisible()
 })
 
-test('unknown path renders 404', async ({ page }) => {
+test('unknown path renders the terminal-style 404 page: h1 + mini terminal + home link + 2 recent posts (issue #78)', async ({
+  page,
+}) => {
   await page.goto('/definitely-not-a-page')
 
-  await expect(page.getByRole('heading', { name: '404' })).toBeVisible()
+  // h1「页面不存在」（语义标题，替代旧的纯文本三行）——旧 h1 404 不再渲染
+  await expect(page.getByRole('heading', { level: 1, name: '页面不存在' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '404' })).toHaveCount(0)
+
+  // 迷你终端块：与 hero 终端同一视觉语言（恒黑底白字 + 四角括号），呈现 404 数字
+  const terminal = page.locator('.notfound-terminal')
+  await expect(terminal).toBeVisible()
+  await expect(terminal).toHaveCSS('background-color', 'rgb(0, 0, 0)')
+  await expect(terminal).toHaveCSS('color', 'rgb(255, 255, 255)')
+  expect((await terminal.locator('.hero-terminal-corner').allTextContents()).sort()).toEqual(
+    ['┌', '┐', '└', '┘'].sort(),
+  )
+  await expect(terminal.locator('.notfound-code').getByText('404', { exact: true })).toBeVisible()
+
+  // 「返回首页」入口：指向 /
+  const homeLink = page.getByRole('link', { name: '返回首页' })
+  await expect(homeLink).toBeVisible()
+  await expect(homeLink).toHaveAttribute('href', '/')
+
+  // 最近 2 篇非 draft 文章引导：复用文章行组件（与首页同一内容清单数据源），期望值从源计算
+  const recent = publishedPosts().slice(0, 2)
+  const rows = page.locator('.post-row')
+  await expect(rows).toHaveCount(2)
+  for (const post of recent) {
+    await expect(rows.filter({ hasText: post.title })).toBeVisible()
+  }
+
+  // 点击最近文章：正常跳转到文章页
+  await rows.first().click()
+  await expect(page).toHaveURL(new RegExp(`/posts/${recent[0]?.slug}`))
+  await expect(page.getByRole('heading', { name: recent[0]?.title ?? '' })).toBeVisible()
 })
 
 test('raw HTML source contains article title without executing JS', async ({ request }) => {
