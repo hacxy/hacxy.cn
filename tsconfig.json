@@ -15,5 +15,5 @@
       "virtual:blog-pages": ["./virtual.d.ts"]
     }
   },
-  "include": ["src", "virtual.d.ts", "vite.config.ts", "blog.config.ts"]
+  "include": ["src", "test", "virtual.d.ts", "vite.config.ts", "vitest.config.ts", "blog.config.ts"]
 }
