@@ -1,9 +1,9 @@
 name: DeployBlog
 on:
   push:
-    branches: ["main"]
+    branches: ['main']
   schedule:
-    - cron: "0 2 * * *"
+    - cron: '0 2 * * *'
 jobs:
   build:
     runs-on: ubuntu-latest # runs-on 指定job任务运行所需要的虚拟机环境(必填字段)
@@ -39,8 +39,8 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: deploy
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "dist/"
-          target: "/srv/projects/.blog_temp/"
+          source: 'dist/'
+          target: '/srv/projects/.blog_temp/'
           rm: true
           strip_components: 1
 
